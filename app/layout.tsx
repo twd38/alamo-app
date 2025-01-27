@@ -1,11 +1,11 @@
 import './globals.css';
-
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Analytics } from '@vercel/analytics/react';
 
 export const metadata = {
-  title: 'Next.js App Router + NextAuth + Tailwind CSS',
+  title: 'Alamo',
   description:
-    'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
+    'Alamo is the operating system for the American Housing Corporation.'
 };
 
 export default function RootLayout({
@@ -14,8 +14,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="flex min-h-screen w-full flex-col">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
       <Analytics />
     </html>
   );

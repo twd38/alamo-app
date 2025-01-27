@@ -10,7 +10,17 @@ export default {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
         search: ''
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        search: ''
+      },
+      {
+        protocol: 'https',
+        hostname: '*',
+        search: ''
+      },
     ]
   }
 };
