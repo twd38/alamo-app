@@ -44,8 +44,6 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
   const isDarkMode = theme === "dark"
-  console.log(theme)
-
 
   const toggleDarkMode = () => {
     setTheme(isDarkMode ? "light" : "dark")

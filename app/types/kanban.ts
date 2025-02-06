@@ -4,7 +4,7 @@ export interface Machine {
     status: "active" | "idle"
   }
   
-  export interface Task {
+  export interface Job {
     id: string
     jobNumber: string
     partName: string
@@ -19,7 +19,7 @@ export interface Machine {
   
   export interface Column {
     machine: Machine
-    tasks: Task[]
+    jobs: Job[]
   }
   
   

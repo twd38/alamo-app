@@ -43,7 +43,7 @@ export default async function ProductsPage(
           </div>
         </div>
         <TabsContent value="all" className="overflow-scroll">
-          <div className="p-4 bg-red-500 w-screen h-screen"></div>
+          <div className="p-4 w-screen h-screen"></div>
         </TabsContent>
       </Tabs>
     </div>

@@ -20,7 +20,7 @@ import {
   SidebarMenuButton,
   SidebarMenu,
 } from "@/components/ui/sidebar"
-import { useUser } from "@/components/hooks/use-user"
+import { useUser } from "hooks/use-user"
 import Image from "next/image"
 import Link from "next/link"
 import { Command } from "lucide-react"

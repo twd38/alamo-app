@@ -1,7 +1,23 @@
-import 'server-only';
-// import { PrismaClient, Product } from '@prisma/client';
+import { Pool, neonConfig } from '@neondatabase/serverless'
+import { PrismaNeon } from '@prisma/adapter-neon'
+import { PrismaClient } from '@prisma/client'
+import dotenv from 'dotenv'
+import ws from 'ws'
 
-// const prisma = new PrismaClient();
+const connectionString = `${process.env.DATABASE_URL}`
+
+const pool = new Pool({ connectionString })
+const adapter = new PrismaNeon(pool)
+ 
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+
+
+
 
 // export async function getProducts(
 //   search: string,

@@ -1,32 +1,104 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
+ 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
-
+ 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  role  Role
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  createdJobs   Job[]           @relation(name: "CreatedByRelation")
+  ownedJobs     Job[]           @relation(name: "OwnerRelation")
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
-enum Role {
-  admin
-  user
+ 
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([provider, providerAccountId])
 }
-
+ 
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+ 
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+ 
+  @@id([identifier, token])
+}
+ 
 enum Status {
-  active
-  inactive
-  archived
+  Paused
+  Todo
+  InProgress
+  Completed
+  Scrapped
 }
+
+model JobFile {
+  id          String @id @default(cuid())
+  url         String
+  jobId       String
+  job         Job    @relation(fields: [jobId], references: [id])
+}
+
+model Job {
+  id            String @id @default(cuid())
+  jobNumber     String
+  partName      String
+  operation     String
+  status        Status
+  timeEstimate  String
+  dueDate       String
+  imageUrl      String
+  createdById   String
+  createdBy     User   @relation(fields: [createdById], references: [id], name: "CreatedByRelation")
+  ownerId       String
+  owner         User   @relation(fields: [ownerId], references: [id], name: "OwnerRelation")
+  workStationId String?
+  workStation   WorkStation? @relation(fields: [workStationId], references: [id])
+  files         JobFile[]
+}
+
+model WorkStation {
+  id          String @id @default(cuid())
+  name        String
+  kanbanOrder Int
+  jobs        Job[]
+}
+ 
