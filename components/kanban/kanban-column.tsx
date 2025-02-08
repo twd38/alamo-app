@@ -5,8 +5,14 @@ import { CSS } from "@dnd-kit/utilities"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { TaskCard } from "./task-card"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Edit, Trash } from "lucide-react"
 import { Job } from "@prisma/client"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface KanbanColumnProps {
   id: string
@@ -51,9 +57,23 @@ export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
                   </div>
                 )} */}
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => console.log('Rename column')}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Rename column
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => console.log('Delete column')} className="text-red-600">
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete column
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           <div className="p-3">

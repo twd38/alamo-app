@@ -38,7 +38,7 @@ export default function NewWorkstationDialog({ isOpen, onClose }: { isOpen: bool
               placeholder="Workstation Name"
               {...register('workstationName')}
             />
-            {errors.workstationName && <p className="text-red-500">{String(errors.workstationName.message)}</p>}
+            {/* {errors.workstationName && <p className="text-red-500">{String(errors.workstationName.message)}</p>} */}
           </div>
           
           <DialogFooter>
