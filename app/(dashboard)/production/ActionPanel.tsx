@@ -6,7 +6,6 @@ import { ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Filter, Search } from "lucide-react"
 import NewWorkstationDialog from './NewWorkstationDialog';
-import { revalidatePath } from 'next/cache';
 import { useRouter } from 'next/navigation'
 
 
@@ -22,10 +21,6 @@ export function ActionPanel() {
       setIsDialogOpen(false);
     };
 
-    const handleRefresh = () => {
-        revalidatePath('/production', "page")
-    }
-
     return (
         <div>
             <div className="flex items-center justify-between">
@@ -36,7 +31,7 @@ export function ActionPanel() {
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center">
-                    <Button variant="outline" className={'rounded-r-none'} onClick={handleRefresh}>
+                    <Button variant="outline" className={'rounded-r-none'} >
                         + Add Job
                     </Button>
                     <DropdownMenu>

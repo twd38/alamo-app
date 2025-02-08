@@ -40,7 +40,7 @@ export function KanbanBoard({
         column.jobs.some(job => job.id === active.id)
       );
       const overJobColumnIndex = columns.findIndex(column =>
-        column.jobs.some(job => job.id === over.id)
+        column.jobs.some(job => job.id === over.id) 
       );
 
       if (activeJobColumnIndex !== -1 && overJobColumnIndex !== -1) {
