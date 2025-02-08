@@ -21,3 +21,12 @@ export async function createWorkStation(name: string) {
     revalidatePath('/production')
     // redirect('/production')
   }
+
+export async function updateWorkStationKanbanOrder(id: string, kanbanOrder: number) {
+    await prisma.workStation.update({
+        where: { id },
+        data: { kanbanOrder }
+    });
+    revalidatePath('/production');
+}
+

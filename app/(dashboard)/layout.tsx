@@ -41,7 +41,6 @@ function DesktopNav({
 }: {
   children: React.ReactNode;
 }) {
-  console.log("rerender DesktopNav")
   return (
     <SidebarInset className="overflow-hidden">
       <header className="sticky top-0 z-10 h-12 border-b p-4 bg-white dark:bg-gray-900 flex items-center gap-2 shrink-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
