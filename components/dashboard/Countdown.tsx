@@ -42,15 +42,15 @@ export function Countdown({ targetDate }: CountdownProps) {
   const timeLeft = useCountdown(targetDate)
 
   return (
-    <Card className="bg-white shadow-sm">
+    <Card className="bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] shadow-sm">
       <CardContent className="p-6">
         <h2 className="text-xl font-semibold mb-4">Time Until Launch</h2>
         <div className="grid grid-cols-4 gap-4">
           {Object.entries(timeLeft).map(([unit, value]) => (
             <div key={unit} className="text-center">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <span className="text-3xl font-bold text-gray-900">{String(value).padStart(2, "0")}</span>
-                <span className="block text-sm text-gray-500 mt-1 uppercase">{unit}</span>
+              <div className="bg-[hsl(var(--card))] rounded-lg p-4">
+                <span className="text-3xl font-bold text-[hsl(var(--card-foreground))]">{String(value).padStart(2, "0")}</span>
+                <span className="block text-sm text-[hsl(var(--muted-foreground))] mt-1 uppercase">{unit}</span>
               </div>
             </div>
           ))}

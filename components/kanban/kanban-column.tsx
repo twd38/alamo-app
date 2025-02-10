@@ -13,6 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useState, useEffect } from 'react';
+import { DeleteAlert } from '@/components/delete-alert';
 
 interface KanbanColumnProps {
   id: string
@@ -23,10 +25,33 @@ interface KanbanColumnProps {
 export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id });
   const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition } = useSortable({ id });
+  
+  useEffect(() => {
+    console.log('KanbanColumn mounted');
+    return () => {
+      console.log('KanbanColumn unmounted');
+    };
+  }, []);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  // State to manage the visibility of the delete alert
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  console.log(isDeleteAlertOpen)
+
+  // Function to open the delete alert
+  const openDeleteAlert = () => {
+    setDeleteAlertOpen(true);
+  };
+
+  // Function to handle the delete action
+  const handleDeleteColumn = () => {
+    console.log(`Deleting column with id: ${id}`);
+    // Add your delete logic here
+    setDeleteAlertOpen(false);
   };
 
   return (
@@ -57,7 +82,7 @@ export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
                   </div>
                 )} */}
               </div>
-              <DropdownMenu>
+              <DropdownMenu data-no-dnd="true">
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
                     <MoreHorizontal className="h-4 w-4" />
@@ -68,7 +93,7 @@ export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
                     <Edit className="mr-2 h-4 w-4" />
                     Rename column
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => console.log('Delete column')} className="text-red-600">
+                  <DropdownMenuItem onClick={openDeleteAlert} className="text-red-600">
                     <Trash className="mr-2 h-4 w-4" />
                     Delete column
                   </DropdownMenuItem>
@@ -87,6 +112,12 @@ export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
           </div>
         </div>
       </div>
+      <DeleteAlert
+        isOpen={isDeleteAlertOpen}
+        onClose={() => setDeleteAlertOpen(false)}
+        onConfirm={handleDeleteColumn}
+        resourceName="column"
+      />
     </div>
   )
 }

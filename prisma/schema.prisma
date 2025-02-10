@@ -102,3 +102,9 @@ model WorkStation {
   jobs        Job[]
 }
  
+model MissionMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

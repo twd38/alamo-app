@@ -2,7 +2,7 @@
 
 import { useState, startTransition } from "react"
 import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core"
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable"
+import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { KanbanColumn } from "./kanban-column"
 import { TaskCard } from "./task-card"
 import type { WorkStation, Job } from "@prisma/client"
@@ -24,12 +24,12 @@ export function KanbanBoard({
 }) {
   // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
-
   const [sortableColumns, setSortableColumns] = useOptimistic(columns);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     console.log(event)
+    if(active.id === over?.id) return;
     if (!over) return;
 
     const activeColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobs) => column.name === active.id);
@@ -107,6 +107,7 @@ export function KanbanBoard({
 
   const handleDragStart = (event: any) => {
     const { active } = event;
+    console.log(event)
     setActiveId(active.id);
   };
 
