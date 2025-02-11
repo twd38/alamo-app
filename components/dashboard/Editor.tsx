@@ -72,7 +72,6 @@ export const Editor = ({initialContent}: {initialContent: MissionMessage | null}
 
 //   if (!initialContent) return null;
   const initialContentJson = initialContent?.content ? JSON.parse(initialContent.content) : {};
-  console.log(initialContentJson)
 
   return (
     <div className="relative w-full">

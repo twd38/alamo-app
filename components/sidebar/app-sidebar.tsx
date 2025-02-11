@@ -58,8 +58,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <Link href="/" className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-          <Command className="size-8 max-w-4" />
+        <Link href="/" className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-secondary text-sidebar-primary-foreground">
+          {/* <Command className="size-8 max-w-4" /> */}
+          <Image src="/american-flag.png" alt="Logo" width={32} height={32} className="" />
         </Link>
       </SidebarHeader>
 
