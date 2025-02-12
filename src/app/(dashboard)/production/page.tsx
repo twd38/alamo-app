@@ -1,6 +1,6 @@
 import React from 'react';
 import { KanbanBoard } from "src/components/kanban/kanban-board"
-import { ActionPanel } from './ActionPanel';
+import { ActionPanel } from '../../../components/production/action-panel';
 import { prisma } from 'src/lib/db';
 // export const dynamic = 'force-dynamic';
 

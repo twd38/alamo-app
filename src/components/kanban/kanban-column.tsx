@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "src/components/ui/dropdown-menu"
 import { useState, useEffect } from 'react';
-import { DeleteAlert } from 'src/components/delete-alert';
+import { DeleteAlert } from '@/components/delete-alert';
 
 interface KanbanColumnProps {
   id: string

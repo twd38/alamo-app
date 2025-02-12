@@ -11,14 +11,14 @@ import {
 import { Button } from 'src/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from 'src/components/ui/sheet';
 import { Analytics } from '@vercel/analytics/react';
-import Providers from './providers';
-import { AppSidebar } from "src/components/sidebar/app-sidebar"
+import Providers from '../../components/providers/providers';
+import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import {
   SidebarInset,
   SidebarTrigger,
 } from "src/components/ui/sidebar"
 import { Separator } from "src/components/ui/separator"
-import { Breadcrumbs } from "src/components/breadcrumbs"
+import { Breadcrumbs } from "@/components/breadcrumbs"
 
 export default function DashboardLayout({
   children

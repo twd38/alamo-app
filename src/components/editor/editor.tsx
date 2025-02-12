@@ -23,7 +23,7 @@ import { MathSelector } from "../selectors/math-selector";
 import { NodeSelector } from "../selectors/node-selector";
 import { Separator } from "../ui/separator";
 
-import GenerativeMenuSwitch from "../generative/generative-menu-switch";
+import GenerativeMenuSwitch from "./generative/generative-menu-switch";
 import { uploadFn } from "./image-upload";
 import { TextButtons } from "../selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";

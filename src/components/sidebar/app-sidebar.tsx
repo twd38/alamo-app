@@ -8,8 +8,8 @@ import {
   Library
 } from "lucide-react"
 
-import { NavMain } from "src/components/sidebar/nav-main"
-import { NavUser } from "src/components/sidebar/nav-user"
+import { NavMain } from "@/components/sidebar/nav-main"
+import { NavUser } from "@/components/sidebar/nav-user"
 import {
   Sidebar,
   SidebarContent,

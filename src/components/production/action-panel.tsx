@@ -5,7 +5,7 @@ import { Input } from "src/components/ui/input"
 import { ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "src/components/ui/dropdown-menu"
 import { Filter, Search } from "lucide-react"
-import NewWorkstationDialog from './NewWorkstationDialog';
+import NewWorkstationDialog from './new-workstation-dialog';
 import { useRouter } from 'next/navigation'
 
 

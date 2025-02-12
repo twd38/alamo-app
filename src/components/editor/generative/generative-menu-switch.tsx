@@ -1,6 +1,6 @@
 import { EditorBubble, removeAIHighlight, useEditor } from "novel";
 import { Fragment, type ReactNode, useEffect } from "react";
-import { Button } from "../ui/button";
+import { Button } from "../../ui/button";
 import { WandSparkles } from "lucide-react";
 import { AISelector } from "./ai-selector";
 

@@ -9,8 +9,8 @@ import { addAIHighlight } from "novel";
 import { useState } from "react";
 import Markdown from "react-markdown";
 import { toast } from "react-hot-toast";
-import { Button } from "../ui/button";
-import { ScrollArea } from "../ui/scroll-area";
+import { Button } from "../../ui/button";
+import { ScrollArea } from "../../ui/scroll-area";
 import AICompletionCommands from "./ai-completion-command";
 import AISelectorCommands from "./ai-selector-commands";
 //TODO: I think it makes more sense to create a custom Tiptap extension for this functionality https://tiptap.dev/docs/editor/ai/introduction
