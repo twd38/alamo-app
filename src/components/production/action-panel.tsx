@@ -7,10 +7,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Filter, Search } from "lucide-react"
 import NewWorkstationDialog from './new-workstation-dialog';
 import { useRouter } from 'next/navigation'
+import TaskDetial from './task-detail';
+import { Task } from '@prisma/client';
+import { taskModal } from './utils';
+import { useAtom } from 'jotai';
 
 
 export function ActionPanel() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [activeTask, setActiveTask] = useAtom(taskModal)
     const router = useRouter();
 
     const openNewWorkstationDialog = () => {
@@ -21,6 +26,13 @@ export function ActionPanel() {
       setIsDialogOpen(false);
     };
 
+    const createNewTask = () => {
+        setActiveTask("new");
+    }
+
+    const updateActiveTask = (task: Task | "new" | null) => {
+        setActiveTask(task);
+    }
     return (
         <div>
             <div className="flex items-center justify-between">
@@ -31,8 +43,8 @@ export function ActionPanel() {
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center">
-                    <Button variant="outline" className={'rounded-r-none'} >
-                        + Add Job
+                    <Button variant="outline" className={'rounded-r-none'} onClick={createNewTask}>
+                        + Add Task
                     </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -41,8 +53,9 @@ export function ActionPanel() {
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                        <DropdownMenuItem>Job</DropdownMenuItem>
-                        <DropdownMenuItem onClick={openNewWorkstationDialog}>Workstation</DropdownMenuItem>
+                            <DropdownMenuItem onClick={createNewTask} disabled>Job</DropdownMenuItem>
+                            <DropdownMenuItem onClick={createNewTask}>Task</DropdownMenuItem>
+                            <DropdownMenuItem onClick={openNewWorkstationDialog}>Workstation</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -50,6 +63,7 @@ export function ActionPanel() {
                 </div>
             </div>
             <NewWorkstationDialog isOpen={isDialogOpen} onClose={closeNewWorkstationDialog} />
+            <TaskDetial />
         </div>
     );
 }

@@ -10,7 +10,7 @@ generator client {
  
 model User {
   id            String          @id @default(cuid())
-  name          String?
+  name          String
   email         String          @unique
   emailVerified DateTime?
   image         String?
@@ -18,7 +18,10 @@ model User {
   sessions      Session[]
   createdJobs   Job[]           @relation(name: "CreatedByRelation")
   ownedJobs     Job[]           @relation(name: "OwnerRelation")
- 
+  assignedJobs  JobAssignee[] 
+  createdTasks  Task[]           @relation(name: "CreatedByRelation")
+  assignedTasks Task[] 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -70,11 +73,15 @@ enum Status {
   Scrapped
 }
 
-model JobFile {
+model File {
   id          String @id @default(cuid())
   url         String
+  fileName    String
   jobId       String
   job         Job    @relation(fields: [jobId], references: [id])
+  taskId      String
+  task        Task   @relation(fields: [taskId], references: [id])
+  deletedOn   DateTime?
 }
 
 model Job {
@@ -90,9 +97,36 @@ model Job {
   createdBy     User   @relation(fields: [createdById], references: [id], name: "CreatedByRelation")
   ownerId       String
   owner         User   @relation(fields: [ownerId], references: [id], name: "OwnerRelation")
+  assignees     JobAssignee[]   
   workStationId String?
   workStation   WorkStation? @relation(fields: [workStationId], references: [id])
-  files         JobFile[]
+  files         File[]
+  deletedOn     DateTime?
+}
+
+model JobAssignee {
+  jobId  String
+  job    Job   @relation(fields: [jobId], references: [id])
+  userId String
+  user   User  @relation(fields: [userId], references: [id])
+
+  @@id([jobId, userId]) // Composite primary key
+}
+
+model Task {
+  id            String @id @default(cuid())
+  name          String
+  taskNumber    String
+  status        Status
+  dueDate       DateTime
+  description   String
+  createdById   String
+  createdBy     User   @relation(fields: [createdById], references: [id], name: "CreatedByRelation")
+  assignees     User[]   
+  workStationId String?
+  workStation   WorkStation? @relation(fields: [workStationId], references: [id])
+  files         File[]
+  deletedOn     DateTime?
 }
 
 model WorkStation {
@@ -100,6 +134,8 @@ model WorkStation {
   name        String
   kanbanOrder Int
   jobs        Job[]
+  tasks       Task[]
+  deletedOn   DateTime?
 }
  
 model MissionMessage {

@@ -5,35 +5,46 @@ import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core"
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { KanbanColumn } from "./kanban-column"
 import { TaskCard } from "./task-card"
-import type { WorkStation, Job } from "@prisma/client"
+import type { WorkStation, Job, Task, User } from "@prisma/client"
 import { ScrollArea, ScrollBar } from "src/components/ui/scroll-area"
 import { updateWorkStationKanbanOrder } from 'src/app/actions'
 import { useOptimistic } from 'react'
 import { toast } from 'react-hot-toast'
+import { MouseSensor, KeyboardSensor } from '@/lib/dnd-sensors'
 
 export const dynamic = 'force-dynamic';
 
-type WorkstationWithJobs = WorkStation & {
+type WorkstationWithJobsAndTasks = WorkStation & {
   jobs: Job[];
+  tasks: (Task & {
+    assignees: User[];
+    createdBy: User;
+    files: any[];
+  })[];
 };
 
 export function KanbanBoard({
   columns,
 }: {
-  columns: WorkstationWithJobs[]
+  columns: WorkstationWithJobsAndTasks[]
 }) {
   // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sortableColumns, setSortableColumns] = useOptimistic(columns);
+  console.log(sortableColumns)
+  console.log(activeId)
+  console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
 
   const handleDragEnd = (event: DragEndEvent) => {
+    console.log("drag end")
     const { active, over } = event;
     console.log(event)
+
     if(active.id === over?.id) return;
     if (!over) return;
 
-    const activeColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobs) => column.name === active.id);
-    const overColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobs) => column.name === over.id);
+    const activeColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobsAndTasks) => column.name === active.id);
+    const overColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobsAndTasks) => column.name === over.id);
 
     if (activeColumnIndex !== -1 && overColumnIndex !== -1) {
       const updatedColumns = [...sortableColumns];
@@ -64,25 +75,25 @@ export function KanbanBoard({
           });
       });
     } else {
-      const activeJobColumnIndex = columns.findIndex(column =>
-        column.jobs.some(job => job.id === active.id)
+      const activeTaskColumnIndex = columns.findIndex(column =>
+        column.tasks.some(task => task.id === active.id)
       );
-      const overJobColumnIndex = columns.findIndex(column =>
-        column.jobs.some(job => job.id === over.id) 
+      const overTaskColumnIndex = columns.findIndex(column =>
+        column.tasks.some(task => task.id === over.id) 
       );
 
-      if (activeJobColumnIndex !== -1 && overJobColumnIndex !== -1) {
-        const activeJobIndex = columns[activeJobColumnIndex].jobs.findIndex(job => job.id === active.id);
-        const [movedJob] = columns[activeJobColumnIndex].jobs.splice(activeJobIndex, 1);
+      if (activeTaskColumnIndex !== -1 && overTaskColumnIndex !== -1) {
+        const activeTaskIndex = columns[activeTaskColumnIndex].tasks.findIndex(task => task.id === active.id);
+        const [movedTask] = columns[activeTaskColumnIndex].tasks.splice(activeTaskIndex, 1);
 
-        const overJobIndex = columns[overJobColumnIndex].jobs.findIndex(job => job.id === over.id);
-        const updatedJobs = [...columns[overJobColumnIndex].jobs];
-        updatedJobs.splice(overJobIndex, 0, movedJob);
+        const overTaskIndex = columns[overTaskColumnIndex].tasks.findIndex(task => task.id === over.id);
+        const updatedTasks = [...columns[overTaskColumnIndex].tasks];
+        updatedTasks.splice(overTaskIndex, 0, movedTask);
 
         const updatedColumns = [...columns];
-        updatedColumns[overJobColumnIndex] = {
-          ...columns[overJobColumnIndex],
-          jobs: updatedJobs,
+        updatedColumns[overTaskColumnIndex] = {
+          ...columns[overTaskColumnIndex],
+          tasks: updatedTasks,
         };
 
         // Update kanbanOrder for each workstation
@@ -91,23 +102,24 @@ export function KanbanBoard({
         });
 
         // setColumns(updatedColumns);
-      } else if (activeJobColumnIndex !== -1) {
-        const activeJobIndex = columns[activeJobColumnIndex].jobs.findIndex(job => job.id === active.id);
-        const [movedJob] = columns[activeJobColumnIndex].jobs.splice(activeJobIndex, 1);
+      } else if (activeTaskColumnIndex !== -1) {
+        const activeTaskIndex = columns[activeTaskColumnIndex].tasks.findIndex(task => task.id === active.id);
+        const [movedTask] = columns[activeTaskColumnIndex].tasks.splice(activeTaskIndex, 1);
 
         const emptyColumnIndex = columns.findIndex(column => column.name === over.id);
         if (emptyColumnIndex !== -1) {
-          columns[emptyColumnIndex].jobs.push(movedJob);
+          columns[emptyColumnIndex].tasks.push(movedTask);
           // setColumns([...columns]);
         }
       }
     }
-    setActiveId(null);
+    // setActiveId(null);
   };
 
   const handleDragStart = (event: any) => {
+    console.log("drag start")
     const { active } = event;
-    console.log(event)
+    console.log(active.id)
     setActiveId(active.id);
   };
 
@@ -115,24 +127,38 @@ export function KanbanBoard({
     <div className="">
       <ScrollArea className="whitespace-nowrap ">
         <div className="flex gap-2 py-4 w-max">
-            <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+            <DndContext 
+              onDragEnd={handleDragEnd} 
+              onDragStart={handleDragStart}
+              sensors={[
+                {
+                  sensor: MouseSensor,
+                  options: {}
+                },
+                {
+                  sensor: KeyboardSensor,
+                  options: {}
+                }
+              ]}
+            >
                 <SortableContext items={sortableColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
                 
                   {sortableColumns.map((column, index) => (
-                  <KanbanColumn key={index} id={column.name} name={column.name} jobs={column.jobs} />
+                    <KanbanColumn key={index} id={column.id} name={column.name} jobs={column.jobs} tasks={column.tasks} />
                   ))}
 
                 </SortableContext>
                 <DragOverlay>
-                {activeId && sortableColumns.some(column => column.name === activeId) ? (
-                    <KanbanColumn
-                    id={activeId}
-                    name={sortableColumns.find(column => column.name === activeId)!.name}
-                    jobs={sortableColumns.find(column => column.name === activeId)!.jobs}
-                    />
-                ) : activeId ? (
-                    <TaskCard job={sortableColumns.flatMap(column => column.jobs).find(job => job.id === activeId)!} />
-                ) : null}
+                  {activeId && sortableColumns.some(column => column.name === activeId) ? (
+                      <KanbanColumn
+                        id={activeId}
+                        name={sortableColumns.find(column => column.name === activeId)!.name}
+                        jobs={sortableColumns.find(column => column.name === activeId)!.jobs}
+                        tasks={sortableColumns.find(column => column.name === activeId)!.tasks}
+                      />
+                  ) : activeId ? (
+                      <TaskCard task={sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId)!} />
+                  ) : null}
                 </DragOverlay>
             </DndContext>
         </div>

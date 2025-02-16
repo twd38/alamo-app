@@ -6,7 +6,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { TaskCard } from "./task-card"
 import { Button } from "src/components/ui/button"
 import { MoreHorizontal, Edit, Trash } from "lucide-react"
-import { Job } from "@prisma/client"
+import { Job, Task, User } from "@prisma/client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,32 +15,35 @@ import {
 } from "src/components/ui/dropdown-menu"
 import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
+import { deleteWorkStation } from 'src/app/actions';
+import { toast } from 'react-hot-toast';
+
+// export const dynamic = 'force-dynamic';
 
 interface KanbanColumnProps {
   id: string
   name: string
   jobs: Job[]
+  tasks: (Task & {
+    assignees: User[];
+    createdBy: User;
+    files: any[];
+  })[]
 }
 
-export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
+export function KanbanColumn({ id, name, jobs, tasks }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id });
-  const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition } = useSortable({ id });
-  
-  useEffect(() => {
-    console.log('KanbanColumn mounted');
-    return () => {
-      console.log('KanbanColumn unmounted');
-    };
-  }, []);
+  const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isSorting } = useSortable({ id, disabled: false });
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  // State to manage the visibility of the delete alert
-  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
-  console.log(isDeleteAlertOpen)
+  const closeDeleteAlert = () => {
+    setDeleteAlertOpen(false);
+  }
 
   // Function to open the delete alert
   const openDeleteAlert = () => {
@@ -48,14 +51,23 @@ export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
   };
 
   // Function to handle the delete action
-  const handleDeleteColumn = () => {
+  const handleDeleteColumn = async () => {
     console.log(`Deleting column with id: ${id}`);
-    // Add your delete logic here
-    setDeleteAlertOpen(false);
+    try{
+      await deleteWorkStation(id);
+      toast.success('Column deleted');
+      setDeleteAlertOpen(false);
+    } catch (error) {
+      console.error('Error deleting column', error);
+      toast.error('Error deleting column');
+      setDeleteAlertOpen(false);
+    }
   };
 
+  console.log("tasks", tasks)
+
   return (
-    <div className="bg-white dark:bg-gray-800">
+    <div className="bg-red dark:bg-gray-800">
       <div
         ref={node => {
           setNodeRef(node);
@@ -82,42 +94,46 @@ export function KanbanColumn({ id, name, jobs }: KanbanColumnProps) {
                   </div>
                 )} */}
               </div>
-              <DropdownMenu data-no-dnd="true">
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => console.log('Rename column')}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Rename column
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={openDeleteAlert} className="text-red-600">
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete column
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div data-no-dnd="true">
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => console.log('Rename column')}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Rename column
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={openDeleteAlert} className="text-red-600" data-no-dnd>
+                      <Trash className="mr-2 h-4 w-4" />
+                      Delete column
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
           <div className="p-3">
-            <SortableContext items={jobs.map(job => job.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
-                {/* {jobs.map((job) => (
-                  <TaskCard key={job.id} job={job} />
-                ))} */}
+            <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto min-h-[400px]">
+                {tasks.map((task) => (
+                  task ? <TaskCard key={task.id} task={task} /> : null
+                ))}
               </div>
             </SortableContext>
           </div>
         </div>
       </div>
-      <DeleteAlert
-        isOpen={isDeleteAlertOpen}
-        onClose={() => setDeleteAlertOpen(false)}
-        onConfirm={handleDeleteColumn}
-        resourceName="column"
-      />
+      <div data-no-dnd="true">
+        <DeleteAlert
+          isOpen={isDeleteAlertOpen}
+          onCloseAction={closeDeleteAlert}
+          onConfirm={handleDeleteColumn}
+          resourceName="column"
+        />
+      </div>
     </div>
   )
 }
