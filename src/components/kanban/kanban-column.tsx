@@ -32,13 +32,21 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ id, name, jobs, tasks }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({ id });
-  const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isSorting } = useSortable({ id, disabled: false });
+  const { setNodeRef } = useDroppable({ id: name });
+  const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: name,
+    data: {
+      type: 'column',
+      tasks,
+      jobs,
+    }
+  });
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   const closeDeleteAlert = () => {

@@ -2,12 +2,12 @@
 
 import { useState, startTransition } from "react"
 import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core"
-import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
+import { SortableContext, horizontalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { KanbanColumn } from "./kanban-column"
 import { TaskCard } from "./task-card"
 import type { WorkStation, Job, Task, User } from "@prisma/client"
 import { ScrollArea, ScrollBar } from "src/components/ui/scroll-area"
-import { updateWorkStationKanbanOrder } from 'src/app/actions'
+import { updateWorkStationKanbanOrder, moveTask, reorderTasks } from 'src/app/actions'
 import { useOptimistic } from 'react'
 import { toast } from 'react-hot-toast'
 import { MouseSensor, KeyboardSensor } from '@/lib/dnd-sensors'
@@ -36,9 +36,7 @@ export function KanbanBoard({
   console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
 
   const handleDragEnd = (event: DragEndEvent) => {
-    console.log("drag end")
     const { active, over } = event;
-    console.log(event)
 
     if(active.id === over?.id) return;
     if (!over) return;
@@ -47,73 +45,134 @@ export function KanbanBoard({
     const overColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobsAndTasks) => column.name === over.id);
 
     if (activeColumnIndex !== -1 && overColumnIndex !== -1) {
-      const updatedColumns = [...sortableColumns];
-      const [movedColumn] = updatedColumns.splice(activeColumnIndex, 1);
-      updatedColumns.splice(overColumnIndex, 0, movedColumn);
-
-      // Update kanbanOrder for each column
-      updatedColumns.forEach((column, index) => {
-        column.kanbanOrder = index;
-      });
-
-      // Optimistically update the UI within a transition
+      // Handle column reordering
       startTransition(() => {
-        console.log("updatedColumns", updatedColumns)
-        setSortableColumns(updatedColumns);
-      });
+        const updatedColumns = [...sortableColumns];
+        const [movedColumn] = updatedColumns.splice(activeColumnIndex, 1);
+        updatedColumns.splice(overColumnIndex, 0, movedColumn);
 
-      // Update kanbanOrder for each workstation
-      updatedColumns.forEach((workstation, index) => {
-        updateWorkStationKanbanOrder(workstation.id, index)
-          .then(() => {
-            // Optionally revalidate or fetch new data here
-          })
-          .catch(() => {
-            // Revert to previous state on error
-            setSortableColumns(columns);
-            toast.error('Failed to update order. Please try again.');
-          });
-      });
-    } else {
-      const activeTaskColumnIndex = columns.findIndex(column =>
-        column.tasks.some(task => task.id === active.id)
-      );
-      const overTaskColumnIndex = columns.findIndex(column =>
-        column.tasks.some(task => task.id === over.id) 
-      );
-
-      if (activeTaskColumnIndex !== -1 && overTaskColumnIndex !== -1) {
-        const activeTaskIndex = columns[activeTaskColumnIndex].tasks.findIndex(task => task.id === active.id);
-        const [movedTask] = columns[activeTaskColumnIndex].tasks.splice(activeTaskIndex, 1);
-
-        const overTaskIndex = columns[overTaskColumnIndex].tasks.findIndex(task => task.id === over.id);
-        const updatedTasks = [...columns[overTaskColumnIndex].tasks];
-        updatedTasks.splice(overTaskIndex, 0, movedTask);
-
-        const updatedColumns = [...columns];
-        updatedColumns[overTaskColumnIndex] = {
-          ...columns[overTaskColumnIndex],
-          tasks: updatedTasks,
-        };
-
-        // Update kanbanOrder for each workstation
-        updatedColumns.forEach((workstation, index) => {
-          updateWorkStationKanbanOrder(workstation.id, index);
+        // Update kanbanOrder for each column
+        updatedColumns.forEach((column, index) => {
+          column.kanbanOrder = index;
         });
 
-        // setColumns(updatedColumns);
-      } else if (activeTaskColumnIndex !== -1) {
-        const activeTaskIndex = columns[activeTaskColumnIndex].tasks.findIndex(task => task.id === active.id);
-        const [movedTask] = columns[activeTaskColumnIndex].tasks.splice(activeTaskIndex, 1);
+        setSortableColumns(updatedColumns);
 
-        const emptyColumnIndex = columns.findIndex(column => column.name === over.id);
-        if (emptyColumnIndex !== -1) {
-          columns[emptyColumnIndex].tasks.push(movedTask);
-          // setColumns([...columns]);
+        // Update all column orders in a single batch
+        Promise.all(
+          updatedColumns.map((workstation, index) => 
+            updateWorkStationKanbanOrder(workstation.id, index)
+          )
+        ).catch(() => {
+          // Revert to previous state on error
+          setSortableColumns(columns);
+          toast.error('Failed to update order. Please try again.');
+        });
+      });
+    } else {
+      // Handle task reordering
+      const activeTaskId = active.id as string;
+      const overTaskId = over.id as string;
+      
+      // Find the source and target columns
+      const sourceColumn = sortableColumns.find(column => 
+        column.tasks.some(task => task.id === activeTaskId)
+      );
+      const targetColumn = sortableColumns.find(column => 
+        column.tasks.some(task => task.id === overTaskId)
+      ) || sortableColumns.find(column => column.name === over.id);
+
+      if (!sourceColumn || !targetColumn) return;
+
+      startTransition(() => {
+        // Create a new array of columns
+        const updatedColumns = [...sortableColumns];
+        
+        // Find the task to move
+        const taskToMove = sourceColumn.tasks.find(task => task.id === activeTaskId);
+        if (!taskToMove) return;
+
+        // Remove task from source column
+        const sourceColumnIndex = updatedColumns.findIndex(col => col.id === sourceColumn.id);
+        const sourceTasks = sourceColumn.tasks.filter(task => task.id !== activeTaskId);
+        updatedColumns[sourceColumnIndex] = {
+          ...sourceColumn,
+          tasks: sourceTasks
+        };
+
+        // Add task to target column
+        const targetColumnIndex = updatedColumns.findIndex(col => col.id === targetColumn.id);
+        let targetTasks: typeof sourceColumn.tasks;
+        let newTaskOrder: number;
+        
+        if (sourceColumn.id === targetColumn.id) {
+          // If reordering within the same column
+          targetTasks = [...sourceTasks];
+          if (overTaskId === targetColumn.name) {
+            // If dropping on the column itself, add to the end
+            newTaskOrder = targetTasks.length;
+            targetTasks.push(taskToMove);
+          } else {
+            // If dropping on another task, insert at that position
+            const overTaskIndex = targetTasks.findIndex(task => task.id === overTaskId);
+            newTaskOrder = overTaskIndex;
+            targetTasks.splice(overTaskIndex, 0, taskToMove);
+          }
+        } else {
+          // If moving to a different column
+          targetTasks = [...targetColumn.tasks];
+          if (overTaskId === targetColumn.name) {
+            // If dropping on the column itself, add to the end
+            newTaskOrder = targetTasks.length;
+            targetTasks.push(taskToMove);
+          } else {
+            // If dropping on another task, insert at that position
+            const overTaskIndex = targetTasks.findIndex(task => task.id === overTaskId);
+            newTaskOrder = overTaskIndex;
+            targetTasks.splice(overTaskIndex, 0, taskToMove);
+          }
         }
-      }
+
+        updatedColumns[targetColumnIndex] = {
+          ...targetColumn,
+          tasks: targetTasks
+        };
+
+        setSortableColumns(updatedColumns);
+
+        if (sourceColumn.id === targetColumn.id) {
+          // If reordering within the same column
+          console.log('Reordering tasks:', targetTasks.map(t => ({ id: t.id, order: t.taskOrder })));
+          reorderTasks(targetColumn.id, targetTasks.map(task => task.id))
+            .then((result) => {
+              if (!result?.success) {
+                throw new Error('Failed to reorder tasks');
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to reorder tasks:', error);
+              setSortableColumns(columns);
+              toast.error('Failed to reorder tasks. Please try again.');
+            });
+        } else {
+          // If moving to a different column
+          console.log('Moving task to new column:', { taskId: activeTaskId, targetColumn: targetColumn.id, newOrder: newTaskOrder });
+          moveTask(activeTaskId, targetColumn.id, newTaskOrder)
+            .then((result) => {
+              if (!result?.success) {
+                throw new Error('Failed to move task');
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to move task:', error);
+              setSortableColumns(columns);
+              toast.error('Failed to move task. Please try again.');
+            });
+        }
+      });
     }
-    // setActiveId(null);
+    
+    setActiveId(null);
   };
 
   const handleDragStart = (event: any) => {
@@ -123,6 +182,21 @@ export function KanbanBoard({
     setActiveId(active.id);
   };
 
+  const sensors = [
+    {
+      sensor: MouseSensor,
+      options: {
+        activationConstraint: {
+          distance: 10,
+        },
+      },
+    },
+    {
+      sensor: KeyboardSensor,
+      options: {},
+    },
+  ];
+
   return (
     <div className="">
       <ScrollArea className="whitespace-nowrap ">
@@ -130,16 +204,7 @@ export function KanbanBoard({
             <DndContext 
               onDragEnd={handleDragEnd} 
               onDragStart={handleDragStart}
-              sensors={[
-                {
-                  sensor: MouseSensor,
-                  options: {}
-                },
-                {
-                  sensor: KeyboardSensor,
-                  options: {}
-                }
-              ]}
+              sensors={sensors}
             >
                 <SortableContext items={sortableColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
                 

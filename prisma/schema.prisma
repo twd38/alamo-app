@@ -127,6 +127,7 @@ model Task {
   workStation   WorkStation? @relation(fields: [workStationId], references: [id])
   files         File[]
   deletedOn     DateTime?
+  taskOrder     Int @default(0)
 }
 
 model WorkStation {

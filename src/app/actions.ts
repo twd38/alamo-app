@@ -7,19 +7,42 @@ import { auth } from 'src/lib/auth';
 import { User, WorkStation, Task } from '@prisma/client';
 
 export async function getWorkstations() {
-    return await prisma.workStation.findMany({
-      include: {
-        jobs: true,
-        tasks: {
-          include: {
-            assignees: true,
-            createdBy: true,
-            files: true
-          }
+    const workstations = await prisma.workStation.findMany({
+        where: {
+            deletedOn: null
+        },
+        include: {
+            jobs: true,
+            tasks: {
+                where: {
+                    deletedOn: null
+                },
+                include: {
+                    assignees: true,
+                    createdBy: true,
+                    files: true
+                },
+                orderBy: {
+                    taskOrder: 'asc'
+                }
+            }
+        },
+        orderBy: {
+            kanbanOrder: 'asc'
         }
-      }
-    })
-  }
+    });
+    
+    console.log('Retrieved workstations:', 
+        workstations.map(w => ({
+            id: w.id,
+            name: w.name,
+            taskCount: w.tasks.length,
+            taskOrders: w.tasks.map(t => t.taskOrder)
+        }))
+    );
+    
+    return workstations;
+}
 
 export async function createWorkStation(name: string) {
     await prisma.workStation.create({
@@ -31,7 +54,7 @@ export async function createWorkStation(name: string) {
     revalidatePath('/production')
     // redirect('/production')
   }
-1
+
 export async function updateWorkStationTasks({id, tasks}: {id:string, tasks:Task[]}) {
     try {
         const result = await prisma.workStation.update({
@@ -121,6 +144,77 @@ export async function createTask(data: {
     } catch (error) {
         console.error('Error creating task:', error);
         return { success: false, error: 'Failed to create task' };
+    }
+}
+
+export async function moveTask(taskId: string, targetWorkStationId: string, newOrder: number) {
+    try {
+        console.log(`Moving task ${taskId} to workstation ${targetWorkStationId} with order ${newOrder}`);
+        
+        await prisma.$transaction(async (tx) => {
+            // Get all tasks in the target workstation
+            const targetTasks = await tx.task.findMany({
+                where: {
+                    workStationId: targetWorkStationId,
+                    deletedOn: null,
+                    id: { not: taskId }
+                },
+                orderBy: {
+                    taskOrder: 'asc'
+                }
+            });
+
+            // Insert the tasks at their new positions
+            const updatedTasks = [
+                ...targetTasks.slice(0, newOrder),
+                { id: taskId },
+                ...targetTasks.slice(newOrder)
+            ];
+
+            // Update all tasks with their new order
+            await Promise.all(
+                updatedTasks.map((task, index) => 
+                    tx.task.update({
+                        where: { id: task.id },
+                        data: { 
+                            workStationId: targetWorkStationId,
+                            taskOrder: index 
+                        }
+                    })
+                )
+            );
+        });
+        
+        console.log('Task moved successfully');
+        revalidatePath('/production');
+        return { success: true };
+    } catch (error) {
+        console.error('Error moving task:', error);
+        return { success: false, error: 'Failed to move task' };
+    }
+}
+
+export async function reorderTasks(workstationId: string, taskIds: string[]) {
+    try {
+        console.log(`Reordering tasks in workstation ${workstationId}:`, taskIds);
+        
+        // Update each task's order
+        const updates = await Promise.all(
+            taskIds.map((taskId, index) => {
+                console.log(`Setting task ${taskId} to order ${index}`);
+                return prisma.task.update({
+                    where: { id: taskId },
+                    data: { taskOrder: index }
+                });
+            })
+        );
+        
+        console.log('Tasks reordered successfully:', updates);
+        revalidatePath('/production');
+        return { success: true };
+    } catch (error) {
+        console.error('Error reordering tasks:', error);
+        return { success: false, error: 'Failed to reorder tasks' };
     }
 }
 
