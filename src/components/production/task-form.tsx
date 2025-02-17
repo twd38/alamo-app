@@ -26,8 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Status, User, Task } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask, deleteTask, duplicateTask, updateTask } from "@/app/actions";
-import { revalidatePath } from "next/cache";
+import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";
@@ -92,7 +91,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       description: task?.description || "",
       createdById: task?.createdById || "",
       assignees: task?.assignees.map(a => a.id) || [],
-      workStationId: task?.workStationId || undefined,
+      workStationId: task?.workStationId || activeTask.workstationId || undefined,
       files: task?.files || []
     }
   })
@@ -136,8 +135,12 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
         return;
       }
 
-      setActiveTask(null)
-      revalidatePath('/production');
+      setActiveTask({
+        type: null,
+        taskId: null,
+        workstationId: null,
+      })
+      updateDataAndRevalidate("/production")
       router.refresh();
       console.log('Task saved successfully:', result.data);
     } catch (error) {
@@ -151,7 +154,11 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     try {
       const result = await duplicateTask(task.id);
       if (result.success) {
-        setActiveTask(null);
+        setActiveTask({
+            type: null,
+            taskId: null,
+            workstationId: null,
+        })
         router.refresh();
       }
     } catch (error) {
@@ -165,7 +172,11 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     try {
       const result = await deleteTask(task.id);
       if (result.success) {
-        setActiveTask(null);
+        setActiveTask({
+            type: null,
+            taskId: null,
+            workstationId: null,
+        })
         router.refresh();
       }
     } catch (error) {

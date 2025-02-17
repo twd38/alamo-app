@@ -26,12 +26,16 @@ export function ActionPanel() {
     };
 
     const createNewTask = () => {
-        setActiveTask("new");
+        setActiveTask({
+            type: "new",
+            taskId: null,
+            workstationId: null,
+        });
     }
 
-    const updateActiveTask = (task: "String" | "new" | null) => {
-        setActiveTask(task);
-    }
+    // const updateActiveTask = (task: "String" | "new" | null) => {
+    //     setActiveTask(task);
+    // }
 
     return (
         <div>

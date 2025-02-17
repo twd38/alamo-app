@@ -15,9 +15,18 @@ interface TaskWithRelations extends Task {
 // Mock data for team members
 export default function TaskDetail({task}: {task: TaskWithRelations | null}) {
   const [activeTask, setActiveTask] = useAtom(taskModal)
+  const handleOpenChange = () => {
+    setActiveTask({
+      type: null,
+      taskId: null,
+      workstationId: null,
+    })
+  }
+
+  const isOpen = activeTask.type !== null;
 
   return (
-    <Sheet open={activeTask ? true : false} onOpenChange={() => setActiveTask(null)} >
+    <Sheet open={isOpen} onOpenChange={handleOpenChange} >
       <SheetContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-full max-w-[90vw] sm:max-w-[700px] overflow-y-auto p-0" >
         <SheetTitle className="hidden">Task</SheetTitle>
         <TaskForm task={task} />

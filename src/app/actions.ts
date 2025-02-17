@@ -5,6 +5,11 @@ import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { User, WorkStation, Task } from '@prisma/client';
 
+export async function updateDataAndRevalidate(path: string) {
+    revalidatePath(path); // Revalidate the specific path
+    return { message: "Data updated and cache revalidated" };
+}
+
 export async function getWorkstations() {
     const workstations = await prisma.workStation.findMany({
         where: {

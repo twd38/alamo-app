@@ -1,5 +1,13 @@
 import { atomWithHash } from 'jotai-location'
 
-export type TaskModalType = string | "new" | null;
+export interface TaskModalType {
+    type: "new" | "edit" | "view" | null;
+    taskId: string | null;
+    workstationId: string | null;
+}
 
-export const taskModal = atomWithHash<TaskModalType>("task", null);
+export const taskModal = atomWithHash<TaskModalType>('taskModal', {
+    type: null,
+    taskId: null,
+    workstationId: null,
+});

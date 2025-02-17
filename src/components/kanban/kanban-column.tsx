@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { TaskCard } from "./task-card"
 import { Button } from "src/components/ui/button"
-import { MoreHorizontal, Edit, Trash } from "lucide-react"
+import { MoreHorizontal, Edit, Trash, Plus } from "lucide-react"
 import { Job, Task, User } from "@prisma/client"
 import {
   DropdownMenu,
@@ -17,7 +17,6 @@ import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
 import { deleteWorkStation } from '@/app/actions';
 import { toast } from 'react-hot-toast';
-
 // export const dynamic = 'force-dynamic';
 
 interface KanbanColumnProps {
@@ -29,9 +28,10 @@ interface KanbanColumnProps {
     createdBy: User;
     files: any[];
   })[]
+  handleAddTask?: () => void
 }
 
-export function KanbanColumn({ id, name, jobs, tasks }: KanbanColumnProps) {
+export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: name });
   const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isDragging } = useSortable({ 
     id: name,
@@ -102,6 +102,9 @@ export function KanbanColumn({ id, name, jobs, tasks }: KanbanColumnProps) {
                   </div>
                 )} */}
               </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2" onClick={handleAddTask}>
+                <Plus className="h-4 w-4" />
+              </Button>
               <div data-no-dnd="true">
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>

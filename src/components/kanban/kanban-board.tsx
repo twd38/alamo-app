@@ -35,7 +35,7 @@ export function KanbanBoard({
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sortableColumns, setSortableColumns] = useOptimistic(columns);
   const [activeTask, setActiveTask] = useAtom(taskModal)
-  const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask) : null
+  const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null
 
   console.log(sortableColumns)
   console.log(activeId)
@@ -188,6 +188,14 @@ export function KanbanBoard({
     setActiveId(active.id);
   };
 
+  const handleAddTask = (workstationId: string) => {
+    setActiveTask({
+      type: "new",
+      taskId: null,
+      workstationId: workstationId,
+    });
+  }
+
   const sensors = [
     {
       sensor: MouseSensor,
@@ -211,11 +219,12 @@ export function KanbanBoard({
               onDragEnd={handleDragEnd} 
               onDragStart={handleDragStart}
               sensors={sensors}
+              id="kanban-board"
             >
                 <SortableContext items={sortableColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
                 
                   {sortableColumns.map((column, index) => (
-                    <KanbanColumn key={index} id={column.id} name={column.name} jobs={column.jobs} tasks={column.tasks} />
+                    <KanbanColumn key={index} id={column.id} name={column.name} jobs={column.jobs} tasks={column.tasks} handleAddTask={() => handleAddTask(column.id)} />
                   ))}
 
                 </SortableContext>
@@ -226,6 +235,7 @@ export function KanbanBoard({
                         name={sortableColumns.find(column => column.name === activeId)!.name}
                         jobs={sortableColumns.find(column => column.name === activeId)!.jobs}
                         tasks={sortableColumns.find(column => column.name === activeId)!.tasks}
+                        // handleAddTask={() => handleAddTask()}
                       />
                   ) : activeId ? (
                       <TaskCard task={sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId)!} />
@@ -235,7 +245,7 @@ export function KanbanBoard({
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      <TaskDetail task={activeTaskData || null} />
+      <TaskDetail task={activeTaskData || null}/>
     </div>
   )
 }

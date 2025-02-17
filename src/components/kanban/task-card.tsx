@@ -39,7 +39,11 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
     // Don't open task detail if clicking the menu button
     if ((e.target as HTMLElement).closest('button')) return;
     
-    setActiveTask(task.id);
+    setActiveTask({
+      type: "view",
+      taskId: task.id,
+      workstationId: task.workStationId,
+    });
   };
 
   return (
