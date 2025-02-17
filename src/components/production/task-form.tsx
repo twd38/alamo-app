@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Status, User, Task } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate } from "@/app/actions";
+import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getFileDownloadUrl } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";
@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/select"
 import { getStatusConfig, formatFileSize } from "@/lib/utils"
 import { toast } from "react-hot-toast";
-
 interface TaskWithRelations extends Task {
     assignees: User[];
     createdBy: User;
@@ -232,6 +231,21 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     const currentFiles = form.getValues('files') || [];
     const updatedFiles = currentFiles.filter((_, i) => i !== index);
     form.setValue('files', updatedFiles);
+  };
+
+  const handleFileDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      const result = await getFileDownloadUrl(fileUrl);
+      if (result.success && result.url) {
+        // Open in new window
+        window.open(result.url, '_blank');
+      } else {
+        toast.error('Failed to open file');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      toast.error('Error opening file');
+    }
   };
 
   return (
@@ -461,7 +475,17 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                                     <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
                                                         <div className="flex items-center gap-2">
                                                             <File className="h-4 w-4" />
-                                                            <span className="text-sm">{file.name}</span>
+                                                            {('url' in file) ? (
+                                                                <Button
+                                                                    variant="link"
+                                                                    className="p-0 h-auto"
+                                                                    onClick={() => handleFileDownload(file.url, file.name)}
+                                                                >
+                                                                    <span className="text-sm hover:underline">{file.name}</span>
+                                                                </Button>
+                                                            ) : (
+                                                                <span className="text-sm">{file.name}</span>
+                                                            )}
                                                             <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
                                                         </div>
                                                         <Button 

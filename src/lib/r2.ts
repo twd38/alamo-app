@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Initialize S3 client with R2 configuration
@@ -52,4 +52,15 @@ export async function deleteFileFromR2(key: string): Promise<void> {
   });
 
   await r2Client.send(command);
+}
+
+export async function getPresignedDownloadUrl(key: string): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  // Get presigned URL for download
+  const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+  return presignedUrl;
 } 

@@ -5,6 +5,7 @@ import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { User, WorkStation, Task } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
+import { getPresignedDownloadUrl } from '@/lib/r2';
 
 export async function updateDataAndRevalidate(path: string) {
     revalidatePath(path); // Revalidate the specific path
@@ -412,6 +413,22 @@ export async function updateTask(taskId: string, data: {
 // Helper function to check if a file is a File instance
 function isFileInstance(file: File | { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string }): file is File {
     return file instanceof File;
+}
+
+export async function getFileDownloadUrl(fileUrl: string) {
+  try {
+    // Extract the key from the URL by removing the PUBLIC_URL prefix
+    const key = fileUrl.replace(process.env.R2_PUBLIC_URL + '/', '');
+    if (!key) {
+      return { success: false, error: 'Invalid file URL' };
+    }
+
+    const presignedUrl = await getPresignedDownloadUrl(key);
+    return { success: true, url: presignedUrl };
+  } catch (error) {
+    console.error('Error getting file download URL:', error);
+    return { success: false, error: 'Failed to get file download URL' };
+  }
 }
 
 
