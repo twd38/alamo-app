@@ -16,9 +16,6 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenu,
 } from "src/components/ui/sidebar"
 import { useUser } from "src/hooks/use-user"
 import Image from "next/image"
