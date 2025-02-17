@@ -27,7 +27,7 @@ import GenerativeMenuSwitch from "./generative/generative-menu-switch";
 import { uploadFn } from "./image-upload";
 import { TextButtons } from "../selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
-import { updateMissionMessage } from "src/app/actions";
+import { updateMissionMessage } from "@/app/actions";
 import { MissionMessage } from "@prisma/client";
 
 const hljs = require("highlight.js");
