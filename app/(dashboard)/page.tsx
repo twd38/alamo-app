@@ -1,6 +1,6 @@
-import { Countdown } from '@/components/dashboard/countdown';
 import { Editor } from '@/components/editor/editor';
 import { prisma } from '@/lib/db';
+// import { Countdown } from '@/components/dashboard/countdown'
 
 export default async function ProductsPage(
   props: {
@@ -21,7 +21,7 @@ export default async function ProductsPage(
 
   return (
     <div className="flex flex-col gap-4">
-      <Countdown targetDate={new Date('2025-07-11')} />
+      {/* <Countdown targetDate={new Date('2025-07-11')} /> */}
       <div className="flex flex-col items-center">
         <Editor initialContent={missionMessage} />
       </div>
