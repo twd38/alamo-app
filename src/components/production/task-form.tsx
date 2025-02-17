@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,7 +20,7 @@ import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Paperclip, File } from "lucide-react";
 import useSWR from 'swr';
 import { getAllUsers, getWorkstations } from '@/lib/queries';
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +46,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { getStatusConfig } from "@/lib/utils"
+import { getStatusConfig, formatFileSize } from "@/lib/utils"
+import { toast } from "react-hot-toast";
 
 interface TaskWithRelations extends Task {
     assignees: User[];
@@ -64,13 +66,30 @@ const formSchema = z.object({
     createdById: z.string(),
     assignees: z.array(z.string()),
     workStationId: z.string().optional(),
-    files: z.array(z.object({
-        id: z.string(),
-        url: z.string(),
-        fileName: z.string(),
-        taskId: z.string(),
-        jobId: z.string()
-    })).optional()
+    files: z.array(
+        z.union([
+            // For existing file records
+            z.object({
+                id: z.string(),
+                url: z.string(),
+                name: z.string(),
+                type: z.string(),
+                size: z.number(),
+                taskId: z.string(),
+                jobId: z.string()
+            }),
+            // For newly uploaded files
+            z.custom<File>((data) => {
+                return data && 
+                    typeof data === 'object' && 
+                    'name' in data && 
+                    'size' in data && 
+                    'type' in data;
+            }, {
+                message: "Must be a valid file"
+            })
+        ])
+    ).optional()
 })
 
 const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
@@ -79,6 +98,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
   const router = useRouter()
   const { data: users } = useSWR('allUsers', getAllUsers);
   const { data: workStations } = useSWR('allWorkStations', getWorkstations);
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -98,8 +118,6 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
 
   // Handle form submission
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    console.log('Form data before submission:', data);
-
     try {
       let result;
       
@@ -113,7 +131,8 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           description: data.description,
           assignees: data.assignees,
           workStationId: data.workStationId,
-          taskOrder: task.taskOrder
+          taskOrder: task.taskOrder,
+          files: data.files
         });
       } else {
         // Create new task
@@ -126,15 +145,18 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           createdById: data.createdById,
           assignees: data.assignees,
           workStationId: data.workStationId || "",
-          taskOrder: 0
+          taskOrder: 0,
+          files: data.files as File[]
         });
       }
 
       if (!result.success) {
         console.error('Failed to save task:', result.error);
+        toast.error('Failed to save task');
         return;
       }
 
+      toast.success('Task saved successfully');
       setActiveTask({
         type: null,
         taskId: null,
@@ -142,9 +164,9 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       })
       updateDataAndRevalidate("/production")
       router.refresh();
-      console.log('Task saved successfully:', result.data);
     } catch (error) {
       console.error('Error submitting form:', error);
+      toast.error('Error saving task');
     }
   }
 
@@ -154,15 +176,19 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     try {
       const result = await duplicateTask(task.id);
       if (result.success) {
+        toast.success('Task duplicated successfully');
         setActiveTask({
             type: null,
             taskId: null,
             workstationId: null,
         })
         router.refresh();
+      } else {
+        toast.error('Failed to duplicate task');
       }
     } catch (error) {
       console.error('Error duplicating task:', error);
+      toast.error('Error duplicating task');
     }
   };
 
@@ -172,16 +198,40 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     try {
       const result = await deleteTask(task.id);
       if (result.success) {
+        toast.success('Task deleted successfully');
         setActiveTask({
             type: null,
             taskId: null,
             workstationId: null,
         })
         router.refresh();
+      } else {
+        toast.error('Failed to delete task');
       }
     } catch (error) {
       console.error('Error deleting task:', error);
+      toast.error('Error deleting task');
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const currentFiles = form.getValues('files') || [];
+    
+    // Validate file size (10MB limit)
+    const invalidFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    if (invalidFiles.length > 0) {
+      toast.error('Files must be less than 10MB');
+      return;
+    }
+
+    form.setValue('files', [...currentFiles, ...files]);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    const currentFiles = form.getValues('files') || [];
+    const updatedFiles = currentFiles.filter((_, i) => i !== index);
+    form.setValue('files', updatedFiles);
   };
 
   return (
@@ -230,7 +280,6 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                         name="name"
                         render={({ field }) => (
                             <FormItem>
-                            {/* <FormLabel>Task Name</FormLabel> */}
                             <FormControl>
                                 <Input 
                                     {...field}
@@ -379,6 +428,60 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                 </FormItem>
                             )}
                         />
+
+                        <FormField
+                            control={form.control}
+                            name="files"
+                            render={({ field: { value, onChange, ...fieldProps } }) => (
+                                <FormItem>
+                                    <FormLabel className="w-24">Attachments</FormLabel>
+                                    <div className="flex flex-col items-start gap-2">
+                                        <Input 
+                                            {...fieldProps} 
+                                            type="file" 
+                                            className="hidden" 
+                                            multiple 
+                                            ref={fileInputRef} 
+                                            onChange={handleFileChange}
+                                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                        />
+                                        <Button 
+                                            type="button"
+                                            variant="outline" 
+                                            onClick={() => fileInputRef.current?.click()} 
+                                            className="gap-2"
+                                        >
+                                            <Paperclip className="h-4 w-4" />
+                                            Attach Files
+                                        </Button>
+                                        <div className="flex-1 w-full gap-2">
+                                            {value && value.length > 0 && (
+                                                <div className="mt-2 space-y-2">
+                                                    {value.map((file, index) => (
+                                                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
+                                                        <div className="flex items-center gap-2">
+                                                            <File className="h-4 w-4" />
+                                                            <span className="text-sm">{file.name}</span>
+                                                            <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
+                                                        </div>
+                                                        <Button 
+                                                            type="button"
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            onClick={() => handleRemoveFile(index)} 
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
                     </div>
 
                 <div className="gap-2 pt-2">
@@ -400,15 +503,6 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                         )}
                     />
                 </div>
-
-            
-
-            <div className="space-y-4">
-                {/* <h3 className="text-sm font-medium">Comments</h3> */}
-                <div className="space-y-4">
-                    {/* Comments logic will be handled in TaskDetail */}
-                </div>
-            </div>
             </div>
             </div>
         </div>

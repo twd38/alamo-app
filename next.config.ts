@@ -1,3 +1,11 @@
+module.exports = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
+  },
+}
+
 export default {
   images: {
     remotePatterns: [

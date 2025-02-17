@@ -72,7 +72,7 @@ export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanCol
     }
   };
 
-  console.log("tasks", tasks)
+  // console.log("tasks", tasks)
 
   return (
     <div className="dark:bg-gray-800 rounded-lg">

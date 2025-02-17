@@ -37,9 +37,9 @@ export function KanbanBoard({
   const [activeTask, setActiveTask] = useAtom(taskModal)
   const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null
 
-  console.log(sortableColumns)
-  console.log(activeId)
-  console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
+  // console.log(sortableColumns)
+  // console.log(activeId)
+  // console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

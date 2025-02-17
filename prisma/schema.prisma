@@ -76,11 +76,13 @@ enum Status {
 model File {
   id          String @id @default(cuid())
   url         String
-  fileName    String
-  jobId       String
-  job         Job    @relation(fields: [jobId], references: [id])
-  taskId      String
-  task        Task   @relation(fields: [taskId], references: [id])
+  name        String
+  type        String
+  size        Int
+  jobId       String?
+  job         Job?    @relation(fields: [jobId], references: [id])
+  taskId      String?
+  task        Task?   @relation(fields: [taskId], references: [id])
   deletedOn   DateTime?
 }
 

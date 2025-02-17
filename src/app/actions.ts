@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { User, WorkStation, Task } from '@prisma/client';
+import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 
 export async function updateDataAndRevalidate(path: string) {
     revalidatePath(path); // Revalidate the specific path
@@ -119,25 +120,25 @@ export async function createTask(data: {
     assignees: string[];
     workStationId: string;
     taskOrder: number;
+    files?: File[];
 }) {
     try {
         const session = await auth()
         const userId = session?.user?.id || "cm78gevrb0004kxxg43qs0mqv"
-        console.log(session)
         
-        console.log('Creating task with data:', {
-          name: data.name,
-          taskNumber: data.taskNumber,
-          status: data.status,
-          dueDate: data.dueDate,
-          description: data.description,
-          createdById: userId,
-          assignees: {
-              connect: data.assignees.map(userId => ({ id: userId }))
-          },
-          workStationId: data.workStationId,
-        });
-
+        // Handle file uploads if present
+        const fileData = [];
+        if (data.files && data.files.length > 0) {
+            for (const file of data.files) {
+                const { url } = await uploadFileToR2(file);
+                fileData.push({
+                    url,
+                    name: file.name,
+                    type: file.type,
+                    size: file.size
+                });
+            }
+        }
         
         const result = await prisma.task.create({
             data: {
@@ -151,11 +152,15 @@ export async function createTask(data: {
                     connect: data.assignees.map(userId => ({ id: userId }))
                 },
                 workStationId: data.workStationId,
+                files: {
+                    create: fileData
+                }
             },
             include: {
-                assignees: true
+                assignees: true,
+                files: true
             }
-        })
+        });
 
         return { success: true, data: result };
     } catch (error) {
@@ -285,7 +290,10 @@ export async function duplicateTask(taskId: string) {
                 files: {
                     create: originalTask.files.map(file => ({
                         url: file.url,
-                        fileName: file.fileName,
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        taskId: taskId,
                         jobId: file.jobId
                     }))
                 }
@@ -313,21 +321,80 @@ export async function updateTask(taskId: string, data: {
     assignees: string[];
     workStationId?: string;
     taskOrder: number;
+    files?: (File | { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
 }) {
     try {
+        // Get existing files
+        const existingTask = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: { files: true }
+        });
+
+        if (!existingTask) {
+            throw new Error('Task not found');
+        }
+
+        // Handle file updates
+        const existingFiles = existingTask.files;
+        const newFiles = data.files || [];
+        
+        // Identify files to delete (files that exist but are not in the new list)
+        const filesToDelete = existingFiles.filter(
+            existingFile => !newFiles.some(
+                newFile => !isFileInstance(newFile) && newFile.id === existingFile.id
+            )
+        );
+
+        // Delete removed files from R2 and database
+        for (const file of filesToDelete) {
+            const key = file.url.split('/').pop(); // Extract key from URL
+            if (key) {
+                await deleteFileFromR2(key);
+            }
+        }
+
+        // Upload new files
+        const fileData = [];
+        for (const file of newFiles) {
+            if (isFileInstance(file)) {
+                // Handle new file upload
+                const { url } = await uploadFileToR2(file);
+                fileData.push({
+                    url,
+                    name: file.name,
+                    type: file.type,
+                    size: file.size
+                });
+            }
+        }
+
+        // Update task with new file data
         const result = await prisma.task.update({
             where: { id: taskId },
             data: {
                 name: data.name,
                 taskNumber: data.taskNumber,
                 status: data.status,
-                dueDate: data.dueDate || new Date(),
+                dueDate: data.dueDate,
                 description: data.description,
-                workStationId: data.workStationId,
                 assignees: {
                     set: data.assignees.map(userId => ({ id: userId }))
                 },
-                taskOrder: data.taskOrder
+                workStationId: data.workStationId,
+                files: {
+                    deleteMany: {
+                        id: {
+                            in: filesToDelete.map(f => f.id)
+                        }
+                    },
+                    create: fileData,
+                    // Keep existing files that weren't deleted
+                    connect: newFiles
+                        .filter((f): f is { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string } => 
+                            !isFileInstance(f)
+                        )
+                        .map(f => ({ id: f.id }))
+                }
             },
             include: {
                 assignees: true,
@@ -335,12 +402,16 @@ export async function updateTask(taskId: string, data: {
             }
         });
 
-        revalidatePath('/production');
         return { success: true, data: result };
     } catch (error) {
         console.error('Error updating task:', error);
         return { success: false, error: 'Failed to update task' };
     }
+}
+
+// Helper function to check if a file is a File instance
+function isFileInstance(file: File | { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string }): file is File {
+    return file instanceof File;
 }
 
 
