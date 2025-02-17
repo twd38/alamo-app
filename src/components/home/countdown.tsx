@@ -38,7 +38,7 @@ const useCountdown = (targetDate: Date) => {
 }
 
 
-export function Countdown({ targetDate }: CountdownProps) {
+export default function Countdown({ targetDate }: CountdownProps) {
   const timeLeft = useCountdown(targetDate)
 
   return (

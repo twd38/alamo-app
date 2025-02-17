@@ -1,6 +1,6 @@
 import { Editor } from '@/components/editor/editor';
 import { prisma } from '@/lib/db';
-import { Countdown } from '@/components/dashboard/countdown'
+import Countdown from '@/components/home/countdown'
 
 export default async function ProductsPage(
   props: {
