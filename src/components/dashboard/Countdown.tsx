@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent } from "src/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 
 interface CountdownProps {
