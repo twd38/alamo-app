@@ -137,6 +137,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       }
 
       setActiveTask(null)
+      revalidatePath('/production');
       router.refresh();
       console.log('Task saved successfully:', result.data);
     } catch (error) {

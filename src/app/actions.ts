@@ -267,7 +267,7 @@ export async function duplicateTask(taskId: string) {
         const duplicatedTask = await prisma.task.create({
             data: {
                 name: `${originalTask.name} (Copy)`,
-                taskNumber: `${originalTask.taskNumber}-copy`,
+                taskNumber: `${originalTask.taskNumber}`,
                 status: originalTask.status,
                 dueDate: originalTask.dueDate,
                 description: originalTask.description,
