@@ -83,6 +83,7 @@ export const Editor = ({initialContent}: {initialContent: MissionMessage | null}
       </div>
       <EditorRoot>
         <EditorContent
+          immediatelyRender={false}
           initialContent={initialContentJson}
           extensions={extensions}
           className="relative min-h-[500px] w-full p-6 border-muted bg-background sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg"

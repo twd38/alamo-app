@@ -53,7 +53,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
-  if (!user) return null;
+  // if (!user) return null;
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -68,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        { user && <NavUser user={user} /> }
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

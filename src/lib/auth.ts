@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "src/lib/db"
+import { prisma } from "@/lib/db"
 import Google from "next-auth/providers/google";
  
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -11,7 +11,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     authorized: async ({ auth }) => {
-      // console.log("auth", auth)
+      console.log("auth", auth)
       // Logged in users are authenticated, otherwise redirect to login page
       return !!auth
     },

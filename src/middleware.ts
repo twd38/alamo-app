@@ -1,4 +1,4 @@
-export { auth as middleware } from 'src/lib/auth';
+export { auth as middleware } from '@/lib/auth';
 
 // Don't invoke Middleware on some paths
 export const config = {
