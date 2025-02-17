@@ -1,7 +1,5 @@
 import { atomWithHash } from 'jotai-location'
-import { Task } from '@prisma/client';
 
-export type TaskModalType = Task | "new" | null;
+export type TaskModalType = string | "new" | null;
 
 export const taskModal = atomWithHash<TaskModalType>("task", null);
-``

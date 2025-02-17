@@ -8,6 +8,8 @@ Generate code, corrections, and refactorings that comply with the following guid
 - **Type Declarations**: Always declare explicit types for variables and functions.
   - Avoid using `any`.
   - Create precise, descriptive types.
+  - Use `zod` for validation. 
+  - Use generated types from `prisma` when it makes sense to do so.
 - **Documentation**: Use JSDoc to document public classes and methods.
 - **Exports**: Maintain a single export per file.
 - **Code Clarity**: Write self-documenting, intention-revealing code.
@@ -61,7 +63,7 @@ Generate code, corrections, and refactorings that comply with the following guid
 
 - **App Router**: Use the App Router; all components should reside within the `app` directory.
 - **Server Components**: Implement Server Components by default; use Client Components only when necessary for interactivity or client-side state management.
-- **TypeScript Syntax**: Employ modern TypeScript syntax with proper typing for all components and functions.
+- **TypeScript Syntax**: Employ modern TypeScript syntax with proper typing for all components and functions. 
 - **Responsive Design**: Utilize Tailwind CSS classes to ensure responsiveness across various screen sizes.
 - **Component Architecture**: Create modular, reusable components aligned with design sections.
 - **Data Fetching**:

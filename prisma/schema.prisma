@@ -66,11 +66,11 @@ model VerificationToken {
 }
  
 enum Status {
-  Paused
-  Todo
-  InProgress
-  Completed
-  Scrapped
+  paused
+  todo
+  in_progress
+  completed
+  scrapped
 }
 
 model File {

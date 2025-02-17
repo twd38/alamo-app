@@ -75,7 +75,7 @@ export function KanbanColumn({ id, name, jobs, tasks }: KanbanColumnProps) {
   console.log("tasks", tasks)
 
   return (
-    <div className="bg-red dark:bg-gray-800">
+    <div className="dark:bg-gray-800 rounded-lg">
       <div
         ref={node => {
           setNodeRef(node);

@@ -11,7 +11,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     authorized: async ({ auth }) => {
-      console.log("auth", auth)
+      // console.log("auth", auth)
       // Logged in users are authenticated, otherwise redirect to login page
       return !!auth
     },

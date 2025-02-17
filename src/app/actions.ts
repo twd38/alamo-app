@@ -1,7 +1,6 @@
 'use server'
 import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { User, WorkStation, Task } from '@prisma/client';
@@ -113,14 +112,28 @@ export async function createTask(data: {
     description: string;
     createdById: string;
     assignees: string[];
-    workStationId?: string;
+    workStationId: string;
+    taskOrder: number;
 }) {
     try {
         const session = await auth()
-        const userId = session?.user?.id || "cm76gqnt200046dmxaehh48qs"
+        const userId = session?.user?.id || "cm78gevrb0004kxxg43qs0mqv"
         console.log(session)
         
-        console.log('Creating task with data:', data);
+        console.log('Creating task with data:', {
+          name: data.name,
+          taskNumber: data.taskNumber,
+          status: data.status,
+          dueDate: data.dueDate,
+          description: data.description,
+          createdById: userId,
+          assignees: {
+              connect: data.assignees.map(userId => ({ id: userId }))
+          },
+          workStationId: data.workStationId,
+        });
+
+        
         const result = await prisma.task.create({
             data: {
                 name: data.name,
@@ -139,7 +152,6 @@ export async function createTask(data: {
             }
         })
 
-        revalidatePath('/production');
         return { success: true, data: result };
     } catch (error) {
         console.error('Error creating task:', error);
@@ -215,6 +227,114 @@ export async function reorderTasks(workstationId: string, taskIds: string[]) {
     } catch (error) {
         console.error('Error reordering tasks:', error);
         return { success: false, error: 'Failed to reorder tasks' };
+    }
+}
+
+export async function deleteTask(taskId: string) {
+    try {
+        const result = await prisma.task.update({
+            where: { id: taskId },
+            data: { 
+              deletedOn: new Date(),
+              workStationId: null
+            }
+        });
+        
+        revalidatePath('/production');
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        return { success: false, error: 'Failed to delete task' };
+    }
+}
+
+export async function duplicateTask(taskId: string) {
+    try {
+        // Get the original task with its relationships
+        const originalTask = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: {
+                assignees: true,
+                files: true
+            }
+        });
+
+        if (!originalTask) {
+            throw new Error('Task not found');
+        }
+
+        // Create a new task with the same data
+        const duplicatedTask = await prisma.task.create({
+            data: {
+                name: `${originalTask.name} (Copy)`,
+                taskNumber: `${originalTask.taskNumber}-copy`,
+                status: originalTask.status,
+                dueDate: originalTask.dueDate,
+                description: originalTask.description,
+                createdById: originalTask.createdById,
+                workStationId: originalTask.workStationId,
+                taskOrder: originalTask.taskOrder + 1,
+                assignees: {
+                    connect: originalTask.assignees.map(assignee => ({ id: assignee.id }))
+                },
+                files: {
+                    create: originalTask.files.map(file => ({
+                        url: file.url,
+                        fileName: file.fileName,
+                        jobId: file.jobId
+                    }))
+                }
+            },
+            include: {
+                assignees: true,
+                files: true
+            }
+        });
+
+        revalidatePath('/production');
+        return { success: true, data: duplicatedTask };
+    } catch (error) {
+        console.error('Error duplicating task:', error);
+        return { success: false, error: 'Failed to duplicate task' };
+    }
+}
+
+export async function updateTask(taskId: string, data: {
+    name: string;
+    taskNumber: string;
+    status: Status;
+    dueDate: Date | undefined;
+    description: string;
+    assignees: string[];
+    workStationId?: string;
+    taskOrder: number;
+}) {
+    try {
+        const result = await prisma.task.update({
+            where: { id: taskId },
+            data: {
+                name: data.name,
+                taskNumber: data.taskNumber,
+                status: data.status,
+                dueDate: data.dueDate || new Date(),
+                description: data.description,
+                workStationId: data.workStationId,
+                assignees: {
+                    set: data.assignees.map(userId => ({ id: userId }))
+                },
+                taskOrder: data.taskOrder
+            },
+            include: {
+                assignees: true,
+                files: true
+            }
+        });
+
+        revalidatePath('/production');
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('Error updating task:', error);
+        return { success: false, error: 'Failed to update task' };
     }
 }
 

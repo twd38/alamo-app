@@ -16,6 +16,10 @@ export async function getAllUsers() {
     return await prisma.user.findMany()
 }
 
+export async function getJobs() {
+    return await prisma.job.findMany()
+}
+
 export async function getWorkstations() {
     return await prisma.workStation.findMany({
         where: {
@@ -24,6 +28,12 @@ export async function getWorkstations() {
         include: {
             jobs: true,
             tasks: {
+                where: {
+                    deletedOn: null
+                },
+                orderBy: {
+                    taskOrder: 'asc'
+                },
                 include: {
                     assignees: true,
                     createdBy: true,
@@ -32,10 +42,6 @@ export async function getWorkstations() {
             }
         }
     })
-}
-
-export async function getJobs() {
-    return await prisma.job.findMany()
 }
 
 export async function getWorkstationJobs(workstationId: string) {
@@ -52,10 +58,6 @@ export async function getWorkstation(workstationId: string) {
             id: workstationId
         }
     })
-}
-
-export async function getAllWorkStations() {
-    return await prisma.workStation.findMany()
 }
 
 export async function getJob(jobId: string) {

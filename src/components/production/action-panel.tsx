@@ -7,8 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Filter, Search } from "lucide-react"
 import NewWorkstationDialog from './new-workstation-dialog';
 import { useRouter } from 'next/navigation'
-import TaskDetial from './task-detail';
-import { Task } from '@prisma/client';
+
 import { taskModal } from './utils';
 import { useAtom } from 'jotai';
 
@@ -30,9 +29,10 @@ export function ActionPanel() {
         setActiveTask("new");
     }
 
-    const updateActiveTask = (task: Task | "new" | null) => {
+    const updateActiveTask = (task: "String" | "new" | null) => {
         setActiveTask(task);
     }
+
     return (
         <div>
             <div className="flex items-center justify-between">
@@ -63,7 +63,6 @@ export function ActionPanel() {
                 </div>
             </div>
             <NewWorkstationDialog isOpen={isDialogOpen} onClose={closeNewWorkstationDialog} />
-            <TaskDetial />
         </div>
     );
 }

@@ -11,16 +11,19 @@ import { updateWorkStationKanbanOrder, moveTask, reorderTasks } from 'src/app/ac
 import { useOptimistic } from 'react'
 import { toast } from 'react-hot-toast'
 import { MouseSensor, KeyboardSensor } from '@/lib/dnd-sensors'
+import TaskDetail from '@/components/production/task-detail';
+import { useAtom } from 'jotai';
+import { taskModal } from '@/components/production/utils';
 
 export const dynamic = 'force-dynamic';
 
 type WorkstationWithJobsAndTasks = WorkStation & {
   jobs: Job[];
-  tasks: (Task & {
-    assignees: User[];
-    createdBy: User;
-    files: any[];
-  })[];
+    tasks: (Task & {
+      assignees: User[];
+      createdBy: User;
+      files: any[];
+    })[];
 };
 
 export function KanbanBoard({
@@ -31,6 +34,9 @@ export function KanbanBoard({
   // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sortableColumns, setSortableColumns] = useOptimistic(columns);
+  const [activeTask, setActiveTask] = useAtom(taskModal)
+  const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask) : null
+
   console.log(sortableColumns)
   console.log(activeId)
   console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
@@ -229,6 +235,7 @@ export function KanbanBoard({
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
+      <TaskDetail task={activeTaskData || null} />
     </div>
   )
 }

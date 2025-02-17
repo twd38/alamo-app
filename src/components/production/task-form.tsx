@@ -3,14 +3,13 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Check } from "lucide-react"
+import { Check, MoreHorizontal } from "lucide-react"
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -22,17 +21,43 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, X } from "lucide-react";
 import useSWR from 'swr';
-import { getAllUsers, getAllWorkStations } from '@/lib/queries';
+import { getAllUsers, getWorkstations } from '@/lib/queries';
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Status, User as PrismaUser, Task } from "@prisma/client";
+import { Status, User, Task } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask } from "src/app/actions";
+import { createTask, deleteTask, duplicateTask, updateTask } from "src/app/actions";
+import { revalidatePath } from "next/cache";
+import { useRouter } from "next/navigation";
+import { useAtom } from "jotai";
+import { taskModal } from "./utils";
+import { DeleteAlert } from "@/components/delete-alert";
+import { 
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { getStatusConfig } from "@/lib/utils"
+
+interface TaskWithRelations extends Task {
+    assignees: User[];
+    createdBy: User;
+    files: any[];
+}
 
 // Define the form schema using Zod
 const formSchema = z.object({
     id: z.string(),
-    name: z.string(),
+    name: z.string().min(1, { message: "Task name is required" }),
     taskNumber: z.string(),
     status: z.nativeEnum(Status),
     dueDate: z.date().optional(),
@@ -49,32 +74,24 @@ const formSchema = z.object({
     })).optional()
 })
 
-interface TaskWithRelations extends Task {
-    assignees: string[];
-    files: {
-        id: string;
-        url: string;
-        fileName: string;
-        taskId: string;
-        jobId: string;
-    }[];
-}
-
 const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
+  const [activeTask, setActiveTask] = useAtom(taskModal)
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const router = useRouter()
   const { data: users } = useSWR('allUsers', getAllUsers);
-  const { data: workStations } = useSWR('allWorkStations', getAllWorkStations);
+  const { data: workStations } = useSWR('allWorkStations', getWorkstations);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       id: task?.id || "",
-      name: task?.name || "",
+      name: task?.name,
       taskNumber: task?.taskNumber || "",
       status: task?.status || "Todo",
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
       description: task?.description || "",
       createdById: task?.createdById || "",
-      assignees: task?.assignees || [],
+      assignees: task?.assignees.map(a => a.id) || [],
       workStationId: task?.workStationId || undefined,
       files: task?.files || []
     }
@@ -85,31 +102,75 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     console.log('Form data before submission:', data);
 
     try {
-      const result = await createTask({
-        name: data.name,
-        taskNumber: data.taskNumber,
-        status: data.status,
-        dueDate: data.dueDate || new Date(),
-        description: data.description,
-        createdById: data.createdById,
-        assignees: data.assignees,
-        workStationId: data.workStationId,
-      });
+      let result;
+      
+      if (task) {
+        // Update existing task
+        result = await updateTask(task.id, {
+          name: data.name,
+          taskNumber: data.taskNumber,
+          status: data.status,
+          dueDate: data.dueDate,
+          description: data.description,
+          assignees: data.assignees,
+          workStationId: data.workStationId,
+          taskOrder: task.taskOrder
+        });
+      } else {
+        // Create new task
+        result = await createTask({
+          name: data.name,
+          taskNumber: data.taskNumber,
+          status: data.status,
+          dueDate: data.dueDate || new Date(),
+          description: data.description,
+          createdById: data.createdById,
+          assignees: data.assignees,
+          workStationId: data.workStationId || "",
+          taskOrder: 0
+        });
+      }
 
       if (!result.success) {
-        // Handle error case
-        console.error('Failed to create task:', result.error);
+        console.error('Failed to save task:', result.error);
         return;
       }
 
-      // Handle success (e.g., show a success message, redirect, etc.)
-      console.log('Task created successfully:', result.data);
+      setActiveTask(null)
+      router.refresh();
+      console.log('Task saved successfully:', result.data);
     } catch (error) {
       console.error('Error submitting form:', error);
     }
   }
 
-  const values = form.getValues()
+  const handleDuplicateTask = async () => {
+    if (!task) return;
+    
+    try {
+      const result = await duplicateTask(task.id);
+      if (result.success) {
+        setActiveTask(null);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Error duplicating task:', error);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!task) return;
+    
+    try {
+      const result = await deleteTask(task.id);
+      if (result.success) {
+        setActiveTask(null);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
 
   return (
     <Form {...form}>
@@ -117,11 +178,37 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
         <div className="h-full overflow-y-auto py-2">
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-6">
-                    <Button variant="outline" size="sm" className="gap-2" >
+                    <Button 
+                        type="submit"
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                    >
                         <Check className="h-4 w-4" />
-                        Mark complete
+                        {task ? 'Save changes' : 'Create task'}
                     </Button>
-                    <div className="flex gap-2">{/* Action buttons would go here */}</div>
+                    <div className="flex gap-2">
+                        {task && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={handleDuplicateTask}>
+                                        Duplicate task
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                        onClick={() => setIsDeleteAlertOpen(true)}
+                                        className="text-red-600"
+                                    >
+                                        Delete task
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
                 </div>
                 <div className="w-full h-[1px] bg-border" />
 
@@ -194,6 +281,46 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                         />
                         <FormField
                             control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2">
+                                    <FormLabel className="w-24">Status</FormLabel>
+                                    <Select 
+                                        onValueChange={field.onChange} 
+                                        defaultValue={field.value}
+                                        value={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-[240px]">
+                                                <SelectValue>
+                                                    {(() => {
+                                                        const { label, variant } = getStatusConfig(field.value as Status)
+                                                        return <Badge variant={variant}>{label}</Badge>
+                                                    })()}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Object.values(Status).map((status) => {
+                                                const { label, variant } = getStatusConfig(status)
+                                                return (
+                                                    <SelectItem 
+                                                        key={status} 
+                                                        value={status}
+                                                        className="flex items-center gap-2"
+                                                    >
+                                                        <Badge variant={variant}>{label}</Badge>
+                                                    </SelectItem>
+                                                )
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
                             name="dueDate"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
@@ -252,7 +379,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                 <Textarea {...field}
                                     placeholder="What is this task about?" 
                                     className={cn(
-                                        "mt-2 px-2",
+                                        "mt-2 px-2 min-h-[200px]",
                                         "border-transparent hover:border-input focus:border-input",
                                         "transition-all duration-200"
                                     )}
@@ -274,6 +401,13 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
             </div>
         </div>
         </form>
+
+      <DeleteAlert
+        isOpen={isDeleteAlertOpen}
+        onCloseAction={() => setIsDeleteAlertOpen(false)}
+        onConfirm={handleDeleteTask}
+        resourceName="task"
+      />
     </Form>
   )
 }
