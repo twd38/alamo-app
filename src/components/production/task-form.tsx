@@ -87,7 +87,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       id: task?.id || "",
       name: task?.name,
       taskNumber: task?.taskNumber || "",
-      status: task?.status || "Todo",
+      status: task?.status || "todo",
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
       description: task?.description || "",
       createdById: task?.createdById || "",

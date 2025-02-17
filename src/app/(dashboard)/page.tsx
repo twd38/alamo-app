@@ -1,11 +1,7 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from 'src/components/ui/tabs';
-import { File, PlusCircle } from 'lucide-react';
-import { Button } from 'src/components/ui/button';
-import { Countdown } from '@/components/dashboard/countdown';
-import { Editor } from '@/components/editor/editor';
+import { Countdown } from 'src/components/dashboard/countdown';
+import { Editor } from 'src/components/editor/editor';
 import { prisma } from 'src/lib/db';
 
-// import { getProducts } from '@/lib/db';
 export default async function ProductsPage(
   props: {
     searchParams: Promise<{ q: string; offset: string }>;
