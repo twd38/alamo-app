@@ -8,16 +8,16 @@ import {
   ShoppingCart,
   Users2
 } from 'lucide-react';
-import { Button } from 'src/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from 'src/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Analytics } from '@vercel/analytics/react';
-import Providers from '../../components/providers/providers';
+import Providers from '@/components/providers/providers';
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import {
   SidebarInset,
   SidebarTrigger,
-} from "src/components/ui/sidebar"
-import { Separator } from "src/components/ui/separator"
+} from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 
 export default function DashboardLayout({
