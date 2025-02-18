@@ -113,7 +113,7 @@ export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanCol
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => console.log('Rename column')}>
+                    <DropdownMenuItem disabled onSelect={() => console.log('Rename column')}>
                       <Edit className="mr-2 h-4 w-4" />
                       Rename column
                     </DropdownMenuItem>

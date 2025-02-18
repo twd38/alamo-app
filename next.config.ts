@@ -4,9 +4,7 @@ module.exports = {
       bodySizeLimit: '20mb',
     },
   },
-}
-
-export default {
+  transpilePackages: ['three'],
   images: {
     remotePatterns: [
       {
@@ -31,4 +29,4 @@ export default {
       },
     ]
   }
-};
+}

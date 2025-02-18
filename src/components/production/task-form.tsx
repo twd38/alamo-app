@@ -48,6 +48,8 @@ import {
 } from "@/components/ui/select"
 import { getStatusConfig, formatFileSize } from "@/lib/utils"
 import { toast } from "react-hot-toast";
+import STLViewer from "@/components/stl-viewer";
+
 interface TaskWithRelations extends Task {
     assignees: User[];
     createdBy: User;
@@ -457,7 +459,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                             multiple 
                                             ref={fileInputRef} 
                                             onChange={handleFileChange}
-                                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                            accept=""
                                         />
                                         <Button 
                                             type="button"
@@ -472,32 +474,40 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                             {value && value.length > 0 && (
                                                 <div className="mt-2 space-y-2">
                                                     {value.map((file, index) => (
-                                                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
-                                                        <div className="flex items-center gap-2">
-                                                            <File className="h-4 w-4" />
-                                                            {('url' in file) ? (
-                                                                <Button
-                                                                    variant="link"
-                                                                    className="p-0 h-auto"
-                                                                    onClick={() => handleFileDownload(file.url, file.name)}
-                                                                >
-                                                                    <span className="text-sm hover:underline">{file.name}</span>
-                                                                </Button>
-                                                            ) : (
-                                                                <span className="text-sm">{file.name}</span>
-                                                            )}
-                                                            <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
+                                                        <div key={`${index}-parent`}>
+                                                        <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
+                                                            <div className="flex items-center gap-2">
+                                                                <File className="h-4 w-4" />
+                                                                {('url' in file) ? (
+                                                                    <Button
+                                                                        variant="link"
+                                                                        className="p-0 h-auto"
+                                                                        onClick={() => handleFileDownload(file.url, file.name)}
+                                                                    >
+                                                                        <span className="text-sm hover:underline">{file.name}</span>
+                                                                    </Button>
+                                                                ) : (
+                                                                    <span className="text-sm">{file.name}</span>
+                                                                )}
+                                                                <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
+                                                            </div>
+                                                            <Button 
+                                                                type="button"
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => handleRemoveFile(index)} 
+                                                                className="h-8 w-8 p-0"
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </Button>
                                                         </div>
-                                                        <Button 
-                                                            type="button"
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            onClick={() => handleRemoveFile(index)} 
-                                                            className="h-8 w-8 p-0"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                        {('url' in file) ? (
+                                                            <STLViewer 
+                                                                fileType={"pdf"}
+                                                                filePath={file.url}
+                                                                key={`${index}-viewer`}
+                                                            />):(<div key={`${index}-viewer`}></div>)}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             )}
