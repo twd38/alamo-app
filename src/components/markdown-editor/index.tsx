@@ -1,5 +1,4 @@
 "use client";
-import { defaultEditorContent } from "src/lib/content";
 import {
   EditorCommand,
   EditorCommandEmpty,
@@ -17,24 +16,63 @@ import {
 import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { defaultExtensions } from "./extensions";
-import { ColorSelector } from "../selectors/color-selector";
-import { LinkSelector } from "../selectors/link-selector";
-import { MathSelector } from "../selectors/math-selector";
-import { NodeSelector } from "../selectors/node-selector";
+import { ColorSelector } from "./selectors/color-selector";
+import { LinkSelector } from "./selectors/link-selector";
+import { MathSelector } from "./selectors/math-selector";
+import { NodeSelector } from "./selectors/node-selector";
 import { Separator } from "../ui/separator";
 
 import GenerativeMenuSwitch from "./generative/generative-menu-switch";
 import { uploadFn } from "./image-upload";
-import { TextButtons } from "../selectors/text-buttons";
+import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
-import { updateMissionMessage } from "@/app/actions";
-import { MissionMessage } from "@prisma/client";
-
+import { ControllerRenderProps } from "react-hook-form";
+import { cn } from "@/lib/utils";
 const hljs = require("highlight.js");
 
 const extensions = [...defaultExtensions, slashCommand];
 
-export const Editor = ({initialContent}: {initialContent: MissionMessage | null}) => {
+interface MarkdownEditorProps {
+  initialContent: string;
+  updateContent: (content: string) => void;
+  className?: string;
+  field?: ControllerRenderProps;
+  size?: 'sm' | 'base' | 'lg' | 'xl' | '2xl';
+  hideSaveStatus?: boolean;
+  hideWordCount?: boolean;
+}
+
+const defaultInitialContent = `{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "textStyle",
+              "attrs": {
+                "color": "#A8A29E"
+              }
+            }
+          ],
+          "text": "write something..."
+        }
+      ]
+    }
+  ]
+}`
+
+export const MarkdownEditor = ({
+  initialContent = defaultInitialContent,
+  updateContent,
+  className,
+  size = 'base',
+  hideSaveStatus = false,
+  hideWordCount = false,
+}: MarkdownEditorProps) => {
 //   const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [charsCount, setCharsCount] = useState();
@@ -64,29 +102,25 @@ export const Editor = ({initialContent}: {initialContent: MissionMessage | null}
     window.localStorage.setItem("markdown", editor.storage.markdown.getMarkdown());
     setSaveStatus("Saved");
 
-    const messageId = initialContent?.id || null;
+    await updateContent(JSON.stringify(json));
+  }, 2000);
 
-    await updateMissionMessage(messageId, JSON.stringify(json));
-  }, 1000);
-
-
-//   if (!initialContent) return null;
-  const initialContentJson = initialContent?.content ? JSON.parse(initialContent.content) : {};
+  const initialContentJson = JSON.parse(initialContent);
 
   return (
-    <div className="relative w-full">
+    <div className={cn("relative w-full", className)}>
       <div className="flex absolute right-5 top-5 z-10 mb-5 gap-2">
-        <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">{saveStatus}</div>
-        <div className={charsCount ? "rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground" : "hidden"}>
+        {!hideSaveStatus && ( <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">{saveStatus}</div> )}
+        {!hideWordCount && ( <div className={charsCount ? "rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground" : "hidden"}>
           {charsCount} Words
-        </div>
+        </div> )}
       </div>
       <EditorRoot>
         <EditorContent
           immediatelyRender={false}
           initialContent={initialContentJson}
           extensions={extensions}
-          className="relative min-h-[500px] w-full p-6 border-muted bg-background sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg"
+          className="relative min-h-[500px] w-full"
           editorProps={{
             handleDOMEvents: {
               keydown: (_view, event) => handleCommandNavigation(event),
@@ -95,7 +129,7 @@ export const Editor = ({initialContent}: {initialContent: MissionMessage | null}
             handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
             attributes: {
               class:
-                "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full",
+                `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full`,
             },
           }}
           onUpdate={({ editor }) => {

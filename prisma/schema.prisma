@@ -147,3 +147,111 @@ model MissionMessage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Parts and Inventory
+
+model Part {
+  id          String  @id @default(uuid())
+  partNumber  String  @unique
+  category    PartCategory
+  description String
+  unit        String
+  trackingType TrackingType
+  bomParents  BOM_Component[] @relation("BOMParent")
+  bomChildren BOM_Component[] @relation("BOMChild")
+  inventory   Inventory[]
+  transactions InventoryTransaction[]
+}
+
+enum PartCategory {
+  ASSEMBLY_400
+  MODULE_300
+  SUBASSEMBLY_200
+  PART_100
+  RAW_000
+  BIN
+  SHIP
+} 
+
+model PartNumberSequence {
+  id          String @id @default(uuid())
+  category    PartCategory @unique
+  description String
+  nextSeq     Int @default(1) // Used for auto-generating part numbers
+}
+
+enum TrackingType {
+  SERIAL
+  BATCH
+  LOT
+}
+
+model BOM_Component {
+  id            String @id @default(uuid())
+  parentPartId  String
+  parentPart    Part @relation("BOMParent", fields: [parentPartId], references: [id])
+  componentPartId String
+  componentPart Part @relation("BOMChild", fields: [componentPartId], references: [id])
+  quantityPer   Int
+  bomType       BOMType
+}
+
+enum BOMType {
+  ENGINEERING
+  MANUFACTURING
+}
+
+model Inventory {
+  id           String @id @default(uuid())
+  partId       String
+  part         Part   @relation(fields: [partId], references: [id])
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  quantity     Int // Bulk parts tracked by quantity
+  serialNumber String? @unique // Serialized parts track unique numbers
+}
+
+model InventoryTransaction {
+  id            String @id @default(uuid())
+  timestamp     DateTime @default(now())
+  partId        String
+  part          Part @relation(fields: [partId], references: [id])
+  fromLocationId String?
+  fromLocation  Location? @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocationId  String?
+  toLocation    Location? @relation("ToLocation", fields: [toLocationId], references: [id])
+  quantity      Int
+  transactionType TransactionType
+  referenceId   String? // Link to WorkOrder, PurchaseOrder, etc.
+}
+
+model Location {
+  id             String  @id @default(uuid())
+  name           String
+  type           LocationType
+  parentLocationId String?  @unique
+  parentLocation Location?  @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  subLocations   Location[] @relation("LocationHierarchy")
+  fromTransactions InventoryTransaction[] @relation("FromLocation")
+  toTransactions   InventoryTransaction[] @relation("ToLocation")
+  inventoryParts Inventory[]
+}
+
+enum LocationType {
+  WAREHOUSE
+  AISLE
+  SHELF
+  BIN
+  CONTAINER
+  SHIPPING
+  WIP
+}
+
+enum TransactionType {
+  PURCHASE_RECEIPT
+  PRODUCTION_ISSUE
+  PRODUCTION_RETURN
+  MOVE
+  ADJUSTMENT
+  SHIPMENT
+}

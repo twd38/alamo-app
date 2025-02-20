@@ -415,7 +415,7 @@ function isFileInstance(file: File | { id: string; url: string; name: string; ty
     return file instanceof File;
 }
 
-export async function getFileDownloadUrl(fileUrl: string) {
+export async function getPresignedFileUrl(fileUrl: string) {
   try {
     // Extract the key from the URL by removing the PUBLIC_URL prefix
     const key = fileUrl.replace(process.env.R2_PUBLIC_URL + '/', '');
@@ -429,6 +429,11 @@ export async function getFileDownloadUrl(fileUrl: string) {
     console.error('Error getting file download URL:', error);
     return { success: false, error: 'Failed to get file download URL' };
   }
+}
+
+export async function uploadFile(file: File) {
+    const { url } = await uploadFileToR2(file);
+    return { success: true, url };
 }
 
 

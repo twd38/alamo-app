@@ -1,22 +1,16 @@
 import { createImageUpload } from "novel";
 import { toast } from "react-hot-toast";
+import { uploadFile } from "@/app/actions";
 
 const onUpload = (file: File) => {
-  const promise = fetch("/api/upload", {
-    method: "POST",
-    headers: {
-      "content-type": file?.type || "application/octet-stream",
-      "x-vercel-filename": file?.name || "image.png",
-    },
-    body: file,
-  });
+  const promise = uploadFile(file);
 
   return new Promise((resolve, reject) => {
     toast.promise(
       promise.then(async (res) => {
         // Successfully uploaded image
-        if (res.status === 200) {
-          const { url } = (await res.json()) as { url: string };
+        if (res.success) {
+          const url = res.url;
           // preload the image
           const image = new Image();
           image.src = url;
@@ -24,7 +18,7 @@ const onUpload = (file: File) => {
             resolve(url);
           };
           // No blob store configured
-        } else if (res.status === 401) {
+        } else if (!res.success) {
           resolve(file);
           throw new Error("`BLOB_READ_WRITE_TOKEN` environment variable not found, reading image locally instead.");
           // Unknown error

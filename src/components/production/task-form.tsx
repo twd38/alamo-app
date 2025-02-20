@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Status, User, Task } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getFileDownloadUrl } from "@/app/actions";
+import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getPresignedFileUrl } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";
@@ -46,6 +46,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { MarkdownEditor } from "@/components/markdown-editor";
 import { getStatusConfig, formatFileSize } from "@/lib/utils"
 import { toast } from "react-hot-toast";
 import STLViewer from "@/components/stl-viewer";
@@ -109,7 +110,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       taskNumber: task?.taskNumber || "",
       status: task?.status || "todo",
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
-      description: task?.description || "",
+      description: task?.description,
       createdById: task?.createdById || "",
       assignees: task?.assignees.map(a => a.id) || [],
       workStationId: task?.workStationId || activeTask.workstationId || undefined,
@@ -118,7 +119,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
   })
 
   // Handle form submission
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+  const submitForm = async (data: z.infer<typeof formSchema>) => {
     try {
       let result;
       
@@ -237,7 +238,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
 
   const handleFileDownload = async (fileUrl: string, fileName: string) => {
     try {
-      const result = await getFileDownloadUrl(fileUrl);
+      const result = await getPresignedFileUrl(fileUrl);
       if (result.success && result.url) {
         // Open in new window
         window.open(result.url, '_blank');
@@ -252,7 +253,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(submitForm)} className="space-y-8">
         <div className="h-full overflow-y-auto py-2">
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-6">
@@ -525,14 +526,26 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="w-24 px-2 align-text-top">Description</FormLabel>
-                                <Textarea {...field}
-                                    placeholder="What is this task about?" 
+                                <MarkdownEditor 
+                                    {...field}
+                                    initialContent={field.value} 
+                                    updateContent={field.onChange} 
+                                    hideSaveStatus={true}
+                                    hideWordCount={true}
                                     className={cn(
                                         "mt-2 px-2 min-h-[200px]",
                                         "border-transparent hover:border-input focus:border-input",
                                         "transition-all duration-200"
                                     )}
                                 />
+                                {/* <Textarea {...field}
+                                    placeholder="What is this task about?" 
+                                    className={cn(
+                                        "mt-2 px-2 min-h-[200px]",
+                                        "border-transparent hover:border-input focus:border-input",
+                                        "transition-all duration-200"
+                                    )}
+                                /> */}
                             </FormItem>
                         )}
                     />
