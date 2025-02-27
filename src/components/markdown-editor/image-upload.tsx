@@ -1,9 +1,9 @@
 import { createImageUpload } from "novel";
 import { toast } from "react-hot-toast";
-import { uploadFile } from "@/app/actions";
+import { uploadFile, getPresignedFileUrl } from "@/app/actions";
 
 const onUpload = (file: File) => {
-  const promise = uploadFile(file);
+  const promise = uploadFile(file, "contentFiles");
 
   return new Promise((resolve, reject) => {
     toast.promise(
@@ -11,11 +11,15 @@ const onUpload = (file: File) => {
         // Successfully uploaded image
         if (res.success) {
           const url = res.url;
+          // Get presigned URL for the uploaded image
+          const presignedResult = await getPresignedFileUrl(url);
+          const finalUrl = presignedResult.success && presignedResult.url ? presignedResult.url : url;
+          
           // preload the image
           const image = new Image();
-          image.src = url;
+          image.src = finalUrl;
           image.onload = () => {
-            resolve(url);
+            resolve(finalUrl); // We store the original URL, not the presigned one
           };
           // No blob store configured
         } else if (!res.success) {

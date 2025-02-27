@@ -107,6 +107,8 @@ export const MarkdownEditor = ({
 
   const initialContentJson = JSON.parse(initialContent);
 
+  console.log(initialContent)
+
   return (
     <div className={cn("relative w-full", className)}>
       <div className="flex absolute right-5 top-5 z-10 mb-5 gap-2">

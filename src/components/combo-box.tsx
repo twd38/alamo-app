@@ -8,6 +8,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FormItem, FormControl, FormMessage } from "@/components/ui/form"
 import { ControllerRenderProps, FieldValues, Path } from "react-hook-form"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 /**
  * Base interface for items in the ComboBox
@@ -40,6 +41,8 @@ export interface ComboBoxProps<
     renderSelected?: (value: TItem) => React.ReactNode;
     /** Optional custom rendering for option items */
     renderOption?: (value: TItem, isSelected: boolean) => React.ReactNode;
+    /** Optional className for the ComboBox */
+    className?: string;
 }
 
 /**
@@ -55,7 +58,8 @@ export function ComboBox<
     placeholder, 
     multiSelect,
     renderSelected,
-    renderOption 
+    renderOption,
+    className
 }: ComboBoxProps<TItem, TFieldValues, TName>) {
     const [open, setOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
@@ -103,12 +107,17 @@ export function ComboBox<
                         >
                             <div className="flex gap-1 flex-wrap">
                                 {getSelectedItems().length > 0 ? (
-                                    getSelectedItems().map((item, index) => (
-                                        <span key={item.id} className="flex items-center gap-1">
-                                            {renderSelected ? renderSelected(item) : item.name}
-                                            {(index < getSelectedItems().length - 1 && !renderSelected) && ", "}
-                                        </span>
-                                    ))
+                                    <ScrollArea className="w-full" type="scroll">
+                                        <div className="flex gap-1">
+                                            {getSelectedItems().map((item, index) => (
+                                                <span key={item.id} className="flex items-center gap-1 whitespace-nowrap">
+                                                    {renderSelected ? renderSelected(item) : item.name}
+                                                    {(index < getSelectedItems().length - 1 && !renderSelected) && ", "}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <ScrollBar orientation="horizontal" />
+                                    </ScrollArea>
                                 ) : (
                                     <span>{placeholder || "Select..."}</span>
                                 )}

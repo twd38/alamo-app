@@ -67,3 +67,66 @@ export async function getJob(jobId: string) {
         }
     })
 }
+
+export async function getParts({
+    query,
+    page,
+    limit,
+    sortBy,
+    sortOrder
+}: {
+    query: string;
+    page: number;
+    limit: number;
+    sortBy: string;
+    sortOrder: string;
+}) {
+    return await prisma.part.findMany({
+        where: {
+            OR: [
+                {
+                    description: { 
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    partNumber: { 
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                }
+            ]
+        },
+        orderBy: {
+            [sortBy]: sortOrder
+        },
+        skip: (page - 1) * limit,
+        take: limit
+    })
+}
+
+export async function getPartsCount({
+    query
+}: {
+    query: string;
+}) {
+    return await prisma.part.count({
+        where: {
+            OR: [
+                {
+                    description: { 
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    partNumber: { 
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                }
+            ]
+        }
+    })
+}

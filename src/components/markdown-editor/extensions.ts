@@ -23,6 +23,7 @@ import {
   Youtube,
 } from "novel";
 import { Markdown } from 'tiptap-markdown';
+import { getPresignedFileUrl } from "@/app/actions";
 
 import { cx } from "class-variance-authority";
 import { common, createLowlight } from "lowlight";
@@ -46,6 +47,33 @@ const tiptapImage = TiptapImage.extend({
         imageClass: cx("opacity-40 rounded-lg border border-stone-200"),
       }),
     ];
+  },
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      src: {
+        default: null,
+        parseHTML: async (element) => {
+          const src = element.getAttribute('src');
+          if (src?.startsWith(process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '')) {
+            try {
+              const result = await getPresignedFileUrl(src);
+              if (result.success) {
+                return result.url;
+              }
+            } catch (error) {
+              console.error('Error getting presigned URL:', error);
+            }
+          }
+          return src;
+        },
+        renderHTML: (attributes) => {
+          return {
+            src: attributes.src,
+          };
+        },
+      },
+    };
   },
 }).configure({
   allowBase64: true,

@@ -3,7 +3,7 @@ import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
-import { User, WorkStation, Task } from '@prisma/client';
+import { Task } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 import { getPresignedDownloadUrl } from '@/lib/r2';
 
@@ -131,7 +131,7 @@ export async function createTask(data: {
         const fileData = [];
         if (data.files && data.files.length > 0) {
             for (const file of data.files) {
-                const { url } = await uploadFileToR2(file);
+                const { url } = await uploadFileToR2(file, "tasks");
                 fileData.push({
                     url,
                     name: file.name,
@@ -359,7 +359,7 @@ export async function updateTask(taskId: string, data: {
         for (const file of newFiles) {
             if (isFileInstance(file)) {
                 // Handle new file upload
-                const { url } = await uploadFileToR2(file);
+                const { url } = await uploadFileToR2(file, "tasks");
                 fileData.push({
                     url,
                     name: file.name,
@@ -431,8 +431,8 @@ export async function getPresignedFileUrl(fileUrl: string) {
   }
 }
 
-export async function uploadFile(file: File) {
-    const { url } = await uploadFileToR2(file);
+export async function uploadFile(file: File, path: string) {
+    const { url } = await uploadFileToR2(file, path);
     return { success: true, url };
 }
 

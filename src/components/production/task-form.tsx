@@ -3,7 +3,6 @@
 import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Check, MoreHorizontal } from "lucide-react"
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -110,7 +109,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       taskNumber: task?.taskNumber || "",
       status: task?.status || "todo",
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
-      description: task?.description,
+      description: task?.description || "{}",
       createdById: task?.createdById || "",
       assignees: task?.assignees.map(a => a.id) || [],
       workStationId: task?.workStationId || activeTask.workstationId || undefined,
@@ -538,14 +537,6 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                         "transition-all duration-200"
                                     )}
                                 />
-                                {/* <Textarea {...field}
-                                    placeholder="What is this task about?" 
-                                    className={cn(
-                                        "mt-2 px-2 min-h-[200px]",
-                                        "border-transparent hover:border-input focus:border-input",
-                                        "transition-all duration-200"
-                                    )}
-                                /> */}
                             </FormItem>
                         )}
                     />

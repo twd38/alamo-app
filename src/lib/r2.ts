@@ -14,8 +14,8 @@ const r2Client = new S3Client({
 const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
 const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
 
-export async function uploadFileToR2(file: File): Promise<{ url: string; key: string }> {
-  const key = `tasks/${Date.now()}-${file.name}`;
+export async function uploadFileToR2(file: File, path: string): Promise<{ url: string; key: string }> {
+  const key = `${path}/${Date.now()}-${file.name}`;
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
