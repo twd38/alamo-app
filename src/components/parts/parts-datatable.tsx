@@ -138,6 +138,9 @@ export function PartsDataTable({parts, totalCount}: {parts: Part[], totalCount: 
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  // Get param for mode
+  const mode = searchParams.get("mode")
   
   // Get the initial search query from URL or empty string
   const initialQuery = searchParams.get("query") || ""
@@ -244,12 +247,12 @@ export function PartsDataTable({parts, totalCount}: {parts: Part[], totalCount: 
               })}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="ml-4">
+        <Dialog open={mode === "add"} onOpenChange={() => router.push("/parts/library")}>
+          {/* <DialogTrigger asChild> */}
+            <Button variant="outline" className="ml-4" onClick={() => router.push("/parts/library?mode=add")}>
               <Plus className="mr-2 h-4 w-4" /> Add Part
             </Button>
-          </DialogTrigger>
+          {/* </DialogTrigger> */}
           <DialogContent className="sm:max-w-[425px]">
             {/* <DialogHeader>
               <DialogTitle>Add New Part</DialogTitle>

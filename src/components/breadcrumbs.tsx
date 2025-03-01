@@ -29,16 +29,20 @@ export function Breadcrumbs() {
     breadcrumbs = [{ href: '/', label: 'Dashboard' }];
   } 
 
+  console.log(breadcrumbs);
+
   return (
     <Breadcrumb>
-      <BreadcrumbList>
+      <BreadcrumbList className="flex items-center gap-2">
         {breadcrumbs.slice(0, -1).map((item, index) => (
-          <BreadcrumbItem key={index} className="hidden md:block">
-            <BreadcrumbLink href={item.href}>
-              {item.label}
-            </BreadcrumbLink>
-            <BreadcrumbSeparator className="hidden md:block" />
-          </BreadcrumbItem>
+          <span key={index} className="flex items-center gap-2">
+            <BreadcrumbItem key={index} className="hidden md:flex">
+                <BreadcrumbLink href={item.href}>
+                  {item.label}
+                </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden md:flex" />
+          </span>
         ))}
         <BreadcrumbItem>
           <BreadcrumbPage>

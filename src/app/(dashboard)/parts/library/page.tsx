@@ -1,4 +1,4 @@
-import { PartsDataTable } from "@/components/inventory/parts-datatable";
+import { PartsDataTable } from "@/components/parts/parts-datatable";
 import { getParts, getPartsCount } from "@/lib/queries";
 
 interface InventoryPageProps {

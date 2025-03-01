@@ -22,31 +22,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Command } from "lucide-react"
 // This is sample data.
-const data = {
-  navMain: [
-    {
-      title: "Production",
-      url: "/production",
-      icon: Factory,
-      isActive: true
-    },
-    {
-      title: "Inventory",
-      url: "/inventory",
-      icon: Library,
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-    },
-  ]
-}
+
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
@@ -62,7 +38,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain />
       </SidebarContent>
       <SidebarFooter>
         { user && <NavUser user={user} /> }
