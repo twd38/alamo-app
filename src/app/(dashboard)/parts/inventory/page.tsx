@@ -1,5 +1,3 @@
-
-
 const InventoryPage = () => {
     return (
         <div>
@@ -7,3 +5,5 @@ const InventoryPage = () => {
         </div>
     )
 }
+
+export default InventoryPage;
