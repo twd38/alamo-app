@@ -544,7 +544,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
             </div>
             </div>
         </div>
-        </form>
+      </form>
 
       <DeleteAlert
         isOpen={isDeleteAlertOpen}

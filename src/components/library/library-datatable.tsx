@@ -43,6 +43,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Part } from "@prisma/client"
+import { NewPartDialog } from "./new-part-dialog"
 // Define the Part type based on the schema
 
 // Define the columns for the table
@@ -134,7 +135,7 @@ const columns: ColumnDef<Part>[] = [
   },
 ]
 
-export function PartsDataTable({parts, totalCount}: {parts: Part[], totalCount: number}) {
+export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount: number}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -247,69 +248,7 @@ export function PartsDataTable({parts, totalCount}: {parts: Part[], totalCount: 
               })}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Dialog open={mode === "add"} onOpenChange={() => router.push("/parts/library")}>
-          {/* <DialogTrigger asChild> */}
-            <Button variant="outline" className="ml-4" onClick={() => router.push("/parts/library?mode=add")}>
-              <Plus className="mr-2 h-4 w-4" /> Add Part
-            </Button>
-          {/* </DialogTrigger> */}
-          <DialogContent className="sm:max-w-[425px]">
-            {/* <DialogHeader>
-              <DialogTitle>Add New Part</DialogTitle>
-              <DialogDescription>Enter the details for the new part. Click save when you're done.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="partNumber" className="text-right">
-                  Part Number
-                </Label>
-                <Input id="partNumber" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">
-                  Description
-                </Label>
-                <Input id="description" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">
-                  Category
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ASSEMBLY_400">Assembly</SelectItem>
-                    <SelectItem value="MODULE_300">Module</SelectItem>
-                    <SelectItem value="SUBASSEMBLY_200">Subassembly</SelectItem>
-                    <SelectItem value="PART_100">Part</SelectItem>
-                    <SelectItem value="RAW_000">Raw</SelectItem>
-                    <SelectItem value="BIN">Bin</SelectItem>
-                    <SelectItem value="SHIP">Ship</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="trackingType" className="text-right">
-                  Tracking Type
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select tracking type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SERIAL">Serial</SelectItem>
-                    <SelectItem value="BATCH">Batch</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Save changes</Button>
-            </DialogFooter> */}
-          </DialogContent>
-        </Dialog>
+        <NewPartDialog />
       </div>
       <div className="rounded-md border">
         <Table>

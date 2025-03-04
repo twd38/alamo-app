@@ -1,4 +1,4 @@
-import { PartsDataTable } from "@/components/parts/parts-datatable";
+import { LibraryDataTable } from "@/components/library/library-datatable";
 import { getParts, getPartsCount } from "@/lib/queries";
 
 interface InventoryPageProps {
@@ -39,7 +39,7 @@ export default async function InventoryPage(props: InventoryPageProps) {
     return (
         <div>
             {/* <h1 className="text-2xl font-bold mb-5">Parts</h1> */}
-            <PartsDataTable parts={parts} totalCount={totalParts} />
+            <LibraryDataTable parts={parts} totalCount={totalParts} />
         </div>
     )
 }
