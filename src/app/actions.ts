@@ -3,10 +3,10 @@ import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
-import { Task, Part, TrackingType, BOMType, Prisma, PartCategory } from '@prisma/client';
+import { Task, Part, TrackingType, BOMType, Prisma, PartType } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 import { getPresignedDownloadUrl } from '@/lib/r2';
-
+import { generateNewPartNumbers } from '@/lib/utils';
 export async function updateDataAndRevalidate(path: string) {
     revalidatePath(path); // Revalidate the specific path
     return { message: "Data updated and cache revalidated" };
@@ -436,52 +436,6 @@ export async function uploadFile(file: File, path: string) {
     return { success: true, url };
 }
 
-export async function createNewPartNumber(componentPartNumbers: string[], isRawMaterial: boolean) {
-    // Part number is [xxx]-[yyyyy]
-    // xxx is the category
-    // yyyyy is the sequence number in the category
-
-    // Get the part category
-    let partCategory = "";
-
-    // Check if component part numbers contain 200-level numbers
-    if(componentPartNumbers.some(partNumber => partNumber.includes("300"))) {
-        partCategory = "400";
-    } else if (componentPartNumbers.some(partNumber => partNumber.includes("200"))) {
-        partCategory = "300";
-    } else if (componentPartNumbers.some(partNumber => partNumber.includes("100"))) {
-        partCategory = "200"
-    } else if (!isRawMaterial) {
-        partCategory = "100"
-    } else {
-        partCategory = "000"
-    }
-
-    // Get the last part number in the category
-    const lastPartNumber = await prisma.part.findFirst({
-        orderBy: {
-            partNumber: 'desc'
-        },
-        where: {
-            partNumber: {
-                startsWith: partCategory
-            }
-        }
-    });
-
-    // Get the sequence number
-    const sequenceNumber = lastPartNumber ? parseInt(lastPartNumber.partNumber.split("-")[1]) : 0;
-
-    // Increment the sequence number
-    const newSequenceNumber = sequenceNumber + 1;
-    const paddedSequenceNumber = newSequenceNumber.toString().padStart(8, '0');
-
-    // Create the new part number
-    const newPartNumber = `${paddedSequenceNumber}-${partCategory}`;
-
-    return newPartNumber;
-}
-
 export async function createPart({
     partNumber,
     description,
@@ -557,21 +511,16 @@ export async function createPart({
             partFiles = uploadedFiles;
         }
 
-        // Create the part number if not provided
-        const componentPartNumbers: string[] = [];
+        // Create the part cat if not provided
+        const componentPartTypes: PartType[] = [];
         for (const bomPart of bomParts) {
-            if (bomPart && bomPart.part && bomPart.part.partNumber) {
-                componentPartNumbers.push(bomPart.part.partNumber);
+            if(bomPart.part.partType) {
+                componentPartTypes.push(bomPart.part.partType);
             }
         }
         
-        const generatedPartNumber = await createNewPartNumber(componentPartNumbers, isRawMaterial);
-
-        // Use the generated part number if not provided
-        const finalPartNumber = partNumber || generatedPartNumber;
-
-        // Determine the part category based on isRawMaterial flag
-        const category = isRawMaterial ? 'RAW_000' as PartCategory : undefined;
+        // Create the part numbers if not provided
+        const generatedPartNumbers = await generateNewPartNumbers(componentPartTypes, isRawMaterial);
 
         // Use a transaction for all database operations to ensure atomicity
         const result = await prisma.$transaction(async (tx) => {
@@ -579,10 +528,13 @@ export async function createPart({
             const newPart = await tx.part.create({
                 data: {
                     description,
-                    partNumber: finalPartNumber,
+                    basePartNumber: generatedPartNumbers.basePartNumber.toString(),
+                    versionNumber: generatedPartNumbers.versionNumber.toString(),
+                    partTypeNumber: generatedPartNumbers.partTypeNumber.toString(),
+                    partNumber: generatedPartNumbers.partNumber,
+                    partType: generatedPartNumbers.partType,
                     unit,
                     trackingType,
-                    category,
                 }
             });
 

@@ -144,3 +144,17 @@ export async function getPart(partId: string) {
         }
     })
 }
+
+export async function getPartByPartNumber(partNumber: string) {
+    return await prisma.part.findUnique({
+        where: {
+            partNumber: partNumber
+        },
+        include: {
+            partImage: true,
+            files: true,
+            basePartTo: true,
+            bomParts: true
+        }
+    })
+}

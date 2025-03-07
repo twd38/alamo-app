@@ -154,22 +154,29 @@ model MissionMessage {
 // Parts and Inventory
 
 model Part {
-  id          String  @id @default(uuid())
-  partNumber  String  @unique
-  category    PartCategory?
-  description String
-  unit        String
-  trackingType TrackingType
-  partImageId String? @unique
-  partImage   File?   @relation("PartImage", fields: [partImageId], references: [id])
-  files       File[]  @relation("PartFiles")
-  bomParts    BOMPart[] @relation("BOMParts")
-  basePartTo   BOMPart[] @relation("BOMBasePart")
-  inventory   Inventory[]
-  transactions InventoryTransaction[]
+  id              String  @id @default(uuid())
+  basePartNumber  String? @unique
+  versionNumber   String  @default("1")
+  partTypeNumber  String  @default("000")
+  partNumber      String  @unique // basePartNumber-[partTypeNumber+versionNumber]
+  description     String
+  unit            String
+  trackingType    TrackingType
+  partType    PartType @default(RAW_000)
+  // Relations
+  parentVersionId String? @unique
+  parentVersion   Part?   @relation("PartVersions", fields: [parentVersionId], references: [id])
+  childVersions   Part[]  @relation("PartVersions")
+  partImageId     String? @unique
+  partImage       File?   @relation("PartImage", fields: [partImageId], references: [id])
+  files           File[]  @relation("PartFiles")
+  bomParts        BOMPart[] @relation("BOMParts")
+  basePartTo      BOMPart[] @relation("BOMBasePart")
+  inventory       Inventory[]
+  transactions    InventoryTransaction[]
 }
 
-enum PartCategory {
+enum PartType {
   ASSEMBLY_400
   MODULE_300
   SUBASSEMBLY_200

@@ -67,7 +67,7 @@ const formSchema = z.object({
 
 
 
-const NewPartForm = ({ closeDialog }: { closeDialog: () => void }) => {
+const NewPartForm = () => {
   const router = useRouter();
 
   // Initialize form
@@ -90,7 +90,7 @@ const NewPartForm = ({ closeDialog }: { closeDialog: () => void }) => {
       console.log(result)
       if (result.success && result.data) {
         toast.success("Part created successfully");
-        router.push(`/parts/library/${result.data.id}`);
+        router.push(`/parts/library/${result.data.partNumber}`);
       } else {
         toast.error("Failed to create part");
       }

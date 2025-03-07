@@ -1,7 +1,8 @@
-import { getPart } from "@/lib/queries";
+import { getPartByPartNumber } from "@/lib/queries";
 
-const PartLibraryPage = async ({ params }: { params: { partId: string } }) => {
-    const part = await getPart(params.partId);
+const PartLibraryPage = async ({ params }: { params: { partNumber: string } }) => {
+    const part = await getPartByPartNumber(params.partNumber);
+
     console.log(part)
     return (
         <div>

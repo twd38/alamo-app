@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Part } from "@prisma/client"
 import { NewPartDialog } from "./new-part-dialog"
+import { formatPartType } from "@/lib/utils"
 // Define the Part type based on the schema
 
 // Define the columns for the table
@@ -62,7 +63,7 @@ const columns: ColumnDef<Part>[] = [
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Part Name/Image
+          Part
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
@@ -78,25 +79,20 @@ const columns: ColumnDef<Part>[] = [
         />
         <div className="flex flex-col">
           <span>{row.getValue("description")}</span>
-          <span className="text-xs text-muted-foreground">{row.getValue("partNumber")}</span>
+          <span className="text-xs text-muted-foreground">{row.original.partNumber}</span>
         </div>
       </div>
     ),
   },
   {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => <div>{row.getValue("category")}</div>,
+    accessorKey: "partType",
+    header: "Type",
+    cell: ({ row }) => <div>{formatPartType(row.getValue("partType"))}</div>,
   },
   {
     accessorKey: "trackingType",
     header: "Tracking Type",
     cell: ({ row }) => <div>{row.getValue("trackingType")}</div>,
-  },
-  {
-    accessorKey: "partNumber",
-    header: "",
-    cell: "",
   },
   {
     id: "actions",
@@ -117,7 +113,7 @@ const columns: ColumnDef<Part>[] = [
             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(part.id)}>Copy part ID</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <Link href={`/parts/library/${part.id}`}>View part details</Link>
+              <Link href={`/parts/library/${part.partNumber}`}>View part details</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>Edit part</DropdownMenuItem>
           </DropdownMenuContent>
