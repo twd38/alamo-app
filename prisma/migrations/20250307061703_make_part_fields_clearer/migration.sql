@@ -1,0 +1,15 @@
+-- DropForeignKey
+ALTER TABLE "BOMPart" DROP CONSTRAINT "BOMPart_parentPartId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "BOMPart" DROP CONSTRAINT "BOMPart_partId_fkey";
+
+-- AlterTable
+ALTER TABLE "BOMPart" ALTER COLUMN "parentPartId" DROP NOT NULL,
+ALTER COLUMN "partId" DROP NOT NULL;
+
+-- AddForeignKey
+ALTER TABLE "BOMPart" ADD CONSTRAINT "BOMPart_parentPartId_fkey" FOREIGN KEY ("parentPartId") REFERENCES "Part"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BOMPart" ADD CONSTRAINT "BOMPart_partId_fkey" FOREIGN KEY ("partId") REFERENCES "Part"("id") ON DELETE SET NULL ON UPDATE CASCADE;

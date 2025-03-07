@@ -119,6 +119,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
 
   // Handle form submission
   const submitForm = async (data: z.infer<typeof formSchema>) => {
+    console.log("form data", data)
     try {
       let result;
       

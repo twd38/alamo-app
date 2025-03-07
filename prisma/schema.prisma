@@ -83,6 +83,9 @@ model File {
   job         Job?    @relation(fields: [jobId], references: [id])
   taskId      String?
   task        Task?   @relation(fields: [taskId], references: [id])
+  partId      String?
+  part        Part?   @relation("PartFiles", fields: [partId], references: [id])
+  partImagePart Part? @relation("PartImage")
   deletedOn   DateTime?
 }
 
@@ -153,12 +156,15 @@ model MissionMessage {
 model Part {
   id          String  @id @default(uuid())
   partNumber  String  @unique
-  category    PartCategory
+  category    PartCategory?
   description String
   unit        String
   trackingType TrackingType
-  bomParents  BOM_Component[] @relation("BOMParent")
-  bomChildren BOM_Component[] @relation("BOMChild")
+  partImageId String? @unique
+  partImage   File?   @relation("PartImage", fields: [partImageId], references: [id])
+  files       File[]  @relation("PartFiles")
+  bomParts    BOMPart[] @relation("BOMParts")
+  basePartTo   BOMPart[] @relation("BOMBasePart")
   inventory   Inventory[]
   transactions InventoryTransaction[]
 }
@@ -173,27 +179,20 @@ enum PartCategory {
   SHIP
 } 
 
-model PartNumberSequence {
-  id          String @id @default(uuid())
-  category    PartCategory @unique
-  description String
-  nextSeq     Int @default(1) // Used for auto-generating part numbers
-}
-
 enum TrackingType {
   SERIAL
   BATCH
   LOT
 }
 
-model BOM_Component {
-  id            String @id @default(uuid())
-  parentPartId  String
-  parentPart    Part @relation("BOMParent", fields: [parentPartId], references: [id])
-  componentPartId String
-  componentPart Part @relation("BOMChild", fields: [componentPartId], references: [id])
-  quantityPer   Int
-  bomType       BOMType
+model BOMPart {
+  id              String @id @default(uuid())
+  parentPartId    String?
+  parentPart      Part? @relation("BOMParts", fields: [parentPartId], references: [id])
+  partId          String?
+  part            Part? @relation("BOMBasePart", fields: [partId], references: [id])
+  qty             Int
+  bomType         BOMType
 }
 
 enum BOMType {
@@ -207,7 +206,7 @@ model Inventory {
   part         Part   @relation(fields: [partId], references: [id])
   locationId   String
   location     Location @relation(fields: [locationId], references: [id])
-  quantity     Int // Bulk parts tracked by quantity
+  qty     Int // Bulk parts tracked by quantity
   serialNumber String? @unique // Serialized parts track unique numbers
 }
 
@@ -220,7 +219,7 @@ model InventoryTransaction {
   fromLocation  Location? @relation("FromLocation", fields: [fromLocationId], references: [id])
   toLocationId  String?
   toLocation    Location? @relation("ToLocation", fields: [toLocationId], references: [id])
-  quantity      Int
+  qty      Int
   transactionType TransactionType
   referenceId   String? // Link to WorkOrder, PurchaseOrder, etc.
 }

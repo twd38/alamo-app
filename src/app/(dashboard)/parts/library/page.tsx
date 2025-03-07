@@ -34,8 +34,6 @@ export default async function InventoryPage(props: InventoryPageProps) {
         query
     })
 
-    console.log(parts)
-
     return (
         <div>
             {/* <h1 className="text-2xl font-bold mb-5">Parts</h1> */}

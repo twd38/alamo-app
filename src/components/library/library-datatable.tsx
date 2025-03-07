@@ -29,19 +29,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Part } from "@prisma/client"
 import { NewPartDialog } from "./new-part-dialog"
 // Define the Part type based on the schema
@@ -126,7 +116,9 @@ const columns: ColumnDef<Part>[] = [
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(part.id)}>Copy part ID</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View part details</DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href={`/parts/library/${part.id}`}>View part details</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>Edit part</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

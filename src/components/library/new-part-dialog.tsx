@@ -23,10 +23,6 @@ export const NewPartDialog = () => {
         }
     }
 
-    const handleSubmit = () => {
-        setIsOpen(false)
-    }
-
     return (
         <Sheet open={isOpen} onOpenChange={handleOpenChange}>
             <SheetTrigger asChild>
@@ -38,19 +34,9 @@ export const NewPartDialog = () => {
                 <SheetHeader className="px-4 py-2 border-b">
                     <SheetTitle>Add New Part</SheetTitle>
                 </SheetHeader>
-                <div className="overflow-y-auto px-4 py-2 flex-1">
-                    <NewPartForm />
+                <div className="overflow-y-auto py-2 flex-1">
+                    <NewPartForm closeDialog={() => setIsOpen(false)} />
                 </div>
-                <SheetFooter className="px-4 py-3 border-t mt-auto">
-                    <Button 
-                        type="submit"
-                        variant="default" 
-                        size="sm" 
-                        onClick={handleSubmit}
-                    >
-                        Create new part
-                    </Button>
-                </SheetFooter>
             </SheetContent>
         </Sheet>
     )

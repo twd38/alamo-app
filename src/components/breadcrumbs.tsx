@@ -10,10 +10,6 @@ import {
 } from 'src/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 
-interface BreadcrumbsProps {
-  items: { href: string; label: string }[];
-}
-
 export function Breadcrumbs() {
   const pathname = usePathname();
   const pathSegments = pathname.split('/').filter(Boolean);
@@ -28,8 +24,6 @@ export function Breadcrumbs() {
   if(breadcrumbs.length === 0){
     breadcrumbs = [{ href: '/', label: 'Dashboard' }];
   } 
-
-  console.log(breadcrumbs);
 
   return (
     <Breadcrumb>

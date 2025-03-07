@@ -3,7 +3,7 @@ import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
-import { Task } from '@prisma/client';
+import { Task, Part, TrackingType, BOMType, Prisma, PartCategory } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 import { getPresignedDownloadUrl } from '@/lib/r2';
 
@@ -436,4 +436,210 @@ export async function uploadFile(file: File, path: string) {
     return { success: true, url };
 }
 
+export async function createNewPartNumber(componentPartNumbers: string[], isRawMaterial: boolean) {
+    // Part number is [xxx]-[yyyyy]
+    // xxx is the category
+    // yyyyy is the sequence number in the category
 
+    // Get the part category
+    let partCategory = "";
+
+    // Check if component part numbers contain 200-level numbers
+    if(componentPartNumbers.some(partNumber => partNumber.includes("300"))) {
+        partCategory = "400";
+    } else if (componentPartNumbers.some(partNumber => partNumber.includes("200"))) {
+        partCategory = "300";
+    } else if (componentPartNumbers.some(partNumber => partNumber.includes("100"))) {
+        partCategory = "200"
+    } else if (!isRawMaterial) {
+        partCategory = "100"
+    } else {
+        partCategory = "000"
+    }
+
+    // Get the last part number in the category
+    const lastPartNumber = await prisma.part.findFirst({
+        orderBy: {
+            partNumber: 'desc'
+        },
+        where: {
+            partNumber: {
+                startsWith: partCategory
+            }
+        }
+    });
+
+    // Get the sequence number
+    const sequenceNumber = lastPartNumber ? parseInt(lastPartNumber.partNumber.split("-")[1]) : 0;
+
+    // Increment the sequence number
+    const newSequenceNumber = sequenceNumber + 1;
+    const paddedSequenceNumber = newSequenceNumber.toString().padStart(8, '0');
+
+    // Create the new part number
+    const newPartNumber = `${paddedSequenceNumber}-${partCategory}`;
+
+    return newPartNumber;
+}
+
+export async function createPart({
+    partNumber,
+    description,
+    unit,
+    trackingType,
+    partImage,
+    files,
+    bomParts = [], // Default to empty array to avoid null
+    isRawMaterial
+}: {
+    partNumber?: string;
+    description: Part["description"];
+    unit: Part["unit"];
+    trackingType: Part["trackingType"];
+    partImage?: File;
+    files?: File[];
+    isRawMaterial: boolean;
+    bomParts: {
+        id: string,
+        part: Part,
+        qty: number,
+        bomType: BOMType
+    }[] | [];
+}) {
+    try {
+        // Ensure bomParts is an array
+        if (!bomParts || !Array.isArray(bomParts)) {
+            bomParts = [];
+        }
+
+        // Upload files to R2 if they exist
+        let partImageFile: Prisma.FileCreateInput | undefined;
+        let partFiles: Prisma.FileCreateInput[] = [];
+
+        // Handle part image upload if it exists and is a File object (not already uploaded)
+        if (partImage && partImage instanceof File) {
+            const path = `parts/${Date.now()}-${partImage.name}`;
+            const uploadResult = await uploadFile(partImage, path);
+            if (uploadResult.success) {
+                // Create a file record in the database
+                partImageFile = {
+                    url: uploadResult.url,
+                    name: partImage.name,
+                    type: partImage.type,
+                    size: partImage.size
+                };
+            }
+        }
+
+        // Handle multiple files upload if they exist
+        if (files && Array.isArray(files)) {
+            const filePromises = files.map(async (file: File) => {
+                if (file instanceof File) {
+                    const path = `parts/${Date.now()}-${file.name}`;
+                    const uploadResult = await uploadFile(file, path);
+                    if (uploadResult.success) {
+                        // Create a file record in the database
+                        return {
+                            url: uploadResult.url,
+                            name: file.name,
+                            type: file.type,
+                            size: file.size
+                        };
+                    }
+                }
+                return null;
+            });
+
+            // Filter out null values
+            const uploadedFiles = (await Promise.all(filePromises)).filter((file): file is Prisma.FileCreateInput => 
+                file !== null
+            );
+            partFiles = uploadedFiles;
+        }
+
+        // Create the part number if not provided
+        const componentPartNumbers: string[] = [];
+        for (const bomPart of bomParts) {
+            if (bomPart && bomPart.part && bomPart.part.partNumber) {
+                componentPartNumbers.push(bomPart.part.partNumber);
+            }
+        }
+        
+        const generatedPartNumber = await createNewPartNumber(componentPartNumbers, isRawMaterial);
+
+        // Use the generated part number if not provided
+        const finalPartNumber = partNumber || generatedPartNumber;
+
+        // Determine the part category based on isRawMaterial flag
+        const category = isRawMaterial ? 'RAW_000' as PartCategory : undefined;
+
+        // Use a transaction for all database operations to ensure atomicity
+        const result = await prisma.$transaction(async (tx) => {
+            // Create the part first
+            const newPart = await tx.part.create({
+                data: {
+                    description,
+                    partNumber: finalPartNumber,
+                    unit,
+                    trackingType,
+                    category,
+                }
+            });
+
+            // Add files if they exist
+            if (partFiles.length > 0) {
+                for (const fileData of partFiles) {
+                    await tx.file.create({
+                        data: {
+                            ...fileData,
+                            part: {
+                                connect: { id: newPart.id }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Add part image if it exists
+            if (partImageFile) {
+                const image = await tx.file.create({
+                    data: {
+                        ...partImageFile
+                    }
+                });
+                
+                await tx.part.update({
+                    where: { id: newPart.id },
+                    data: {
+                        partImageId: image.id
+                    }
+                });
+            }
+
+            // Create BOM parts one by one
+            for (const bomPart of bomParts) {
+                await tx.bOMPart.create({
+                    data: {
+                        parentPartId: newPart.id,
+                        partId: bomPart.part.id,
+                        qty: bomPart.qty,
+                        bomType: bomPart.bomType,
+                    }
+                });
+            }
+
+            return newPart;
+        });
+
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error('Error creating part:', error.stack);
+        
+        let errorMessage = 'Failed to create part';
+        if (error instanceof Error) {
+            errorMessage = `${errorMessage}: ${error.stack}`;
+        }
+        
+        return { success: false, error: errorMessage };
+    }
+}
