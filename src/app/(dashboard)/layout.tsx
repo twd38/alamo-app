@@ -15,10 +15,7 @@ import Providers from '@/components/providers/providers';
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import {
   SidebarInset,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { Breadcrumbs } from "@/components/breadcrumbs"
 
 export default function DashboardLayout({
   children
@@ -43,16 +40,7 @@ function DesktopNav({
 }) {
   return (
     <SidebarInset className="overflow-hidden">
-      <header className="sticky top-0 z-10 h-12 border-b p-4 bg-white dark:bg-gray-900 flex items-center gap-2 shrink-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumbs />
-        </div>
-      </header>
-      <div className='p-4'>
-        {children}
-      </div>
+      {children}
     </SidebarInset>
   );
 }

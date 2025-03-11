@@ -35,7 +35,7 @@ export const NewPartDialog = () => {
                     <SheetTitle>Add New Part</SheetTitle>
                 </SheetHeader>
                 <div className="overflow-y-auto py-2 flex-1">
-                    <NewPartForm closeDialog={() => setIsOpen(false)} />
+                    <NewPartForm />
                 </div>
             </SheetContent>
         </Sheet>

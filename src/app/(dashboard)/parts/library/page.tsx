@@ -1,5 +1,7 @@
 import { LibraryDataTable } from "@/components/library/library-datatable";
 import { getParts, getPartsCount } from "@/lib/queries";
+import BasicTopBar from "@/components/layouts/basic-top-bar";
+import PageContainer from "@/components/page-container";
 
 interface InventoryPageProps {
     searchParams: Promise<{
@@ -36,8 +38,10 @@ export default async function InventoryPage(props: InventoryPageProps) {
 
     return (
         <div>
-            {/* <h1 className="text-2xl font-bold mb-5">Parts</h1> */}
-            <LibraryDataTable parts={parts} totalCount={totalParts} />
+            <BasicTopBar />
+            <PageContainer>
+                <LibraryDataTable parts={parts} totalCount={totalParts} />
+            </PageContainer>
         </div>
     )
 }

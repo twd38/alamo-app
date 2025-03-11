@@ -1,13 +1,6 @@
 "use client"
 
 import * as React from "react"
-import {
-  BookOpen,
-  Settings2,
-  Factory,
-  Library
-} from "lucide-react"
-
 import { NavMain } from "@/components/sidebar/nav-main"
 import { NavUser } from "@/components/sidebar/nav-user"
 import {
@@ -20,9 +13,6 @@ import {
 import { useUser } from "src/hooks/use-user"
 import Image from "next/image"
 import Link from "next/link"
-import { Command } from "lucide-react"
-// This is sample data.
-
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();

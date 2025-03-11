@@ -25,6 +25,8 @@ export function Breadcrumbs() {
     breadcrumbs = [{ href: '/', label: 'Dashboard' }];
   } 
 
+  
+
   return (
     <Breadcrumb>
       <BreadcrumbList className="flex items-center gap-2">
