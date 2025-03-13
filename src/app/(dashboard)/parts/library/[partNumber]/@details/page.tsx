@@ -17,7 +17,7 @@ const PartDetailsPage = async ({ params }: { params: { partNumber: string } }) =
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-lg">Details</CardTitle>
+                        <CardTitle className="text-lg">Bill of Materials</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col gap-2">

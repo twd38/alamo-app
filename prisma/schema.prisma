@@ -21,6 +21,8 @@ model User {
   assignedJobs  JobAssignee[] 
   createdTasks  Task[]           @relation(name: "CreatedByRelation")
   assignedTasks Task[] 
+  createdInstructions WorkInstruction[]
+  approvedInstructions WorkInstruction[] @relation("ApprovedInstructions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,6 +88,10 @@ model File {
   partId      String?
   part        Part?   @relation("PartFiles", fields: [partId], references: [id])
   partImagePart Part? @relation("PartImage")
+  instructionId String?
+  instruction WorkInstruction? @relation("InstructionFiles", fields: [instructionId], references: [id])
+  stepId      String?
+  step        WorkInstructionStep? @relation("StepImages", fields: [stepId], references: [id])
   deletedOn   DateTime?
 }
 
@@ -174,6 +180,7 @@ model Part {
   basePartTo      BOMPart[] @relation("BOMBasePart")
   inventory       Inventory[]
   transactions    InventoryTransaction[]
+  workInstructions WorkInstruction[]
 }
 
 enum PartType {
@@ -260,4 +267,68 @@ enum TransactionType {
   MOVE
   ADJUSTMENT
   SHIPMENT
+}
+
+// Manufacturing Models
+
+model WorkInstruction {
+  id                String              @id @default(uuid())
+  partId            String              
+  part              Part                @relation(fields: [partId], references: [id])
+  title             String
+  description       String?
+  baseInstructionNumber String?         @unique
+  versionNumber     String              @default("1")
+  instructionNumber String              @unique // baseInstructionNumber-versionNumber
+  status            InstructionStatus   @default(DRAFT)
+  steps             WorkInstructionStep[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  createdById       String?
+  createdBy         User?               @relation(fields: [createdById], references: [id])
+  approvedAt        DateTime?
+  approvedById      String?
+  approvedBy        User?               @relation("ApprovedInstructions", fields: [approvedById], references: [id])
+  files             File[]              @relation("InstructionFiles")
+  
+  // Version relationships
+  parentVersionId   String?             @unique
+  parentVersion     WorkInstruction?    @relation("WorkInstructionVersions", fields: [parentVersionId], references: [id])
+  childVersions     WorkInstruction[]   @relation("WorkInstructionVersions")
+}
+
+model WorkInstructionStep {
+  id                      String                  @id @default(uuid())
+  workInstructionId       String
+  workInstruction         WorkInstruction         @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+  stepNumber              Int
+  title                   String
+  instructions            String                  // Notion-style document content
+  estimatedLabourTime     Int                     // In minutes
+  requiredTools           String[]
+  actions                 WorkInstructionStepAction[]
+  images                  File[]                  @relation("StepImages")
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  
+  @@unique([workInstructionId, stepNumber])
+}
+
+model WorkInstructionStepAction {
+  id              String            @id @default(uuid())
+  stepId          String
+  step            WorkInstructionStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  actionType      String
+  description     String
+  quantity        Int?
+  notes           String?
+  
+  @@unique([stepId, actionType, description])
+}
+
+enum InstructionStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  DEPRECATED
 }

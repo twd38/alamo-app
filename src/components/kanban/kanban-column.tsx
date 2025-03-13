@@ -15,7 +15,7 @@ import {
 } from "src/components/ui/dropdown-menu"
 import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
-import { deleteWorkStation } from '@/app/actions';
+import { deleteWorkStation } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 // export const dynamic = 'force-dynamic';
 

@@ -1,7 +1,7 @@
 'use server'
 import { prisma } from "./db"
 import { auth } from "./auth"
-
+import { Prisma } from "@prisma/client"
 
 export async function getUser() {
     const session = await auth()
@@ -158,3 +158,21 @@ export async function getPartByPartNumber(partNumber: string) {
         }
     })
 }
+
+export async function getPartWorkInstructions(partNumber: string) {
+    return await prisma.workInstruction.findMany({
+        where: {
+            part: {
+                partNumber: partNumber
+            }
+        },
+        include: {
+            steps: {
+                include: {
+                    actions: true
+                }
+            }
+        }
+    })
+}
+export type PartWorkInstructions = Prisma.PromiseReturnType<typeof getPartWorkInstructions>

@@ -23,7 +23,7 @@ import {
   Youtube,
 } from "novel";
 import { Markdown } from 'tiptap-markdown';
-import { getPresignedFileUrl } from "@/app/actions";
+import { getPresignedFileUrl } from "@/lib/actions";
 
 import { cx } from "class-variance-authority";
 import { common, createLowlight } from "lowlight";

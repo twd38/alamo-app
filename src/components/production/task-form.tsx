@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Status, User, Task } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getPresignedFileUrl } from "@/app/actions";
+import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getPresignedFileUrl } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";

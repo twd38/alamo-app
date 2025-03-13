@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from 'src/components/ui/dialog';
 import { Input } from 'src/components/ui/input';
 import { Button } from 'src/components/ui/button';
-import { createWorkStation } from '@/app/actions';
+import { createWorkStation } from '@/lib/actions';
 
 const workstationSchema = z.object({
   workstationName: z.string().min(1, 'Workstation name is required'),

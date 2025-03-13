@@ -7,7 +7,8 @@ import { File as FileType } from "@prisma/client";
 const PartFiles = ({ files }: { files: FileType[] }) => {
     const [fileList, setFileList] = useState<any[]>(files);
 
-    const handleFileChange = (value) => {
+    // TODO: fix type error
+    const handleFileChange = (value: any) => {
         setFileList(value);
         console.log("changed", value);
     }

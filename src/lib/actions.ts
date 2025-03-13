@@ -7,6 +7,7 @@ import { Task, Part, TrackingType, BOMType, Prisma, PartType } from '@prisma/cli
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 import { getPresignedDownloadUrl } from '@/lib/r2';
 import { generateNewPartNumbers } from '@/lib/utils';
+
 export async function updateDataAndRevalidate(path: string) {
     revalidatePath(path); // Revalidate the specific path
     return { message: "Data updated and cache revalidated" };
@@ -593,5 +594,89 @@ export async function createPart({
         }
         
         return { success: false, error: errorMessage };
+    }
+}
+
+export async function createWorkInstruction({
+    partNumber,
+    title,
+    description,
+    steps,
+    instructionNumber
+} : Prisma.WorkInstructionCreateWithoutPartInput & { partNumber: string, steps: Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput[] | undefined }) {
+    //Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput[] | undefined,
+    console.log(partNumber, title, description, steps, instructionNumber)
+    try {
+        const result = await prisma.workInstruction.create({
+            data: {
+                title,
+                description,
+                instructionNumber: `WI-${Date.now()}`,
+                steps: {
+                    create: steps
+                },
+                part: {
+                    connect: {
+                        partNumber: partNumber
+                    }
+                },
+            }
+        });
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error('Error creating work instruction:', error);
+        console.log(error.stack)
+        return { success: false, error: 'Failed to create work instruction' };
+    }
+}
+
+export async function createWorkInstructionStep({
+    workInstructionId,
+    stepNumber,
+    title,
+    instructions,
+    estimatedLabourTime,
+}: Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput & { workInstructionId: string }) {
+    try {
+        const result = await prisma.workInstructionStep.create({
+            data: {
+                workInstructionId,
+                stepNumber,
+                title,
+                instructions,
+                estimatedLabourTime,
+            }
+        });
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error('Error creating work instruction step:', error);
+        return { success: false, error: 'Failed to create work instruction step' };
+    }
+}
+
+export async function updateWorkInstructionStep({
+    stepId,
+    title,
+    instructions,
+    estimatedLabourTime,
+}: {
+    stepId: string;
+    title: string;
+    instructions: string;
+    estimatedLabourTime: number;
+}) {
+    try {
+        const result = await prisma.workInstructionStep.update({
+            where: { id: stepId },
+            data: {
+                title,
+                instructions,
+                estimatedLabourTime,
+            }
+        });
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('Error updating work instruction step:', error);
+        return { success: false, error: 'Failed to update work instruction step' };
     }
 }

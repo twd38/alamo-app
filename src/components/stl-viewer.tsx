@@ -4,7 +4,7 @@ import { FC, Suspense, useEffect, useState } from 'react'
 import { Canvas, useLoader } from '@react-three/fiber'
 import { OrbitControls, Stage } from '@react-three/drei'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
-import { getPresignedFileUrl } from '@/app/actions'
+import { getPresignedFileUrl } from '@/lib/actions'
 import { Mesh } from 'three'
 
 declare module 'react' {

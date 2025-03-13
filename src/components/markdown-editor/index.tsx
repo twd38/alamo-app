@@ -12,6 +12,7 @@ import {
   handleCommandNavigation,
   handleImageDrop,
   handleImagePaste,
+  Placeholder,
 } from "novel";
 import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -28,9 +29,8 @@ import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 import { ControllerRenderProps } from "react-hook-form";
 import { cn } from "@/lib/utils";
-const hljs = require("highlight.js");
 
-const extensions = [...defaultExtensions, slashCommand];
+const hljs = require("highlight.js");
 
 interface MarkdownEditorProps {
   initialContent: string;
@@ -40,6 +40,7 @@ interface MarkdownEditorProps {
   size?: 'sm' | 'base' | 'lg' | 'xl' | '2xl';
   hideSaveStatus?: boolean;
   hideWordCount?: boolean;
+  placeholder?: string;
 }
 
 const defaultInitialContent = `{
@@ -72,15 +73,26 @@ export const MarkdownEditor = ({
   size = 'base',
   hideSaveStatus = false,
   hideWordCount = false,
+  placeholder = 'Start writing...',
 }: MarkdownEditorProps) => {
 //   const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [charsCount, setCharsCount] = useState();
+  const [editorInstance, setEditorInstance] = useState<EditorInstance | null>(null);
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
+
+  const baseExtensions = [...defaultExtensions.filter(ext => ext !== Placeholder), slashCommand];
+  const extensions = [...baseExtensions, Placeholder.configure({
+    placeholder,
+    emptyEditorClass: 'is-editor-empty',
+    emptyNodeClass: 'is-empty',
+    showOnlyWhenEditable: true,
+    includeChildren: true,
+  })];
 
   //Apply Codeblock Highlighting on the HTML from editor.getHTML()
   const highlightCodeblocks = (content: string) => {
@@ -93,7 +105,6 @@ export const MarkdownEditor = ({
     return new XMLSerializer().serializeToString(doc);
   };
   
-
   const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
     const json = editor.getJSON();
     setCharsCount(editor.storage.characterCount.words());
@@ -105,12 +116,22 @@ export const MarkdownEditor = ({
     await updateContent(JSON.stringify(json));
   }, 2000);
 
-  const initialContentJson = JSON.parse(initialContent);
+  const initialContentJson = initialContent ? JSON.parse(initialContent) : null;
 
-  console.log(initialContent)
+  const handleContainerClick = () => {
+    if (editorInstance) {
+      editorInstance.commands.focus();
+    }
+  };
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div 
+      className={cn(
+        "relative w-full h-full cursor-text",
+        className
+      )}
+      onClick={handleContainerClick}
+    >
       <div className="flex absolute right-5 top-5 z-10 mb-5 gap-2">
         {!hideSaveStatus && ( <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">{saveStatus}</div> )}
         {!hideWordCount && ( <div className={charsCount ? "rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground" : "hidden"}>
@@ -137,6 +158,9 @@ export const MarkdownEditor = ({
           onUpdate={({ editor }) => {
             debouncedUpdates(editor);
             setSaveStatus("Unsaved");
+          }}
+          onCreate={({ editor }) => {
+            setEditorInstance(editor);
           }}
           slotAfter={<ImageResizer />}
         >

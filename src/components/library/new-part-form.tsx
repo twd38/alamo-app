@@ -28,7 +28,7 @@ import { formatFileSize } from "@/lib/utils"
 import { TrackingType, BOMType, Part } from "@prisma/client"
 import { useRouter } from "next/navigation"
 import BOMPartsManager from "./bom-parts-manager"
-import { createPart } from "@/app/actions"
+import { createPart } from "@/lib/actions"
 
 // Define the form schema using Zod
 const formSchema = z.object({

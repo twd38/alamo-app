@@ -1,7 +1,7 @@
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { prisma } from '@/lib/db';
 import Countdown from '@/components/home/countdown'
-import { updateMissionMessage } from "@/app/actions";
+import { updateMissionMessage } from "@/lib/actions";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function ProductsPage(
@@ -10,8 +10,6 @@ export default async function ProductsPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const search = searchParams.q ?? '';
-  const offset = searchParams.offset ?? 0;
 
   const getMissionMessage = async () => {
     "use server"

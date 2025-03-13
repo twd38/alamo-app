@@ -1,6 +1,6 @@
 import { createImageUpload } from "novel";
 import { toast } from "react-hot-toast";
-import { uploadFile, getPresignedFileUrl } from "@/app/actions";
+import { uploadFile, getPresignedFileUrl } from "@/lib/actions";
 
 const onUpload = (file: File) => {
   const promise = uploadFile(file, "contentFiles");

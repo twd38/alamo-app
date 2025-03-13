@@ -7,7 +7,7 @@ import { KanbanColumn } from "./kanban-column"
 import { TaskCard } from "./task-card"
 import type { WorkStation, Job, Task, User } from "@prisma/client"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { updateWorkStationKanbanOrder, moveTask, reorderTasks } from '@/app/actions'
+import { updateWorkStationKanbanOrder, moveTask, reorderTasks } from '@/lib/actions'
 import { useOptimistic } from 'react'
 import { toast } from 'react-hot-toast'
 import { MouseSensor, KeyboardSensor } from '@/lib/dnd-sensors'
