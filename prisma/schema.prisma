@@ -92,6 +92,7 @@ model File {
   instruction WorkInstruction? @relation("InstructionFiles", fields: [instructionId], references: [id])
   stepId      String?
   step        WorkInstructionStep? @relation("StepImages", fields: [stepId], references: [id])
+  action      WorkInstructionStepAction? @relation("ActionUpload")
   deletedOn   DateTime?
 }
 
@@ -314,15 +315,31 @@ model WorkInstructionStep {
   @@unique([workInstructionId, stepNumber])
 }
 
+enum ActionType {
+  VALUE_INPUT
+  UPLOAD_IMAGE
+  SIGNOFF
+  CHECKBOX
+}
+
 model WorkInstructionStepAction {
   id              String            @id @default(uuid())
   stepId          String
   step            WorkInstructionStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  actionType      String
+  actionType      ActionType
   description     String
-  quantity        Int?
-  notes           String?
-  
+  targetValue     Float?            // For VALUE_INPUT type - the expected value
+  unit           String?           // For VALUE_INPUT type - the unit of measurement
+  tolerance      Float?            // For VALUE_INPUT type - acceptable deviation from target
+  signoffRoles   String[]         // For SIGNOFF type - roles that can sign off
+  isRequired     Boolean          @default(true)
+  completedAt    DateTime?        // When the action was completed
+  completedBy    String?          // User ID who completed the action
+  completedValue Float?           // For VALUE_INPUT type - the actual value entered
+  uploadedFileId String?          @unique  // For UPLOAD_IMAGE type - reference to uploaded file
+  uploadedFile   File?           @relation("ActionUpload", fields: [uploadedFileId], references: [id])
+  notes          String?
+
   @@unique([stepId, actionType, description])
 }
 

@@ -160,19 +160,34 @@ export async function getPartByPartNumber(partNumber: string) {
 }
 
 export async function getPartWorkInstructions(partNumber: string) {
-    return await prisma.workInstruction.findMany({
-        where: {
-            part: {
-                partNumber: partNumber
-            }
-        },
-        include: {
-            steps: {
-                include: {
-                    actions: true
+    try {
+        const result = await prisma.workInstruction.findMany({
+            where: {
+                part: {
+                    partNumber: partNumber
+                }
+            },
+            include: {
+                steps: {
+                    include: {
+                        actions: {
+                            include: {
+                                uploadedFile: true
+                            }
+                        },
+                        images: true,
+                    },
+                    orderBy: {
+                        stepNumber: 'asc'
+                    }
                 }
             }
-        }
-    })
+        });
+        return result;
+    } catch (error) {
+        console.error('Error fetching work instructions:', error);
+        throw error;
+    }
 }
+
 export type PartWorkInstructions = Prisma.PromiseReturnType<typeof getPartWorkInstructions>

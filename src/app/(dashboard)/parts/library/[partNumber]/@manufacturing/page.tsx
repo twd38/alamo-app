@@ -6,16 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Wrench, Plus, Loader2, Check } from "lucide-react";
+import { Clock, Wrench, Plus, Loader2, Check, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import useSWR from "swr";
 import { useParams } from "next/navigation";
 import { getPartWorkInstructions, PartWorkInstructions } from "@/lib/queries";
-import { Prisma, WorkInstructionStep } from "@prisma/client";
+import { Prisma, WorkInstructionStep, ActionType } from "@prisma/client";
 import { 
     createWorkInstruction, 
     createWorkInstructionStep,
-    updateWorkInstructionStep 
+    updateWorkInstructionStep,
+    createWorkInstructionStepAction,
+    updateWorkInstructionStepAction,
+    deleteWorkInstructionStepAction
 } from "@/lib/actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { useDebouncedCallback } from "use-debounce";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavingBadge } from "@/components/ui/saving-badge";
+import { DynamicActionForm } from "./components/dynamic-action-form";
 
 // *** Work Instruction Step List ***
 const WorkInstructionStepList = ({ 
@@ -315,9 +319,31 @@ const WorkInstructionContent = ({
 
 // *** Step Details ***
 
+type WorkInstructionStepAction = {
+    id: string;
+    stepId: string;
+    actionType: ActionType;
+    description: string;
+    targetValue: number | null;
+    unit: string | null;
+    tolerance: number | null;
+    signoffRoles: string[];
+    isRequired: boolean;
+    completedAt: Date | null;
+    completedBy: string | null;
+    completedValue: number | null;
+    uploadedFileId: string | null;
+    notes: string | null;
+};
+
 type WorkInstructionStepWithActions = Prisma.WorkInstructionStepGetPayload<{
-    include: { actions: true }
-  }>;
+    include: { 
+        actions: true;
+        images: true;
+    }
+}> & {
+    actions: WorkInstructionStepAction[];
+};
 
 interface StepDetailsProps {
     step: WorkInstructionStepWithActions | null;
@@ -444,6 +470,14 @@ const StepDetails: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
 
 // *** Step Details ***
 const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
+    const params = useParams();
+    const partNumber = params.partNumber as string;
+
+    const { data: workInstructions, mutate } = useSWR<PartWorkInstructions>(
+        `/api/parts/${partNumber}/work-instructions`,
+        () => getPartWorkInstructions(step?.workInstructionId || '')
+    );
+
     if (!step) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -452,37 +486,77 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
         );
     }
 
-    return (
-        <div className="p-4">
-            {step.actions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                    <p>No actions added yet</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {step.actions.map((action) => (
-                        <div key={action.id} className="p-3 border rounded-md hover:border-blue-200 hover:bg-blue-50/30 transition-colors">
-                            <div className="flex justify-between items-start">
-                                <Badge className="bg-blue-500">{action.actionType}</Badge>
-                                {action.quantity && (
-                                    <Badge variant="outline">Qty: {action.quantity}</Badge>
-                                )}
-                            </div>
-                            <p className="mt-2 text-sm">{action.description}</p>
-                            {action.notes && (
-                                <p className="mt-1 text-xs text-muted-foreground">{action.notes}</p>
-                            )}
-                        </div>
-                    ))}
+    const handleAddAction = async () => {
+        try {
+            // Create a new action with default values
+            const result = await createWorkInstructionStepAction({
+                stepId: step.id,
+                actionType: ActionType.SIGNOFF,
+                description: "New Action",
+                isRequired: true,
+            });
 
-                    
-                </div>
-            )}
-            {/* Add a new action button */}
-            <Button variant="outline" className="w-full mt-4">
+            if (result.success && result.data) {
+                // Trigger a revalidation to get the latest data
+                await mutate();
+            }
+        } catch (error) {
+            console.error("Failed to create action:", error);
+            // Revalidate to ensure we're in sync with the server
+            await mutate();
+        }
+    };
+
+    const handleDeleteAction = async (actionId: string) => {
+        try {
+            // Perform the delete
+            const result = await deleteWorkInstructionStepAction(actionId);
+            
+            if (result.success) {
+                // Trigger a revalidation to get the latest data
+                await mutate();
+            }
+        } catch (error) {
+            console.error("Failed to delete action:", error);
+            // Revalidate to restore the correct state
+            await mutate();
+        }
+    };
+
+    const handleActionSaved = async () => {
+        // Trigger a revalidation to get the latest data
+        await mutate();
+    };
+
+    return (
+        <div className="p-4 space-y-4">
+            <Button
+                onClick={handleAddAction}
+                className="w-full gap-2"
+            >
                 <Plus className="h-4 w-4" />
                 Add Action
             </Button>
+
+            <div className="space-y-4">
+                {step.actions.map((action) => (
+                    <div key={action.id} className="relative">
+                        <DynamicActionForm
+                            stepId={step.id}
+                            action={action}
+                            onActionSaved={handleActionSaved}
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-6 w-6"
+                            onClick={() => handleDeleteAction(action.id)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
@@ -513,9 +587,7 @@ const WorkInstructionActions: React.FC<WorkInstructionActionsProps> = ({ step, o
                         <StepDetails step={step} onUpdateStep={onUpdateStep} />
                     </TabsContent>
                     <TabsContent value="actions" className="mt-0 h-[calc(100%-3rem)]">
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                            <p>Select a step to view actions</p>
-                        </div>
+                        <WorkInstructionStepActions step={step} onUpdateStep={onUpdateStep} />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -555,13 +627,29 @@ const WorkInstructionActions: React.FC<WorkInstructionActionsProps> = ({ step, o
 // *** Work Instructions Editor *** (Main Component)
 const WorkInstructionsEditor: React.FC = () => {
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+    const [partNumber, setPartNumber] = useState<string>("");
 
     const params = useParams();
-    const partNumber = params.partNumber as string;
+    
+    // Extract partNumber from params safely
+    useEffect(() => {
+        if (params && params.partNumber) {
+            // Handle partNumber as string or string[]
+            const partNum = Array.isArray(params.partNumber) 
+                ? params.partNumber[0] 
+                : params.partNumber as string;
+            setPartNumber(partNum);
+        }
+    }, [params]);
+
+    // Only fetch when partNumber is available
+    const fetcher = async (url: string): Promise<PartWorkInstructions> => {
+        return getPartWorkInstructions(partNumber);
+    };
 
     const { data: workInstructions, isLoading: isWorkInstructionsLoading, mutate } = useSWR<PartWorkInstructions>(
-        `/api/parts/${partNumber}/work-instructions`, 
-        () => getPartWorkInstructions(partNumber)
+        partNumber ? `/api/parts/${partNumber}/work-instructions` : null,
+        fetcher
     );
 
     const workInstructionId = workInstructions?.[0]?.id;
@@ -632,7 +720,7 @@ const WorkInstructionsEditor: React.FC = () => {
         }
     };
 
-    if (isWorkInstructionsLoading) {
+    if (isWorkInstructionsLoading || !partNumber) {
         return (
             <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin" />

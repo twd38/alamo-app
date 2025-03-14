@@ -3,7 +3,7 @@ import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
-import { Task, Part, TrackingType, BOMType, Prisma, PartType } from '@prisma/client';
+import { Task, Part, ActionType, BOMType, Prisma, PartType } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 import { getPresignedDownloadUrl } from '@/lib/r2';
 import { generateNewPartNumbers } from '@/lib/utils';
@@ -678,5 +678,113 @@ export async function updateWorkInstructionStep({
     } catch (error) {
         console.error('Error updating work instruction step:', error);
         return { success: false, error: 'Failed to update work instruction step' };
+    }
+}
+
+export async function createWorkInstructionStepAction({
+    stepId,
+    actionType,
+    description,
+    targetValue,
+    unit,
+    tolerance,
+    signoffRoles,
+    isRequired = true,
+    notes,
+}: {
+    stepId: string;
+    actionType: ActionType;
+    description: string;
+    targetValue?: number;
+    unit?: string;
+    tolerance?: number;
+    signoffRoles?: string[];
+    isRequired?: boolean;
+    notes?: string;
+}) {
+    try {
+        const result = await prisma.workInstructionStepAction.create({
+            data: {
+                stepId,
+                actionType,
+                description,
+                targetValue,
+                unit,
+                tolerance,
+                signoffRoles,
+                isRequired,
+                notes,
+            }
+        });
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('Error creating work instruction step action:', error);
+        return { success: false, error: 'Failed to create work instruction step action' };
+    }
+}
+
+export async function updateWorkInstructionStepAction({
+    actionId,
+    actionType,
+    description,
+    targetValue,
+    unit,
+    tolerance,
+    signoffRoles,
+    isRequired,
+    notes,
+    completedAt,
+    completedBy,
+    completedValue,
+    uploadedFileId,
+}: {
+    actionId: string;
+    actionType?: ActionType;
+    description?: string;
+    targetValue?: number;
+    unit?: string;
+    tolerance?: number;
+    signoffRoles?: string[];
+    isRequired?: boolean;
+    notes?: string;
+    completedAt?: Date | null;
+    completedBy?: string | null;
+    completedValue?: number | null;
+    uploadedFileId?: string | null;
+}) {
+    try {
+        const result = await prisma.workInstructionStepAction.update({
+            where: { id: actionId },
+            data: {
+                actionType,
+                description,
+                targetValue,
+                unit,
+                tolerance,
+                signoffRoles,
+                isRequired,
+                notes,
+                completedAt,
+                completedBy,
+                completedValue,
+                uploadedFileId,
+            }
+        });
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('Error updating work instruction step action:', error);
+        return { success: false, error: 'Failed to update work instruction step action' };
+    }
+}
+
+export async function deleteWorkInstructionStepAction(actionId: string) {
+    try {
+        await prisma.workInstructionStepAction.delete({
+            where: { id: actionId }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting work instruction step action:', error);
+        return { success: false, error: 'Failed to delete work instruction step action' };
     }
 }
