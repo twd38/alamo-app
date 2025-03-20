@@ -340,7 +340,6 @@ model WorkInstructionStepAction {
   uploadedFile   File?           @relation("ActionUpload", fields: [uploadedFileId], references: [id])
   notes          String?
 
-  @@unique([stepId, actionType, description])
 }
 
 enum InstructionStatus {

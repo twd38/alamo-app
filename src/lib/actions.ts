@@ -3,7 +3,7 @@ import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
-import { Task, Part, ActionType, BOMType, Prisma, PartType } from '@prisma/client';
+import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
 import { getPresignedDownloadUrl } from '@/lib/r2';
 import { generateNewPartNumbers } from '@/lib/utils';
@@ -681,44 +681,26 @@ export async function updateWorkInstructionStep({
     }
 }
 
-export async function createWorkInstructionStepAction({
-    stepId,
-    actionType,
-    description,
-    targetValue,
-    unit,
-    tolerance,
-    signoffRoles,
-    isRequired = true,
-    notes,
-}: {
-    stepId: string;
-    actionType: ActionType;
-    description: string;
-    targetValue?: number;
-    unit?: string;
-    tolerance?: number;
-    signoffRoles?: string[];
-    isRequired?: boolean;
-    notes?: string;
-}) {
+export async function createWorkInstructionStepAction(data: Prisma.WorkInstructionStepActionCreateWithoutStepInput & { stepId: string }) {
+    console.log(data)
+    const { stepId, actionType, description, targetValue, unit, tolerance, signoffRoles, isRequired, notes } = data
     try {
         const result = await prisma.workInstructionStepAction.create({
             data: {
                 stepId,
                 actionType,
                 description,
-                targetValue,
-                unit,
-                tolerance,
-                signoffRoles,
+                targetValue: targetValue || null,
+                unit: unit || null,
+                tolerance: tolerance || null,
+                signoffRoles: signoffRoles || [],
                 isRequired,
-                notes,
+                notes: notes || null,
             }
         });
         return { success: true, data: result };
-    } catch (error) {
-        console.error('Error creating work instruction step action:', error);
+    } catch (error: any) {
+        console.error('Error creating work instruction step action:', error.stack);
         return { success: false, error: 'Failed to create work instruction step action' };
     }
 }

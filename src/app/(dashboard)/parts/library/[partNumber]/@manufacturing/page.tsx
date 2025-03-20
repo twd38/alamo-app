@@ -473,10 +473,15 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
     const params = useParams();
     const partNumber = params.partNumber as string;
 
-    const { data: workInstructions, mutate } = useSWR<PartWorkInstructions>(
+    // COME BACK TO THIS
+    const { mutate } = useSWR<PartWorkInstructions>(
         `/api/parts/${partNumber}/work-instructions`,
         () => getPartWorkInstructions(step?.workInstructionId || '')
     );
+
+    // const mutate = () => {
+    //     console.log("mutating with part number", partNumber);
+    // }
 
     if (!step) {
         return (
@@ -488,6 +493,7 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
 
     const handleAddAction = async () => {
         try {
+            console.log(step.id)
             // Create a new action with default values
             const result = await createWorkInstructionStepAction({
                 stepId: step.id,
@@ -525,6 +531,7 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
 
     const handleActionSaved = async () => {
         // Trigger a revalidation to get the latest data
+        console.log("Refetching work instructions after action saved");
         await mutate();
     };
 
@@ -627,29 +634,14 @@ const WorkInstructionActions: React.FC<WorkInstructionActionsProps> = ({ step, o
 // *** Work Instructions Editor *** (Main Component)
 const WorkInstructionsEditor: React.FC = () => {
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-    const [partNumber, setPartNumber] = useState<string>("");
 
     const params = useParams();
+    const partNumber = params.partNumber as string;
     
-    // Extract partNumber from params safely
-    useEffect(() => {
-        if (params && params.partNumber) {
-            // Handle partNumber as string or string[]
-            const partNum = Array.isArray(params.partNumber) 
-                ? params.partNumber[0] 
-                : params.partNumber as string;
-            setPartNumber(partNum);
-        }
-    }, [params]);
-
-    // Only fetch when partNumber is available
-    const fetcher = async (url: string): Promise<PartWorkInstructions> => {
-        return getPartWorkInstructions(partNumber);
-    };
 
     const { data: workInstructions, isLoading: isWorkInstructionsLoading, mutate } = useSWR<PartWorkInstructions>(
-        partNumber ? `/api/parts/${partNumber}/work-instructions` : null,
-        fetcher
+        `/api/parts/${partNumber}/work-instructions`,
+        () => getPartWorkInstructions(partNumber)
     );
 
     const workInstructionId = workInstructions?.[0]?.id;
