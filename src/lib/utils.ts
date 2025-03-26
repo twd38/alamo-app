@@ -120,3 +120,48 @@ export function formatPartType(partType: PartType) {
 
   return partTypeTranslation[partType];
 }
+
+export function detectCarrierAndTrackingURL(trackingNumber: string) {
+  const carriers = [
+    {
+      name: "UPS",
+      pattern: /1Z[0-9A-Z]{16}/i,
+      url: (tn: string) => `https://www.ups.com/track?loc=en_US&tracknum=${tn}`
+    },
+    {
+      name: "FedEx",
+      pattern: /\b(\d{12}|\d{15}|\d{20})\b/,
+      url: (tn: string) => `https://www.fedex.com/fedextrack/?tracknumbers=${tn}`
+    },
+    {
+      name: "USPS",
+      pattern: /\b(94|93|92|94|95)[0-9]{20}|\b([A-Z]{2}[0-9]{9}US)\b/,
+      url: (tn: string) => `https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1=${tn}`
+    },
+    {
+      name: "DHL",
+      pattern: /\b(\d{10}|\d{11})\b/,
+      url: (tn: string) => `https://www.dhl.com/en/express/tracking.html?AWB=${tn}`
+    },
+    {
+      name: "Amazon Logistics",
+      pattern: /\b(TBA\d{12,})\b/,
+      url: (tn: string) => `https://www.amazon.com/progress-tracker/package/${tn}`
+    }
+  ];
+
+  for (const carrier of carriers) {
+    if (carrier.pattern.test(trackingNumber)) {
+      return {
+        carrier: carrier.name,
+        trackingURL: carrier.url(trackingNumber)
+      };
+    }
+  }
+
+  return {
+    carrier: "Unknown",
+    trackingURL: null
+  };
+}
+

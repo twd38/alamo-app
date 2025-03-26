@@ -13,7 +13,7 @@ import {
 } from "src/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "src/components/ui/collapsible"
 import { ChevronRight } from "lucide-react"
-import { Factory, Library, BookOpen, Settings2 } from "lucide-react"
+import { Factory, Library, BookOpen, Settings2, ShoppingCart } from "lucide-react"
 import { usePathname } from "next/navigation";
 const items = [
     {
@@ -36,6 +36,11 @@ const items = [
           url: "/parts/inventory",
         },
       ],
+    },
+    {
+      title: "Orders",
+      url: "/orders",
+      icon: ShoppingCart,
     },
     {
       title: "Documentation",

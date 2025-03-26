@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Wrench, Plus, Loader2, Check, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "@/components/markdown-editor";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { useParams } from "next/navigation";
 import { getPartWorkInstructions, PartWorkInstructions } from "@/lib/queries";
 import { Prisma, WorkInstructionStep, ActionType } from "@prisma/client";
@@ -348,12 +348,9 @@ type WorkInstructionStepWithActions = Prisma.WorkInstructionStepGetPayload<{
 interface StepDetailsProps {
     step: WorkInstructionStepWithActions | null;
     onUpdateStep: (stepId: string, updates: Partial<WorkInstructionStep>) => void;
+    revalidate: () => void;
 }
 
-interface WorkInstructionActionsProps {
-    step: WorkInstructionStepWithActions | null;
-    onUpdateStep: (stepId: string, updates: Partial<WorkInstructionStep>) => void;
-}
 
 const StepDetails: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
     const [isSaving, setIsSaving] = useState(false);
@@ -469,16 +466,7 @@ const StepDetails: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
 };
 
 // *** Step Details ***
-const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
-    const params = useParams();
-    const partNumber = params.partNumber as string;
-
-    // COME BACK TO THIS
-    const { mutate } = useSWR<PartWorkInstructions>(
-        `/api/parts/${partNumber}/work-instructions`,
-        () => getPartWorkInstructions(step?.workInstructionId || '')
-    );
-
+const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, revalidate }) => {
     // const mutate = () => {
     //     console.log("mutating with part number", partNumber);
     // }
@@ -504,12 +492,12 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
 
             if (result.success && result.data) {
                 // Trigger a revalidation to get the latest data
-                await mutate();
+                await revalidate();
             }
         } catch (error) {
             console.error("Failed to create action:", error);
             // Revalidate to ensure we're in sync with the server
-            await mutate();
+            await revalidate();
         }
     };
 
@@ -520,23 +508,23 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
             
             if (result.success) {
                 // Trigger a revalidation to get the latest data
-                await mutate();
+                await revalidate();
             }
         } catch (error) {
             console.error("Failed to delete action:", error);
             // Revalidate to restore the correct state
-            await mutate();
+            await revalidate();
         }
     };
 
     const handleActionSaved = async () => {
         // Trigger a revalidation to get the latest data
         console.log("Refetching work instructions after action saved");
-        await mutate();
+        await revalidate();
     };
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 h-full overflow-y-scroll">
             <Button
                 onClick={handleAddAction}
                 className="w-full gap-2"
@@ -568,72 +556,10 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, onUpdate
     );
 };
 
-// *** Step Details and Actions ***
-const WorkInstructionActions: React.FC<WorkInstructionActionsProps> = ({ step, onUpdateStep }) => {
-    if (!step) {
-        return (
-            <div className="h-full">
-                <Tabs defaultValue="details" className="h-full">
-                    <div className="border-b">
-                        <TabsList className="w-full justify-start h-12 p-0 bg-transparent border-b-0">
-                            <TabsTrigger 
-                                value="details"
-                                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
-                            >
-                                Step Details
-                            </TabsTrigger>
-                            <TabsTrigger 
-                                value="actions"
-                                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
-                            >
-                                Actions
-                            </TabsTrigger>
-                        </TabsList>
-                    </div>
-                    <TabsContent value="details" className="mt-0 h-[calc(100%-3rem)]">
-                        <StepDetails step={step} onUpdateStep={onUpdateStep} />
-                    </TabsContent>
-                    <TabsContent value="actions" className="mt-0 h-[calc(100%-3rem)]">
-                        <WorkInstructionStepActions step={step} onUpdateStep={onUpdateStep} />
-                    </TabsContent>
-                </Tabs>
-            </div>
-        );
-    }
-
-    return (
-        <div className="h-full">
-            <Tabs defaultValue="details" className="h-full">
-                <div className="border-b">
-                    <TabsList className="w-full justify-start h-12 p-0 bg-transparent border-b-0">
-                        <TabsTrigger 
-                            value="details"
-                            className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
-                        >
-                            Step Details
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="actions"
-                            className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
-                        >
-                            Actions
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-                <TabsContent value="details" className="mt-0 h-[calc(100%-3rem)]">
-                    <StepDetails step={step} onUpdateStep={onUpdateStep} />
-                </TabsContent>
-                <TabsContent value="actions" className="mt-0 h-[calc(100%-3rem)]">
-                    <WorkInstructionStepActions step={step} onUpdateStep={onUpdateStep} />
-                </TabsContent>
-            </Tabs>
-        </div>
-    );
-};
-
 // *** Work Instructions Editor *** (Main Component)
 const WorkInstructionsEditor: React.FC = () => {
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+    console.log(selectedStepId)
 
     const params = useParams();
     const partNumber = params.partNumber as string;
@@ -643,6 +569,8 @@ const WorkInstructionsEditor: React.FC = () => {
         `/api/parts/${partNumber}/work-instructions`,
         () => getPartWorkInstructions(partNumber)
     );
+
+    console.log(workInstructions)
 
     const workInstructionId = workInstructions?.[0]?.id;
     const steps = workInstructions?.[0]?.steps || [];
@@ -676,6 +604,7 @@ const WorkInstructionsEditor: React.FC = () => {
     };
 
     const handleUpdateStep = async (stepId: string, updates: Partial<WorkInstructionStep>) => {
+        console.log("handleUpdateStep", stepId, updates)
         try {
             // Optimistically update the UI
             const optimisticData = workInstructions?.map(wi => ({
@@ -738,7 +667,30 @@ const WorkInstructionsEditor: React.FC = () => {
                 />
             </div>
             <div className="w-1/4 h-full bg-white border-l">
-                <WorkInstructionActions step={selectedStep} onUpdateStep={handleUpdateStep} />
+                <Tabs defaultValue="details" className="h-full">
+                    <div className="border-b">
+                        <TabsList className="w-full justify-start h-12 p-0 bg-transparent border-b-0">
+                            <TabsTrigger 
+                                value="details"
+                                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
+                            >
+                                Step Details
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="actions"
+                                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
+                            >
+                                Actions
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+                    <TabsContent value="details" className="mt-0 h-[calc(100%-3rem)]">
+                        <StepDetails step={selectedStep} onUpdateStep={handleUpdateStep} revalidate={() => mutate()} />
+                    </TabsContent>
+                    <TabsContent value="actions" className="mt-0 h-[calc(100%-3rem)]">
+                        <WorkInstructionStepActions step={selectedStep} onUpdateStep={handleUpdateStep} revalidate={() => mutate()} />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     );

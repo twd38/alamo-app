@@ -348,3 +348,17 @@ enum InstructionStatus {
   APPROVED
   DEPRECATED
 }
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  supplier        String?
+  dateOrdered     DateTime?
+  estimatedArrival DateTime?
+  deliveredAt     DateTime?
+  status          String
+  emailThreadIds  String[]
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

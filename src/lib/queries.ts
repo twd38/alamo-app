@@ -191,3 +191,17 @@ export async function getPartWorkInstructions(partNumber: string) {
 }
 
 export type PartWorkInstructions = Prisma.PromiseReturnType<typeof getPartWorkInstructions>
+
+/**
+ * Fetches all orders from the database, ordered by creation date (newest first)
+ * @returns Array of Order objects
+ */
+export async function getOrders() {
+    return await prisma.order.findMany({
+        orderBy: {
+            createdAt: 'desc' // Most recent orders first
+        }
+    })
+}
+
+export type Order = Prisma.PromiseReturnType<typeof getOrders>[0]
