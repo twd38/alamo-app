@@ -25,10 +25,10 @@ export default function DashboardLayout({
   return (
     <Providers>
       <AppSidebar className="flex-shrink-0"/>
-        <DesktopNav>
-          {children}
-        </DesktopNav>
-        <Analytics />
+      <DesktopNav>
+        {children}
+      </DesktopNav>
+      <Analytics />
     </Providers>
   );
 }

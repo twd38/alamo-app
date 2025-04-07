@@ -1,4 +1,3 @@
-import { Toaster } from 'react-hot-toast';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 
 /**

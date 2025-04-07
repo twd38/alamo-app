@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import Countdown from '@/components/home/countdown'
 import { updateMissionMessage } from "@/lib/actions";
 import { Card, CardContent } from "@/components/ui/card";
+import BasicTopBar from "@/components/layouts/basic-top-bar";
 
 export default async function ProductsPage(
   props: {
@@ -29,6 +30,7 @@ export default async function ProductsPage(
 
   return (
     <div className="flex flex-col gap-4">
+      <BasicTopBar />
       <Countdown targetDate={new Date('2025-07-11')} />
       <div className="flex flex-col items-center">
         <Card className="w-full shadow-sm">

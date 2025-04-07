@@ -1,6 +1,4 @@
 "use client"
-
-import { type LucideIcon } from "lucide-react"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -10,11 +8,13 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar
 } from "src/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "src/components/ui/collapsible"
 import { ChevronRight } from "lucide-react"
-import { Factory, Library, BookOpen, Settings2, ShoppingCart } from "lucide-react"
+import { Factory, Library, BookOpen, Settings2, ShoppingCart, Globe } from "lucide-react"
 import { usePathname } from "next/navigation";
+
 const items = [
     {
       title: "Production",
@@ -25,7 +25,6 @@ const items = [
       title: "Parts",
       url: "/parts",
       icon: Library,
-      isActive: true,
       items: [
         {
           title: "Library",
@@ -43,19 +42,37 @@ const items = [
       icon: ShoppingCart,
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Site Explorer",
+      url: "/explorer",
+      icon: Globe,
     },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-    },
+    // {
+    //   title: "Documentation",
+    //   url: "#",
+    //   icon: BookOpen,
+    // },
+    // {
+    //   title: "Settings",
+    //   url: "#",
+    //   icon: Settings2,
+    // },
   ]
 
 export function NavMain() {
   const pathname = usePathname();  
+  const { state, open, setOpen } = useSidebar();
+
+  const handleClickMenuItemWithSubItems = (item: any) => {
+      setOpen(true);
+  }
+
+  const isActivePage = (item: any) => {
+    return item.url === pathname;
+  }
+
+  const isActivePageWithSubItems = (item: any) => {
+    return item.items.some((subItem: any) => subItem.url === pathname);
+  }
 
   return (
     <SidebarGroup>
@@ -69,22 +86,31 @@ export function NavMain() {
               <Collapsible
                 key={item.title}
                 asChild
-                defaultOpen={item.isActive}
+                defaultOpen={true}
                 className="group/collapsible"
             >
               <SidebarMenuItem key={item.title}>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
+                {open ? (
+                  // If the item has subitems and is open, then the subitems should be open
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title} >
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                ):(
+                  // If the item has subitems and is not open, then clicking the menu button should open the menu
+                  <SidebarMenuButton tooltip={item.title} isActive={isActivePageWithSubItems(item)} onClick={() => handleClickMenuItemWithSubItems(item)}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>
-                </CollapsibleTrigger>
+                )}
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
-                      <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
+                      <SidebarMenuSubItem key={subItem.title} >
+                        <SidebarMenuSubButton isActive={isActivePage(subItem)} asChild>
                           <a href={subItem.url}>
                             <span>{subItem.title}</span>
                           </a>
@@ -99,14 +125,14 @@ export function NavMain() {
 
           return (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
+              <SidebarMenuButton tooltip={item.title} isActive={isActivePage(item)} asChild>
                 <a href={item.url}>{item.icon && <item.icon />}
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )
-      })}
+        })}
       </SidebarMenu>
     </SidebarGroup>
   )
