@@ -1,3 +1,4 @@
+'use client'
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import Map from './components/map';
 
