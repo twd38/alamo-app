@@ -191,6 +191,12 @@ pre {
   }
 }
 
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Chrome, Safari, Edge, Opera */
 input[type='search']::-webkit-search-cancel-button {
   -webkit-appearance: none;

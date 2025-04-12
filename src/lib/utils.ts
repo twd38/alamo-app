@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Status, PartType } from "@prisma/client"
 import { prisma } from '@/lib/db';
-
+import { floor } from "lodash";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -165,3 +165,17 @@ export function detectCarrierAndTrackingURL(trackingNumber: string) {
   };
 }
 
+export function formatCurrency(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0
+  }).format(value);
+}
+
+export function metersToSquareFeet(meters: number) {
+  return Intl.NumberFormat('en-US', {
+    style: 'decimal',
+    maximumFractionDigits: 0,
+  }).format(meters * 10.7639);
+}

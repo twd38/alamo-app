@@ -6,6 +6,8 @@ import { SearchBox } from '@mapbox/search-js-react'
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ReactNode } from 'react'
 import { getParcelByAddress, ParcelData } from '@/lib/queries'
+import { PropertyDetail } from './property-detail'
+import { formatCurrency, metersToSquareFeet } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, MapPin } from 'lucide-react'
 
@@ -241,238 +243,73 @@ const Map = () => {
       }
     };
 
+    console.log(parcelData)
+
+    const propertyData = {
+        address: parcelData?.location?.streetAddress || '',
+        city: parcelData?.location?.locality || '',
+        state: parcelData?.location?.regionCode || '',
+        zip: parcelData?.location?.postalCode || '',
+        imageUrl: '',
+        summary: [
+            {
+                label: 'Parcel ID',
+                value: parcelData?.id || ''
+            },
+            {
+                label: 'Neighborhood',
+                value: parcelData?.neighborhood || ''
+            },
+            {
+                label: 'Zoning Type',
+                value: parcelData?.landUse?.normalized?.description || ''
+            },
+            {
+                label: 'Assessed Value',
+                value: formatCurrency(parcelData?.assessment?.assessedValue?.total || 0)
+            },
+            {
+                label: 'Assessed Value (Land)',
+                value: formatCurrency(parcelData?.assessment?.assessedValue?.land || 0)
+            },
+            {
+                label: 'Market Value',
+                value: formatCurrency(parcelData?.assessment?.marketValue?.total || 0)
+            },
+            {
+                label: 'Year Built',
+                value: parcelData?.primaryStructure?.yearBuilt || ''
+            },
+            {
+                label: 'Lot Size',
+                value: metersToSquareFeet(parcelData?.assessment?.lot?.size || 0) + ' sqft'
+            },
+        ],
+        parcelRecords: [
+            {
+                label: 'Parcel ID',
+                value: parcelData?.id || ''
+            },
+            {
+                label: 'Address',
+                value: parcelData?.location?.streetAddress || ''
+            },
+            {
+                label: 'City',
+                value: parcelData?.location?.locality || ''
+            },      
+        ]
+    }
+
     return (
         <div className="flex flex-row h-full w-full">
             {/* Property data card panel - Only show when an address is selected or during loading */}
             {(selectedAddress || isLoading || isGeocodingLoading) ? (
-                <div className="w-1/4 h-full flex flex-col overflow-hidden">
-                  <div className="p-4 flex-1 overflow-hidden">
-                    <Card className="w-full h-full flex flex-col">
-                      {isGeocodingLoading ? (
-                        <CardContent className="pt-6 flex items-center justify-center flex-1">
-                          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                          <p className="ml-2 text-gray-500">Finding address at clicked location...</p>
-                        </CardContent>
-                      ) : isLoading ? (
-                        <CardContent className="pt-6 flex items-center justify-center flex-1">
-                          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                          <p className="ml-2 text-gray-500">Loading property data...</p>
-                        </CardContent>
-                      ) : error ? (
-                        <>
-                        <CardHeader>
-                          <CardTitle className="text-red-500">Error</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p>{error}</p>
-                        </CardContent>
-                        </>
-                      ) : parcelData ? (
-                        <>
-                        <CardHeader className="pb-2">
-                          <CardTitle>{parcelData.location?.streetAddress || 'Property Details'}</CardTitle>
-                          <CardDescription>
-                            {parcelData.id && `Parcel ID: ${parcelData.id}`}
-                            {parcelData.parcelApn && ` • APN: ${parcelData.parcelApn}`}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-y-auto">
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="font-medium text-lg mb-2">Property Information</h3>
-                              <dl className="grid grid-cols-2 gap-2">
-                                {parcelData.landUse?.description && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Property Type</dt>
-                                    <dd>{parcelData.landUse.description}</dd>
-                                  </>
-                                )}
-                                {parcelData.primaryStructure?.yearBuilt && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Year Built</dt>
-                                    <dd>{parcelData.primaryStructure.yearBuilt}</dd>
-                                  </>
-                                )}
-                                {parcelData.assessment?.lot?.size && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Land Area</dt>
-                                    <dd>{(parcelData.assessment.lot.size * 10.7639).toLocaleString()} sq ft</dd>
-                                  </>
-                                )}
-                                {parcelData.primaryStructure?.livingArea && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Building Area</dt>
-                                    <dd>{(parcelData.primaryStructure.livingArea * 10.7639).toLocaleString()} sq ft</dd>
-                                  </>
-                                )}
-                                {parcelData.assessment?.assessedValue?.total && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Assessed Value</dt>
-                                    <dd>${parcelData.assessment.assessedValue.total.toLocaleString()}</dd>
-                                  </>
-                                )}
-                                {parcelData.assessment?.marketValue?.total && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Market Value</dt>
-                                    <dd>${parcelData.assessment.marketValue.total.toLocaleString()}</dd>
-                                  </>
-                                )}
-                                {parcelData.tax?.amount && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Annual Tax</dt>
-                                    <dd>${parcelData.tax.amount.toLocaleString()}</dd>
-                                  </>
-                                )}
-                                {parcelData.location?.locality && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">City</dt>
-                                    <dd>{parcelData.location.locality}</dd>
-                                  </>
-                                )}
-                                {parcelData.location?.postalCode && (
-                                  <>
-                                    <dt className="text-sm text-gray-500">Zip Code</dt>
-                                    <dd>{parcelData.location.postalCode}</dd>
-                                  </>
-                                )}
-                              </dl>
-                            </div>
-
-                            {/* Zoning Information Section */}
-                            {(parcelData.assessment?.zoning?.assessment || 
-                              parcelData.property?.zoning || 
-                              parcelData.landUse?.normalized?.description) && (
-                              <div>
-                                <h3 className="font-medium text-lg mb-2">Zoning Information</h3>
-                                <dl className="grid grid-cols-2 gap-2">
-                                  {parcelData.assessment?.zoning?.assessment && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Zoning Code</dt>
-                                      <dd>{parcelData.assessment.zoning.assessment}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.property?.zoning && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Zoning Description</dt>
-                                      <dd>{parcelData.property.zoning}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.landUse?.normalized?.categoryDescription && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Land Use Category</dt>
-                                      <dd>{parcelData.landUse.normalized.categoryDescription}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.landUse?.normalized?.description && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Normalized Use</dt>
-                                      <dd>{parcelData.landUse.normalized.description}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.landUse?.description && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Land Use</dt>
-                                      <dd>{parcelData.landUse.description}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.opportunityZone !== undefined && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Opportunity Zone</dt>
-                                      <dd>{parcelData.opportunityZone ? 'Yes' : 'No'}</dd>
-                                    </>
-                                  )}
-                                </dl>
-                              </div>
-                            )}
-                            
-                            {parcelData.owner && (
-                              <div>
-                                <h3 className="font-medium text-lg mb-2">Owner Information</h3>
-                                <dl className="grid grid-cols-1 gap-2">
-                                  {parcelData.owner.names && parcelData.owner.names.length > 0 && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Name(s)</dt>
-                                      {parcelData.owner.names.map((name, index) => (
-                                        <dd key={index}>{name.fullName}</dd>
-                                      ))}
-                                    </>
-                                  )}
-                                  {parcelData.owner.streetAddress && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Mailing Address</dt>
-                                      <dd>{parcelData.owner.streetAddress}, {parcelData.owner.locality}, {parcelData.owner.regionCode} {parcelData.owner.postalCode}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.occupant?.owner !== undefined && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Owner Occupied</dt>
-                                      <dd>{parcelData.occupant.owner ? 'Yes' : 'No'}</dd>
-                                    </>
-                                  )}
-                                </dl>
-                              </div>
-                            )}
-                            
-                            
-                            {/* {parcelData.transaction?.lastMarketSale && (
-                              <div>
-                                <h3 className="font-medium text-lg mb-2">Last Sale Information</h3>
-                                <dl className="grid grid-cols-2 gap-2">
-                                  {parcelData.transaction.lastMarketSale.transferDate && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Sale Date</dt>
-                                      <dd>{new Date(parcelData.transaction.lastMarketSale.transferDate).toLocaleDateString()}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.transaction.lastMarketSale.value && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Sale Price</dt>
-                                      <dd>${parcelData.transaction.lastMarketSale.value.toLocaleString()}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.transaction.lastMarketSale.buyer && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Buyer</dt>
-                                      <dd>{parcelData.transaction.lastMarketSale.buyer}</dd>
-                                    </>
-                                  )}
-                                  {parcelData.transaction.lastMarketSale.seller && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Seller</dt>
-                                      <dd>{parcelData.transaction.lastMarketSale.seller}</dd>
-                                    </>
-                                  )}
-                                </dl>
-                              </div>
-                            )} */}
-                            
-                            {/* {parcelData.legalDescription && parcelData.legalDescription.length > 0 && (
-                              <div>
-                                <h3 className="font-medium text-lg mb-2">Legal Information</h3>
-                                <dl className="grid grid-cols-1 gap-2">
-                                  <dt className="text-sm text-gray-500">Legal Description</dt>
-                                  {parcelData.legalDescription.map((desc, index) => (
-                                    <dd key={index}>{desc}</dd>
-                                  ))}
-                                  {parcelData.subdivision && (
-                                    <>
-                                      <dt className="text-sm text-gray-500">Subdivision</dt>
-                                      <dd>{parcelData.subdivision}</dd>
-                                    </>
-                                  )}
-                                </dl>
-                              </div>
-                            )} */}
-                          </div>
-                        </CardContent>
-                        </>
-                      ) : (
-                        <CardContent className="pt-6 flex-1 flex items-center justify-center">
-                          <p className="text-gray-500">No property data available for this address.</p>
-                        </CardContent>
-                      )}
-                    </Card>
-                  </div>
+                <div className="w-1/4 min-w-[300px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
+                    <PropertyDetail 
+                        property={propertyData} 
+                        onClose={() => setSelectedAddress(null)}
+                    />
                 </div>
             ) : null }
             

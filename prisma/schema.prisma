@@ -78,6 +78,7 @@ enum Status {
 model File {
   id          String @id @default(cuid())
   url         String
+  key         String @default("")
   name        String
   type        String
   size        Int

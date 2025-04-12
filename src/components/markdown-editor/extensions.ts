@@ -23,7 +23,7 @@ import {
   Youtube,
 } from "novel";
 import { Markdown } from 'tiptap-markdown';
-import { getPresignedFileUrl } from "@/lib/actions";
+import { getFileUrlFromUnsignedUrl } from "@/lib/actions";
 
 import { cx } from "class-variance-authority";
 import { common, createLowlight } from "lowlight";
@@ -53,24 +53,12 @@ const tiptapImage = TiptapImage.extend({
       ...this.parent?.(),
       src: {
         default: null,
-        parseHTML: async (element) => {
+        parseHTML: (element) => {
           const src = element.getAttribute('src');
-          if (src?.startsWith(process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '')) {
-            try {
-              const result = await getPresignedFileUrl(src);
-              if (result.success) {
-                return result.url;
-              }
-            } catch (error) {
-              console.error('Error getting presigned URL:', error);
-            }
-          }
-          return src;
+          return src || null;
         },
-        renderHTML: (attributes) => {
-          return {
-            src: attributes.src,
-          };
+        renderHTML:  (attributes) => {
+          return { src: "attributes.src" };
         },
       },
     };

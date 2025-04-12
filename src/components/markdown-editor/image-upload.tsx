@@ -1,50 +1,71 @@
 import { createImageUpload } from "novel";
 import { toast } from "react-hot-toast";
-import { uploadFile, getPresignedFileUrl } from "@/lib/actions";
+import { getPresignedUploadUrl, getFileUrl } from "@/lib/actions";
 
 const onUpload = (file: File) => {
-  const promise = uploadFile(file, "contentFiles");
-
-  return new Promise((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
+    const fileName = crypto.randomUUID() + "-" + file.name;
+    const folderPath = "/content";
+    
+    // First get a presigned URL for uploading
     toast.promise(
-      promise.then(async (res) => {
-        // Successfully uploaded image
-        if (res.success) {
-          const url = res.url;
-          // Get presigned URL for the uploaded image
-          const presignedResult = await getPresignedFileUrl(url);
-          const finalUrl = presignedResult.success && presignedResult.url ? presignedResult.url : url;
+      (async () => {
+        try {
+          // Get a presigned PUT URL
+          const presignedUrlResult = await getPresignedUploadUrl(fileName, file.type, folderPath);
           
-          // preload the image
+          if (!presignedUrlResult.success || !presignedUrlResult.url) {
+            throw new Error("Failed to get upload URL");
+          }
+          
+          // Upload directly to R2 using fetch and the presigned URL
+          const uploadResult = await fetch(presignedUrlResult.url, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type,
+            },
+            body: file
+          });
+          
+          if (!uploadResult.ok) {
+            throw new Error(`Upload failed: ${uploadResult.statusText}`);
+          }
+          
+          // Get the permanent URL for the file (not the presigned one)
+          const key = presignedUrlResult.key;
+          
+          // Preload the image
           const image = new Image();
-          image.src = finalUrl;
-          image.onload = () => {
-            resolve(finalUrl); // We store the original URL, not the presigned one
-          };
-          // No blob store configured
-        } else if (!res.success) {
-          resolve(file);
-          throw new Error("`BLOB_READ_WRITE_TOKEN` environment variable not found, reading image locally instead.");
-          // Unknown error
-        } else {
-          throw new Error("Error uploading image. Please try again.");
+          image.src = key;
+          
+          return new Promise<string>((imageResolve) => {
+            image.onload = () => imageResolve(key);
+            image.onerror = () => {
+              // If we can't load the image, still return the URL
+              // as it might just be CORS or other issues
+              imageResolve(key);
+            };
+          });
+        } catch (error) {
+          console.error("Upload error:", error);
+          throw error;
         }
-      }),
+      })(),
       {
         loading: "Uploading image...",
         success: "Image uploaded successfully.",
-        error: (e: any) => {
-          reject(e);
-          return e.message;
+        error: (error: Error) => {
+          reject(error);
+          return error.message || "Upload failed";
         },
-      },
-    );
+      }
+    ).then(resolve).catch(reject);
   });
 };
 
 export const uploadFn = createImageUpload({
   onUpload,
-  validateFn: (file) => {
+  validateFn: (file: File) => {
     if (!file.type.includes("image/")) {
       toast.error("File type not supported.");
       return false;

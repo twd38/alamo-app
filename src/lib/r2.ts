@@ -14,6 +14,23 @@ const r2Client = new S3Client({
 const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
 const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
 
+export async function getUploadUrl(fileName: string, contentType: string, path: string): Promise<{ url: string; key: string }> {
+  const key = `${path}/${Date.now()}-${fileName}`;
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+
+  return {
+    url: presignedUrl,
+    key,
+  };
+}
+
+
 export async function uploadFileToR2(file: File, path: string): Promise<{ url: string; key: string }> {
   const key = `${path}/${Date.now()}-${file.name}`;
   const command = new PutObjectCommand({
@@ -22,11 +39,8 @@ export async function uploadFileToR2(file: File, path: string): Promise<{ url: s
     ContentType: file.type,
   });
 
-  // Get presigned URL for client-side upload
-  const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-
   // Upload file using presigned URL
-  const upload = await fetch(presignedUrl, {
+  const upload = await fetch(key, {
     method: "PUT",
     body: file,
     headers: {
@@ -54,6 +68,7 @@ export async function deleteFileFromR2(key: string): Promise<void> {
   await r2Client.send(command);
 }
 
+
 export async function getPresignedDownloadUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
@@ -64,3 +79,13 @@ export async function getPresignedDownloadUrl(key: string): Promise<string> {
   const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
   return presignedUrl;
 } 
+
+export async function getPresignedDownloadUrlFromUnsignedUrl(url: string): Promise<string> {
+  // remove the public url from the url
+  console.log('url', url)
+  const key = url.replace(`${PUBLIC_URL}/`, '');
+  console.log('key', key)
+  const presignedUrl = await getPresignedDownloadUrl(key);
+  return presignedUrl;
+}
+

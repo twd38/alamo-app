@@ -4,8 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType } from '@prisma/client';
-import { uploadFileToR2, deleteFileFromR2 } from '@/lib/r2';
-import { getPresignedDownloadUrl } from '@/lib/r2';
+import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
 import { generateNewPartNumbers } from '@/lib/utils';
 
 
@@ -360,10 +359,30 @@ export async function updateTask(taskId: string, data: {
         const fileData = [];
         for (const file of newFiles) {
             if (isFileInstance(file)) {
+                console.log(file)
                 // Handle new file upload
-                const { url } = await uploadFileToR2(file, "tasks");
+                const { url, key } = await getUploadUrl(file.name, file.type, "tasks");
+                console.log({
+                    url,
+                    key,
+                });
+
+                // Upload file to R2 with fetch
+                const upload = await fetch(url, {
+                    method: "PUT",
+                    body: file,
+                    headers: {
+                        "Content-Type": file.type
+                    }
+                });
+
+                console.log({
+                    upload,
+                });
+
                 fileData.push({
                     url,
+                    key,
                     name: file.name,
                     type: file.type,
                     size: file.size
@@ -406,8 +425,8 @@ export async function updateTask(taskId: string, data: {
         });
 
         return { success: true, data: result };
-    } catch (error) {
-        console.error('Error updating task:', error);
+    } catch (error: any) {
+        console.error('Error updating task:', error.stack);
         return { success: false, error: 'Failed to update task' };
     }
 }
@@ -417,19 +436,41 @@ function isFileInstance(file: File | { id: string; url: string; name: string; ty
     return file instanceof File;
 }
 
-export async function getPresignedFileUrl(fileUrl: string) {
+export async function getFileUrlFromKey(key: string) {
   try {
-    // Extract the key from the URL by removing the PUBLIC_URL prefix
-    const key = fileUrl.replace(process.env.R2_PUBLIC_URL + '/', '');
-    if (!key) {
-      return { success: false, error: 'Invalid file URL' };
-    }
-
     const presignedUrl = await getPresignedDownloadUrl(key);
+    
     return { success: true, url: presignedUrl };
   } catch (error) {
     console.error('Error getting file download URL:', error);
     return { success: false, error: 'Failed to get file download URL' };
+  }
+}
+
+export async function getFileUrlFromUnsignedUrl(url: string) {
+    const presignedUrl = await getPresignedDownloadUrlFromUnsignedUrl(url);
+    return { success: true, url: presignedUrl };
+}   
+
+export async function getPresignedUploadUrl(fileName: string, contentType: string, path: string) {
+  try {
+    const { url, key } = await getUploadUrl(fileName, contentType, path);
+    return { success: true, url, key };
+  } catch (error) {
+    console.error('Error getting upload URL:', error);
+    return { success: false, error: 'Failed to get upload URL' };
+  }
+}
+
+export async function getFileUrl(path: string, fileName: string) {
+  try {
+    // Create the key in the same format as it would be generated in getUploadUrl
+    const key = `${path}/${fileName}`;
+    // Return the permanent URL for the file
+    return `${process.env.R2_PUBLIC_URL}/${key}`;
+  } catch (error) {
+    console.error('Error getting file URL:', error);
+    throw new Error('Failed to get file URL');
   }
 }
 

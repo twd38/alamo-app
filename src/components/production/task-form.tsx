@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Status, User, Task } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getPresignedFileUrl } from "@/lib/actions";
+import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getFileUrlFromKey } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";
@@ -69,10 +69,11 @@ const formSchema = z.object({
     workStationId: z.string().optional(),
     files: z.array(
         z.union([
-            // For existing file records
+            //  or existing file records
             z.object({
                 id: z.string(),
                 url: z.string(),
+                key: z.string(),
                 name: z.string(),
                 type: z.string(),
                 size: z.number(),
@@ -236,9 +237,10 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     form.setValue('files', updatedFiles);
   };
 
-  const handleFileDownload = async (fileUrl: string, fileName: string) => {
+  const handleFileDownload = async (key: string, fileName: string) => {
+    console.log(key)
     try {
-      const result = await getPresignedFileUrl(fileUrl);
+      const result = await getFileUrlFromKey(key);
       if (result.success && result.url) {
         // Open in new window
         window.open(result.url, '_blank');
@@ -483,7 +485,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                                                     <Button
                                                                         variant="link"
                                                                         className="p-0 h-auto"
-                                                                        onClick={() => handleFileDownload(file.url, file.name)}
+                                                                        onClick={() => handleFileDownload(file.key, file.name)}
                                                                     >
                                                                         <span className="text-sm hover:underline">{file.name}</span>
                                                                     </Button>

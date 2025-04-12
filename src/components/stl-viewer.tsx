@@ -4,7 +4,7 @@ import { FC, Suspense, useEffect, useState } from 'react'
 import { Canvas, useLoader } from '@react-three/fiber'
 import { OrbitControls, Stage } from '@react-three/drei'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
-import { getPresignedFileUrl } from '@/lib/actions'
+import { getFileUrlFromKey } from '@/lib/actions'
 import { Mesh } from 'three'
 
 declare module 'react' {
@@ -25,6 +25,7 @@ declare module 'react' {
 interface STLViewerProps {
   filePath: string
   fileType: string
+  key: string
 }
 
 const Model: FC<{ url: string }> = ({ url }) => {
@@ -40,7 +41,7 @@ const Model: FC<{ url: string }> = ({ url }) => {
   )
 }
 
-const STLViewer: FC<STLViewerProps> = ({ filePath, fileType }) => {
+const STLViewer: FC<STLViewerProps> = ({ filePath, key, fileType }) => {
   const [fileUrl, setFileUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isConverting, setIsConverting] = useState(false)
@@ -56,7 +57,7 @@ const STLViewer: FC<STLViewerProps> = ({ filePath, fileType }) => {
           return
         }
 
-        const response = await getPresignedFileUrl(filePath)
+        const response = await getFileUrlFromKey(key)
         if (!response.success || !('url' in response) || !response.url) {
           const errorMessage = 'error' in response && response.error ? response.error : 'Failed to get file URL'
           setError(errorMessage)
