@@ -1,4 +1,4 @@
-// "use client"
+"use client"
 
 import type React from "react"
 import { ArrowLeft, ArrowRight, Check, Share, X, Loader2 } from "lucide-react"
