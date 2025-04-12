@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import { AlertTriangle, ArrowLeft, LogOut, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type ErrorMessage = {
@@ -79,7 +79,8 @@ const errorMessages: Record<string, ErrorMessage> = {
   },
 };
 
-export default function AuthErrorPage(): React.ReactElement {
+// This component handles the actual error display and uses the search params
+function ErrorContent(): React.ReactElement {
   const searchParams = useSearchParams();
   const [errorType, setErrorType] = useState<string>('Default');
   
@@ -93,26 +94,55 @@ export default function AuthErrorPage(): React.ReactElement {
   const errorInfo = errorMessages[errorType] || errorMessages['Default'];
   
   return (
+    <div className="bg-white p-8 rounded-lg shadow-md">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
+        <AlertTriangle className="h-6 w-6 text-yellow-600" />
+      </div>
+      
+      <div className="mt-3 text-center">
+        <h3 className="text-lg font-medium leading-6 text-gray-900">
+          {errorInfo.title}
+        </h3>
+        <div className="mt-2">
+          <p className="text-sm text-gray-500">{errorInfo.message}</p>
+        </div>
+        
+        <div className="mt-6 flex flex-col">
+          {errorInfo.action}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Loading fallback component
+function ErrorLoadingFallback(): React.ReactElement {
+  return (
+    <div className="bg-white p-8 rounded-lg shadow-md">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+        <div className="h-6 w-6 animate-pulse bg-gray-300 rounded-full"></div>
+      </div>
+      
+      <div className="mt-3 text-center">
+        <h3 className="text-lg font-medium leading-6 text-gray-900">
+          Loading Error Information...
+        </h3>
+        <div className="mt-2">
+          <p className="text-sm text-gray-500">Please wait while we retrieve error details.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component that wraps the content with Suspense
+export default function AuthErrorPage(): React.ReactElement {
+  return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="w-full max-w-md space-y-8">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-            <AlertTriangle className="h-6 w-6 text-yellow-600" />
-          </div>
-          
-          <div className="mt-3 text-center">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">
-              {errorInfo.title}
-            </h3>
-            <div className="mt-2">
-              <p className="text-sm text-gray-500">{errorInfo.message}</p>
-            </div>
-            
-            <div className="mt-6 flex flex-col">
-              {errorInfo.action}
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={<ErrorLoadingFallback />}>
+          <ErrorContent />
+        </Suspense>
         
         <div className="text-center text-sm text-gray-500 mt-4">
           <p>
