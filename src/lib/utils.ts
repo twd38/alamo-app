@@ -174,8 +174,9 @@ export function formatCurrency(value: number) {
 }
 
 export function metersToSquareFeet(meters: number) {
-  return Intl.NumberFormat('en-US', {
-    style: 'decimal',
-    maximumFractionDigits: 0,
-  }).format(meters * 10.7639);
+  return meters * 10.7639
+}
+
+export function metersToFeet(meters: number) {
+  return meters * 3.28084
 }

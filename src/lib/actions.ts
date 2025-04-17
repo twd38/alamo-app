@@ -6,6 +6,12 @@ import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
 import { generateNewPartNumbers } from '@/lib/utils';
+import { checkFeasibility } from "@/lib/site-engine/feasibility";
+import { buildYield } from "@/lib/site-engine/yield";
+import { runFinance } from "@/lib/site-engine/finance";
+import { SCHEMES } from "@/lib/site-engine/templates";
+import type { Lot } from "@/lib/site-engine/types";
+import { assumptions } from "@/lib/config"; // centralised assumptions
 
 
 export async function updateDataAndRevalidate(path: string) {
@@ -490,6 +496,7 @@ export async function createPart({
     isRawMaterial
 }: {
     partNumber?: string;
+    partRevision?: string;
     description: Part["description"];
     unit: Part["unit"];
     trackingType: Part["trackingType"];
@@ -502,6 +509,8 @@ export async function createPart({
         qty: number,
         bomType: BOMType
     }[] | [];
+    nxFilePath?: string;
+
 }) {
     try {
         // Ensure bomParts is an array
@@ -813,3 +822,14 @@ export async function deleteWorkInstructionStepAction(actionId: string) {
     }
 }
 
+export async function evaluateLot(lot: Lot) {
+  return SCHEMES.map((scheme) => {
+    const gate = checkFeasibility(lot, scheme);
+    if (!gate.feasible)
+      return { scheme: scheme.name, status: "blocked", blocking: gate.blocking };
+
+    const yld = buildYield(lot, scheme);
+    const fin = runFinance(lot, scheme, yld, assumptions);
+    return { scheme: scheme.name, status: "feasible", yld, fin };
+  });
+}

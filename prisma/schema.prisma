@@ -167,6 +167,7 @@ model Part {
   versionNumber   String  @default("1")
   partTypeNumber  String  @default("000")
   partNumber      String  @unique // basePartNumber-[partTypeNumber+versionNumber]
+  partRevision    String  @default("A")
   description     String
   unit            String
   trackingType    TrackingType
@@ -183,6 +184,7 @@ model Part {
   inventory       Inventory[]
   transactions    InventoryTransaction[]
   workInstructions WorkInstruction[]
+  nxFilePath      String?
 }
 
 enum PartType {

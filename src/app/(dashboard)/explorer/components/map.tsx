@@ -5,9 +5,9 @@ import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ReactNode } from 'react'
-import { getParcelByAddress, ParcelData } from '@/lib/queries'
+import { getParcelDetail, ParcelDetail, getParcelZoningDetail, ParcelZoningDetail } from '@/lib/queries'
 import { PropertyDetail } from './property-detail'
-import { formatCurrency, metersToSquareFeet } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, MapPin } from 'lucide-react'
 
@@ -36,10 +36,11 @@ const Map = () => {
       state: string;
       zip?: string;
     } | null>(null)
-    const [parcelData, setParcelData] = useState<ParcelData | null>(null)
+    const [parcelData, setParcelData] = useState<ParcelDetail | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isGeocodingLoading, setIsGeocodingLoading] = useState(false)
+    const [zoningData, setZoningData] = useState<ParcelZoningDetail | null>(null)
 
     useEffect(() => {
         console.log("LOADING MAP")
@@ -95,18 +96,30 @@ const Map = () => {
         setError(null);
         
         try {
-          const result = await getParcelByAddress(selectedAddress);
-          console.log(result)
-          
-          if (result.success && result.data) {
-            setParcelData(result.data);
+          const addressString = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}${selectedAddress.zip ? ` ${selectedAddress.zip}` : ''}`;
+
+          const [parcelResult, zoningResult] = await Promise.all([
+            getParcelDetail(addressString),
+            getParcelZoningDetail(addressString)
+          ]);
+
+          if (parcelResult.success && parcelResult.data) {
+            setParcelData(parcelResult.data);
           } else {
-            setError(result.error || 'Failed to fetch property data');
+            setError(parcelResult.error || 'Failed to fetch property data');
             setParcelData(null);
+          }
+
+          if (zoningResult.success && zoningResult.data) {
+            setZoningData(zoningResult.data);
+          } else {
+            setError(zoningResult.error || 'Failed to fetch zoning data');
+            setZoningData(null);
           }
         } catch (err) {
           setError('An unexpected error occurred');
           setParcelData(null);
+          setZoningData(null);
         } finally {
           setIsLoading(false);
         }
@@ -243,71 +256,14 @@ const Map = () => {
       }
     };
 
-    console.log(parcelData)
-
-    const propertyData = {
-        address: parcelData?.location?.streetAddress || '',
-        city: parcelData?.location?.locality || '',
-        state: parcelData?.location?.regionCode || '',
-        zip: parcelData?.location?.postalCode || '',
-        imageUrl: '',
-        summary: [
-            {
-                label: 'Parcel ID',
-                value: parcelData?.id || ''
-            },
-            {
-                label: 'Neighborhood',
-                value: parcelData?.neighborhood || ''
-            },
-            {
-                label: 'Zoning Type',
-                value: parcelData?.landUse?.normalized?.description || ''
-            },
-            {
-                label: 'Assessed Value',
-                value: formatCurrency(parcelData?.assessment?.assessedValue?.total || 0)
-            },
-            {
-                label: 'Assessed Value (Land)',
-                value: formatCurrency(parcelData?.assessment?.assessedValue?.land || 0)
-            },
-            {
-                label: 'Market Value',
-                value: formatCurrency(parcelData?.assessment?.marketValue?.total || 0)
-            },
-            {
-                label: 'Year Built',
-                value: parcelData?.primaryStructure?.yearBuilt || ''
-            },
-            {
-                label: 'Lot Size',
-                value: metersToSquareFeet(parcelData?.assessment?.lot?.size || 0) + ' sqft'
-            },
-        ],
-        parcelRecords: [
-            {
-                label: 'Parcel ID',
-                value: parcelData?.id || ''
-            },
-            {
-                label: 'Address',
-                value: parcelData?.location?.streetAddress || ''
-            },
-            {
-                label: 'City',
-                value: parcelData?.location?.locality || ''
-            },      
-        ]
-    }
-
     return (
         <div className="flex flex-row h-full w-full">
             {/* Property data card panel - Only show when an address is selected or during loading */}
             {(selectedAddress || isLoading || isGeocodingLoading) ? (
-                <div className="w-1/4 min-w-[300px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
+                <div className="w-1/4 min-w-[400px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
                     <PropertyDetail 
-                        property={propertyData} 
+                        parcel={parcelData} 
+                        parcelZoning={zoningData}
                         onClose={() => setSelectedAddress(null)}
                     />
                 </div>

@@ -92,7 +92,7 @@ export const MarkdownEditor = ({
     emptyNodeClass: 'is-empty',
     showOnlyWhenEditable: true,
     includeChildren: true,
-  })];
+  })] as any;
 
   //Apply Codeblock Highlighting on the HTML from editor.getHTML()
   const highlightCodeblocks = (content: string) => {
