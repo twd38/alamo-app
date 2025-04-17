@@ -17,7 +17,8 @@ interface PropertyDetailProps {
 }
 
 export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetailProps) {
-  const [scenario, setScenario] = useState<ScenarioDetailProps | null>(null);
+  // const [scenario, setScenario] = useState<ScenarioDetailProps | null>(null);
+  const [scenario, setScenario] = useState<any>(null);
   const [openScenario, setOpenScenario] = useState(false);
 
   if (!parcel) {

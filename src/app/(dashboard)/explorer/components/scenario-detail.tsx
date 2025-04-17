@@ -7,38 +7,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 export interface ScenarioDetailProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  scenario: {
-    id: string
-    name: string
-    image?: string
-    modelUrl?: string
-    metrics: {
-      zoningUsed: string
-      grossBuiltArea: string
-      floorAreaRatio: string
-      netArea: string
-      imperviousCoverageArea: string
-      imperviousCoverageRatio: string
-      buildingHeight: string
-      buildingCoverageArea: string
-      buildingCoverageRatio: string
-      habitableFloorCount: number
-      totalUnitCount: number
-      unitDensityPerAcre: string
-      averageUnitSize: string
-      grossParkingCount: string
-      parkingRatio: string
-      developmentIncentives: string
-      units: {
-        totalSqft: string
-        breakdown: {
-          type: string
-          sqft: string
-          color: string
-        }[]
-      }
-    }
-  }
+  scenario: any
+  // scenario: {
+  //   id: string
+  //   name: string
+  //   image?: string
+  //   modelUrl?: string
+  //   metrics: {
+  //     zoningUsed: string
+  //     grossBuiltArea: string
+  //     floorAreaRatio: string
+  //     netArea: string
+  //     imperviousCoverageArea: string
+  //     imperviousCoverageRatio: string
+  //     buildingHeight: string
+  //     buildingCoverageArea: string
+  //     buildingCoverageRatio: string
+  //     habitableFloorCount: number
+  //     totalUnitCount: number
+  //     unitDensityPerAcre: string
+  //     averageUnitSize: string
+  //     grossParkingCount: string
+  //     parkingRatio: string
+  //     developmentIncentives: string
+  //     units: {
+  //       totalSqft: string
+  //       breakdown: {
+  //         type: string
+  //         sqft: string
+  //         color: string
+  //       }[]
+  //     }
+  //   }
+  // }
 }
 
 export function ScenarioDetail({ open, onOpenChange, scenario }: ScenarioDetailProps) {
