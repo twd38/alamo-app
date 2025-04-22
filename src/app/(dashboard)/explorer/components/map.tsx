@@ -57,7 +57,7 @@ const Map = () => {
           fields: {
             parcel: ["ogc_fid", "owner", "zoning", "address", "scity", "state2", "szip5", "ll_gissqft"]
           },
-          minzoom: 17,
+          minzoom: 16,
           maxzoom: 21,
         })
       })
@@ -82,7 +82,7 @@ const Map = () => {
 
         // Create marker but don't add to map yet
         markerRef.current = new mapboxgl.Marker({
-            color: '#000',
+            color: '#3b82f6',
         });
 
 
@@ -103,7 +103,7 @@ const Map = () => {
         mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
         // Change cursor to pointer when hovering over clickable areas
-        mapRef.current.getCanvas().style.cursor = 'pointer';
+        mapRef.current.getCanvas().style.cursor = 'default';
 
         // Add Regrid parcel tiles once the base style has loaded
         mapRef.current.on('load', async () => {
@@ -115,21 +115,21 @@ const Map = () => {
 
             const customLayer = await createCustomLayer()
             const vectorTiles = customLayer?.vector
+            const sourceLayerId: string = customLayer.id
 
             // Add Regrid vector tile source
             if (!mapRef.current?.getSource('regrid-parcels-vt')) {
-              
                 // Add the source
                 mapRef.current?.addSource('regrid-parcels-vt', {
                     type: 'vector',
                     tiles: vectorTiles,
-                    minzoom: 17,
+                    minzoom: 16,
                     maxzoom: 21,
+                    promoteId: 'ogc_fid', // Use unique parcel identifier so feature‑state can target individual parcels
                 });
 
                 // The tilejson response contains a unique `id` that must be used
                 // as the `source-layer` value when styling / querying the tiles.
-                const sourceLayerId: string = customLayer.id
 
                 // Add the fill layer – use the dynamic source‑layer id that came back
                 mapRef.current?.addLayer({
@@ -138,8 +138,13 @@ const Map = () => {
                   source: 'regrid-parcels-vt',
                   'source-layer': sourceLayerId,
                   paint: {
-                    'fill-color': '#088',
-                    'fill-opacity': 0,
+                    'fill-color': '#3b82f6',
+                    'fill-opacity': [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      0.25, // Hover opacity
+                      0  // Default opacity
+                    ],
                     'fill-outline-color': '#088',
                   },
                 })
@@ -152,7 +157,7 @@ const Map = () => {
                     source: 'regrid-parcels-vt',
                     'source-layer': sourceLayerId,
                     paint: {
-                      'line-color': '#055',
+                      'line-color': '#3b82f6',
                       'line-width': 1,
                     },
                   })
@@ -176,8 +181,8 @@ const Map = () => {
                         source: 'regrid-parcels-vt',
                         'source-layer': sourceLayerId,
                         paint: {
-                          'fill-color': '#088',
-                          'fill-opacity': 0.1,
+                          'fill-color': '#3b82f6',
+                          'fill-opacity': 0,
                         },
                         layout: {
                             visibility: 'visible'
@@ -194,38 +199,75 @@ const Map = () => {
                     closeOnClick: false,
                   })
                 }
+
             }
 
             // On hover, show the popup and change fill color
+            let hoveredParcelId: number | string | null = null;
             mapRef.current?.on(
               'mousemove',
               'regrid-parcels-fill',
               throttle((e) => {
                 if (!e.features?.length) return
                 const f = e.features[0] as mapboxgl.MapboxGeoJSONFeature
-                const props = f.properties as { [k: string]: unknown }                
+                const props = f.properties as { [k: string]: unknown }
+                const id = f.id as number | string | undefined
 
-                // example fields exposed by Regrid tiles
-                const fullAddress = props.address + ' ' + props.scity + ' ' + props.state2 + ' ' + props.szip5
+                // fields exposed by Regrid tiles
+                const address = props.address
                 const zoning = props.zoning
                 const parcelArea = props.ll_gissqft
-                const parcelNumber = props.parcelnumb
-                const owner = props.owner
-                const landValue = props.landvalue
 
+                // Manage feature‑state hover toggle
+                if (id !== undefined) {
+                  if (hoveredParcelId !== null && hoveredParcelId !== id) {
+                    mapRef.current?.setFeatureState(
+                      { source: 'regrid-parcels-vt', sourceLayer: sourceLayerId, id: hoveredParcelId },
+                      { hover: false }
+                    )
+                  }
+                  if (hoveredParcelId !== id) {
+                    hoveredParcelId = id
+                    mapRef.current?.setFeatureState(
+                      { source: 'regrid-parcels-vt', sourceLayer: sourceLayerId, id: hoveredParcelId },
+                      { hover: true }
+                    )
+                  }
+                }
+
+                // set the popup content
                 popupRef.current!
                   .setLngLat((e.lngLat as mapboxgl.LngLatLike)!)
                   .setHTML(
-                    `<strong>Address:</strong> ${fullAddress}<br/>
-                     <strong>Zoning:</strong> ${zoning}<br/>
-                     <strong>Parcel Area:</strong> ${Number(parcelArea).toLocaleString()} ft<sup>2</sup>`,
+                    `<div style="min-width:200px;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <span style="font-weight:600;">Address:</span>
+                        <span style="text-align:right;">${address}</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <span style="font-weight:600;">Zoning:</span>
+                        <span style="text-align:right;">${zoning}</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-weight:600;">Parcel Area:</span>
+                        <span style="text-align:right;">${Number(parcelArea).toLocaleString()} ft<sup>2</sup></span>
+                      </div>
+                    </div>`
                   )
                   .addTo(mapRef.current!)
-              }, 150),
+              }, 100),
             )
             
 
             mapRef.current?.on('mouseleave', 'regrid-parcels-fill', () => {
+              // Remove hover effect & popup
+              if (hoveredParcelId !== null) {
+                mapRef.current?.setFeatureState(
+                  { source: 'regrid-parcels-vt', sourceLayer: sourceLayerId, id: hoveredParcelId },
+                  { hover: false }
+                )
+              }
+              hoveredParcelId = null
               popupRef.current?.remove()
             })
 
@@ -265,6 +307,7 @@ const Map = () => {
 
             const lng = parcelResult.data?.longitude
             const lat = parcelResult.data?.latitude
+
             // add marker to map and fly to location
             if (markerRef.current && mapRef.current && lng && lat) {
               markerRef.current
@@ -298,6 +341,8 @@ const Map = () => {
       const fullAddress = properties.full_address
       const lng = properties.coordinates.longitude
       const lat = properties.coordinates.latitude
+
+      console.log(lat, lng)
       
       if (properties) {
         // Update marker on the map
@@ -352,8 +397,6 @@ const Map = () => {
     };
 
     const handleClosePropertyDetail = () => {
-      setParcelData(null)
-      setZoningData(null)
       router.push('/explorer');
       router.refresh();
     }

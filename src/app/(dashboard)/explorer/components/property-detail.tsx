@@ -5,11 +5,10 @@ import { useState } from "react"
 import { ArrowLeft, ArrowRight, Check, Share, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import type { ParcelDetail, ParcelZoningDetail } from '@/lib/queries'
 import { ScenarioDetail, ScenarioDetailProps } from "./scenario-detail"
 import { evaluateLot } from "@/lib/actions"
-
+import Image from "next/image"
 interface PropertyDetailProps {
   parcel: ParcelDetail | null
   parcelZoning: ParcelZoningDetail | null
@@ -31,11 +30,13 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
 
   // Helper for safe nested access
   const dims = parcel.dimensions;
-  const appraisal = parcel.appraisal as any || {};
-  const streetAddr = parcel.streetAddress as any || {};
-  const owner = parcel.ownerInfo as any || {};
+  const appraisal = parcel.appraisal
+  const streetAddress = parcel.streetAddress;
+  const owner = parcel.ownerInfo;
   const records = (parcel.parcelRecords as any[]) || [];
   const zoning = parcelZoning as ParcelZoningDetail | null;
+
+  console.log(zoning?.screenshot);
 
   // console.log(parcelZoning)
 
@@ -63,7 +64,7 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
         rear: zoning?.minRearSetbackFt || 0,
         side: zoning?.minSideSetbackFt || 0,
       },
-      landCost: appraisal.parcelValue || null,
+      landCost: appraisal?.parcelValue || 0,
     });
 
     console.log(result);
@@ -83,10 +84,10 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
         <div className="flex items-center gap-2">
           <span className="">
             <span className="text-sm font-bold">
-              {streetAddr.address}, {" "}
+              {streetAddress?.address}, {" "}
             </span>
             <span className="text-sm font-medium text-gray-500">
-              {streetAddr.city.toUpperCase()}, {streetAddr.stateAbbreviation} {streetAddr.zip}
+              {streetAddress?.city?.toUpperCase()}, {streetAddress?.stateAbbreviation} {streetAddress?.zip}
             </span>
           </span>
         </div>
@@ -95,27 +96,37 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
         </Button>
       </div>
 
+      {zoning?.screenshot && (
+        <div className="relative min-h-[220px] max-h-[250px] w-full">
+          <Image 
+            src={zoning.screenshot} 
+            alt="Parcel Zone" 
+            fill 
+            className="object-cover" 
+          />
+        </div>
+      )}
+
       <div className="p-4 space-y-6">
         {/* Summary Section */}
         <Section title="Summary">
-          <Row label="Parcel area" value={dims?.gisSqft ? `${dims.gisSqft} ft²` : '---'} />
-          <Row label="Neighborhood" value={safeValue(streetAddr.neighborhood) || 'Unknown'} />
+          <Row label="Parcel area" value={dims?.gisSqft ? `${dims.gisSqft.toLocaleString()} ft²` : '---'} />
+          <Row label="Neighborhood" value={safeValue(streetAddress?.neighborhood || streetAddress?.subdivision)} />
           <Row label="Zoning Type" value={safeValue(zoning?.zoning)} />
-          <Row label="Parcel Value" value={appraisal.parcelValue ? `$${appraisal.parcelValue.toLocaleString()}` : '---'} />
+          <Row label="Parcel Value" value={appraisal?.parcelValue ? `$${appraisal.parcelValue.toLocaleString()}` : '---'} />
           <Row label="Year Built" value={safeValue(parcel.yearBuilt)} />
           {/* <Row label="Setback area" value={dims?.setbackArea ? `${dims.setbackArea} ft²` : '---'} /> */}
-          <Row label="Subdivision" value={safeValue(streetAddr.subdivision)} />
         </Section>
 
         {/* Parcel Records Section */}
         <Section title="Parcel Records">
           <Row label="APN" value={safeValue(parcel.parcelNumber)} />
-          <Row label="Address" value={safeValue(streetAddr.address)} />
+          <Row label="Address" value={safeValue(streetAddress?.address)} />
           <Row label="Legal description" value={safeValue(records[0]?.legalDescription)} />
           <Row label="Use description" value={safeValue(records[0]?.useDescription)} />
-          <Row label="Owner name" value={safeValue(owner.owner)} />
-          <Row label="Owner address" value={safeValue(owner.address)} />
-          <Row label="Assessed Value" value={appraisal.parcelValue ? `$${appraisal.parcelValue.toLocaleString()}` : '---'} />
+          <Row label="Owner name" value={safeValue(owner?.owner)} />
+          <Row label="Owner address" value={safeValue(owner?.address)} />
+          <Row label="Assessed Value" value={appraisal?.parcelValue ? `$${appraisal.parcelValue.toLocaleString()}` : '---'} />
           <Row label="Last record refresh" value={safeValue(parcel.lastRefreshByRegrid)} />
         </Section>
 
@@ -125,43 +136,29 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
           <Row label="Parcel width" value={dims?.lotWidth ? `${dims.lotWidth} ft` : '---'} />
           <Row label="Parcel depth" value={dims?.lotDepth ? `${dims.lotDepth} ft` : '---'} />
           <Row label="Street frontage" value={dims?.lotWidth ? `${dims.lotWidth} ft` : '---'} />
-          <Row label="Assessor address" value={safeValue(streetAddr.address)} />
+          <Row label="Assessor address" value={safeValue(streetAddress?.address)} />
           <Row label="Assessor report" value={<a href="https://www.traviscad.org/property-search/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Travis Central Appraisal District</a>} />
-          <Row label="GPS address" value={streetAddr.address ? `${streetAddr.address}, ${streetAddr.city}, ${streetAddr.stateAbbreviation}, ${streetAddr.zip}` : '---'} />
-        </Section>
-
-        {/* Overlays Section */}
-        <Section title="Overlays">
-          <Row label="National Register Historic Districts" value={<a href="#" className="text-blue-600 underline">Show layer</a>} />
-          <Row label="Neighborhood Conservation Combining District" value={<a href="#" className="text-blue-600 underline">Show layer</a>} />
-          <Row label="Waterfront Setbacks" value={<a href="#" className="text-blue-600 underline">Show layer</a>} />
-          <Row label="Erosion Hazard Zone" value={<a href="#" className="text-blue-600 underline">Hide layer</a>} />
-          <Row label="COA Fully Developed 100-year Floodplain" value={<a href="#" className="text-blue-600 underline">Hide layer</a>} />
-          <Row label="COA Fully Developed 25-year Floodplain" value={<a href="#" className="text-blue-600 underline">Hide layer</a>} />
-          <Row label="COA Master Plan 100-year Floodplain" value={<a href="#" className="text-blue-600 underline">Show layer</a>} />
-          <Row label="Critical Water Quality Zone" value={<a href="#" className="text-blue-600 underline">Show layer</a>} />
+          <Row label="GPS address" value={streetAddress?.address ? `${streetAddress.address}, ${streetAddress.city}, ${streetAddress.stateAbbreviation}, ${streetAddress.zip}` : '---'} />
         </Section>
 
         {/* Appraisals Section */}
         <Section title="Appraisals">
-          <Row label="Parcel value" value={appraisal.parcelValue ? `$${appraisal.parcelValue.toLocaleString()}` : '---'} />
-          <Row label="Parcel value type" value={appraisal.parcelValueType ?? '---'} />
-          <Row label="Improvement Value" value={appraisal.improvementValue ? `$${appraisal.improvementValue.toLocaleString()}` : '---'} />
-          <Row label="Land Value" value={appraisal.landValue ? `$${appraisal.landValue.toLocaleString()}` : '---'} />
+          <Row label="Parcel value" value={appraisal?.parcelValue ? `$${appraisal.parcelValue.toLocaleString()}` : '---'} />
+          <Row label="Improvement Value" value={appraisal?.improvementValue ? `$${appraisal.improvementValue.toLocaleString()}` : '---'} />
+          <Row label="Land Value" value={appraisal?.landValue ? `$${appraisal.landValue.toLocaleString()}` : '---'} />
         </Section>
 
         {/* Zoning Section */}
         <Section title="Zoning">
           <Row label="Zoning" value={ zoning?.zoningDescription ?? '---' } />
-          <Row label="Allowed FAR" value={zoning?.maxFar ?? 'N/A'} />
-          <Row label="Impervious coverage" value={zoning?.maxImperviousCoveragePct ?? 'N/A'} />
-          <Row label="Building coverage" value={zoning?.maxCoveragePct ?? 'N/A'} />
+          <Row label="Allowed FAR" value={zoning?.maxFar ? `${zoning.maxFar}x` : 'N/A'} />
+          <Row label="Impervious coverage" value={zoning?.maxImperviousCoveragePct ? `${zoning.maxImperviousCoveragePct}%` : 'N/A'} />
+          <Row label="Building coverage" value={zoning?.maxCoveragePct ? `${zoning.maxCoveragePct}%` : 'N/A'} />
         </Section>
 
         {/* Neighborhood Section */}
         <Section title="Neighborhood">
-          <Row label="Neighborhood" value={safeValue(streetAddr.neighborhood) || 'Unknown'} />
-          <Row label="Neighborhood Plan Status" value={safeValue(parcel.attributes?.neighborhoodPlanningStatus) || 'Unknown'} />
+          <Row label="Neighborhood" value={safeValue(streetAddress?.neighborhood || streetAddress?.subdivision)} />
           <Row label="Infill options" value={safeValue(parcel.attributes?.infillOptionCodes) || 'Unknown'} />
         </Section>
       </div>

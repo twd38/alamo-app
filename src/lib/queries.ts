@@ -240,9 +240,9 @@ export interface ParcelDetail {
     /** Optional nested objects – kept partially filled if data available */
     dimensions?: {
         gisSqft: number | null;
+        gisAcre: number | null;
         lotDepth: number | null;
         lotWidth: number | null;
-        parcelId: string | null;
     } | null;
     appraisal?: {
         parcelValue: number | null;
@@ -263,6 +263,8 @@ export interface ParcelDetail {
         stateAbbreviation: string | null;
         zip: string | null;
         county: string | null;
+        neighborhood: string | null;
+        subdivision: string | null;
     } | null;
     ownerInfo?: {
         owner: string | null;
@@ -357,7 +359,7 @@ export async function getParcelDetail(address: string): Promise<{ success: boole
         const detail: ParcelDetail = {
             id: fields.ogc_fid ? String(fields.ogc_fid) : feature.id ?? null,
             geom: latitude !== null && longitude !== null ? { type: "Point", coordinates: [longitude, latitude] } : null,
-            lastRefreshByRegrid: fields.last_refresh ?? null,
+            lastRefreshByRegrid: fields.ll_updated_at ?? null,
             latitude,
             ll_uuid: fields.ll_uuid ?? null,
             longitude,
@@ -368,11 +370,16 @@ export async function getParcelDetail(address: string): Promise<{ success: boole
             zoning: fields.zoning ?? null,
             zoningDefinitionId: null,
             // Regrid does not directly expose lot dimensions – leave null for now
-            dimensions: null,
+            dimensions: {
+                gisSqft: fields.ll_gissqft ?? null,
+                gisAcre: fields.ll_gisacres ?? null,
+                lotDepth: null,
+                lotWidth: null,
+            },
             appraisal: {
                 parcelValue: toNum(fields.parval),
-                landValue: toNum(fields.landvalue) ?? null,
-                improvementValue: toNum(fields.improvevalue) ?? null,
+                landValue: toNum(fields.landvalue),
+                improvementValue: toNum(fields.improvval),
                 parcelId: fields.ogc_fid ? String(fields.ogc_fid) : null
             },
             censusData: null,
@@ -383,7 +390,9 @@ export async function getParcelDetail(address: string): Promise<{ success: boole
                 city: (fields.city ?? fields.scity ?? null)?.toLowerCase() ?? null,
                 stateAbbreviation: fields.st_abbrev ?? fields.mail_state2 ?? null,
                 zip: fields.szip ?? fields.mail_zip ?? null,
-                county: (fields.county ?? null)?.toLowerCase() ?? null
+                county: (fields.county ?? null)?.toLowerCase() ?? null,
+                neighborhood: fields.neighborhood ?? null,
+                subdivision: fields.subdivision ?? null
             },
             ownerInfo: {
                 owner: fields.owner ?? null,
@@ -418,6 +427,8 @@ export async function getParcelDetail(address: string): Promise<{ success: boole
 export interface ParcelZoningDetail {
     /** Unique identifier for the zoning detail (if provided by Zoneomics, otherwise null) */
     readonly id: string | null;
+    /** Screenshot of the parcel (if provided by Zoneomics, otherwise null) */
+    readonly screenshot: string | null;
     /** Five–digit FIPS (GEOID) for the county/municipality (if provided, otherwise null) */
     readonly geoid: string | null;
     /** Municipality identifier supplied by Zoneomics */
@@ -494,29 +505,33 @@ export async function getParcelZoningDetail(parcelAddress: string): Promise<{ su
         }
 
         const endpoint = `https://api.zoneomics.com/v2/zoneDetail?api_key=${apiKey}&address=${encodeURIComponent(parcelAddress)}&output_fields=plu,controls&replace_STF=false`;
-        const response: Response = await fetch(endpoint, {
+        const zoneDetailResponse: Response = await fetch(endpoint, {
             headers: { 'Content-Type': 'application/json' },
             // Cache control: cache for 1 day and revalidate thereafter
             next: { revalidate: 60 * 60 * 24 }
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Zoneomics API error: ${response.status} – ${errorText}`);
+        const zoneScreenshotResponse: Response = await fetch(`https://api.zoneomics.com/v2/zoneScreenshot?api_key=${apiKey}&address=${encodeURIComponent(parcelAddress)}`, {
+            headers: { 'Content-Type': 'application/json' },
+            // Cache control: cache for 1 day and revalidate thereafter
+            next: { revalidate: 60 * 60 * 24 }
+        });
+
+        if (!zoneDetailResponse.ok) {
+            const errorText = await zoneDetailResponse.text();
+            throw new Error(`Zoneomics API error: ${zoneDetailResponse.status} – ${errorText}`);
         }
 
-        const json: any = await response.json();
-        if (!json.success) {
-            throw new Error('Zoneomics API returned an unsuccessful response');
-        }
+        const json: any = await zoneDetailResponse.json();
+        const zoneScreenshot: any = await zoneScreenshotResponse;
 
-        console.log(json.data.controls);
 
         const data = json.data ?? {};
         const meta = data.meta ?? {};
         const zoneDetails = data.zone_details ?? {};
         const permitted = data.permitted_land_uses ?? {};
         const controls = data.controls ?? {};
+        const screenshot = zoneScreenshot.url ?? "";
 
         /* --------------------------- Helper functions --------------------------- */
         const parseNum = (value: unknown): number  => {
@@ -568,6 +583,7 @@ export async function getParcelZoningDetail(parcelAddress: string): Promise<{ su
 
         const detail: ParcelZoningDetail = {
             id: zoneDetails.id ?? null,
+            screenshot: screenshot ?? null,
             geoid: meta.geoid ?? null,
             municipalityId: meta.city_id ?? null,
             municipalityName: meta.city_name ?? null,

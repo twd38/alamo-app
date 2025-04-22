@@ -10,22 +10,27 @@ module.exports = {
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
-        search: ''
+        pathname: ''
       },
       {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
-        search: ''
+        pathname: ''
       },
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
-        search: ''
+        pathname: ''
       },
       {
         protocol: 'https',
         hostname: '*',
-        search: ''
+        pathname: '/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.zoneomics.com',
+        pathname: '/**'
       },
     ]
   }

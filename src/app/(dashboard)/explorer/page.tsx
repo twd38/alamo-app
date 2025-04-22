@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import NextDynamic from 'next/dynamic';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
-import { useSearchParams } from 'next/navigation';
 
 // Prevent static pre-rendering at build time
 export const dynamic = 'force-dynamic';
@@ -15,9 +14,8 @@ const MapComponent = NextDynamic(() => import('./components/map'), {
 });
 
 const ExplorerPage = () => {
-    const queryParams = useSearchParams();
-    const view = queryParams.get('advanced_search');
-    console.log(view);
+    
+    
 
     return (
         <div className="w-full h-full">

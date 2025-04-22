@@ -58,6 +58,7 @@
     "drizzle-kit": "^0.22.8",
     "drizzle-orm": "^0.31.4",
     "drizzle-zod": "^0.5.1",
+    "framer-motion": "^12.7.4",
     "googleapis": "^148.0.0",
     "highlight.js": "^11.11.1",
     "jotai": "^2.12.0",
