@@ -1,7 +1,12 @@
 #  sync_part.py  –– drop in  %UGII_USER_DIR%\startup
 #  NX 2306 / 2312 compatible
 
-import os, json, requests
+import sys, os
+nx_lib = os.path.join(os.environ['UGII_BASE_DIR'], 'nxbin', 'python', 'Lib')
+if nx_lib not in sys.path:
+    sys.path.append(nx_lib)        # ensure std‑lib is visible
+    
+import json, requests
 import NXOpen
 
 SESSION = NXOpen.Session.GetSession()

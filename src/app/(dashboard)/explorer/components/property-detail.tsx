@@ -37,7 +37,7 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
   const records = (parcel.parcelRecords as any[]) || [];
   const zoning = parcelZoning as ParcelZoningDetail | null;
 
-  console.log(zoning);
+  // console.log(parcelZoning)
 
   // Helper to safely stringify any value for display
   function safeValue(val: unknown): string | React.ReactNode {
@@ -169,11 +169,11 @@ export function PropertyDetail({ parcel, parcelZoning, onClose }: PropertyDetail
       <div className="sticky bottom-0 mt-auto border-t bg-white p-4">
         <Button className="w-full bg-blue-500 hover:bg-blue-600" onClick={handleCreateScenario}>Create project</Button>
       </div>
-      <ScenarioDetail 
+      {/* <ScenarioDetail 
         open={openScenario} 
         onOpenChange={setOpenScenario} 
         scenario={scenario} 
-      />
+      /> */}
     </div>
   )
 }

@@ -2,7 +2,6 @@
 import { prisma } from "./db"
 import { auth } from "./auth"
 import { Prisma } from "@prisma/client"
-import { metersToSquareFeet, metersToFeet } from "./utils"
 
 export async function getUser() {
     const session = await auth()
@@ -222,7 +221,7 @@ export interface ParcelDetail {
     lastRefreshByRegrid: string | null;
     /** Latitude of the parcel's representative point, or null */
     latitude: number | null;
-    /** Lightbox UUID, or null */
+    /** Regrid UUID, or null */
     ll_uuid: string | null;
     /** Longitude of the parcel's representative point, or null */
     longitude: number | null;
@@ -283,108 +282,135 @@ export interface ParcelDetail {
 }
 
 /**
- * Fetches detailed parcel information for a given address (single string) using the LightBox API
- * and maps it into a simplified `ParcelDetail` object.
+ * Fetches detailed parcel information for a given address (single string) using the Regrid "parcels/address"
+ * endpoint and maps it into a simplified `ParcelDetail` object.
  *
- * @param address – Full street address (e.g. "513 PECAN GROVE RD Austin, TX 78704")
+ * @param parcelId – 
  */
 export async function getParcelDetail(address: string): Promise<{ success: boolean; data?: ParcelDetail; error?: string }> {
     try {
-        const encoded = encodeURIComponent(address);
-        const url = `https://api.lightboxre.com/v1/parcels/address?text=${encoded}`;
+        /* ----------------------------------------------------------------------
+         * Validate prerequisites & build request URL
+         * ------------------------------------------------------------------- */
+        const token = process.env.REGRID_API_TOKEN ?? process.env.NEXT_PUBLIC_REGRID_TILES_TOKEN;
+        if (!token) {
+            throw new Error("Missing REGRID_API_TOKEN or NEXT_PUBLIC_REGRID_TILES_TOKEN environment variable");
+        }
 
+        const endpointBase = "https://app.regrid.com/api/v2/parcels/address";
+        const params = new URLSearchParams({
+            query: address,
+            limit: "1",
+            token
+        });
+
+        const url = `${endpointBase}?${params.toString()}`;
+
+        /* ------------------------------------------------------------------ */
         const response = await fetch(url, {
             headers: {
-                'x-api-key': `${process.env.LIGHTBOX_CONSUMER_KEY}`,
-                'Content-Type': 'application/json'
-            }
+                "Content-Type": "application/json"
+            },
+            // Cache the result for five minutes
+            next: { revalidate: 60 * 5 }
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`LightBox API error: ${response.status} – ${errorText}`);
+            throw new Error(`Regrid API error: ${response.status} – ${errorText}`);
         }
 
         const json: any = await response.json();
-        const parcel = (json.parcels && json.parcels.length > 0) ? json.parcels[0] : null;
-        if (!parcel) {
-            return { success: false, error: 'No parcel found for the provided address' };
+        const feature = json?.parcels?.features?.[0];
+        if (!feature) {
+            return { success: false, error: "No parcel found for the provided address" };
         }
 
-        console.log(parcel);
+        /* ------------------------------------------------------------------ */
+        // Helper for safe numeric parsing
+        const toNum = (val: unknown): number | null => {
+            if (val === undefined || val === null || val === "" || val === "NA") return null;
+            const num = Number(String(val).replace(/[^0-9.\-]/g, ""));
+            return Number.isFinite(num) ? num : null;
+        };
 
-        const repPt = parcel.location?.representativePoint ?? {};
-        const latitude = typeof repPt.latitude === 'number' ? repPt.latitude : null;
-        const longitude = typeof repPt.longitude === 'number' ? repPt.longitude : null;
+        // Extract common sub‑objects from Regrid JSON
+        const fields = feature?.properties?.fields ?? {};
+        const geom = feature?.geometry;
 
+        // Latitude/longitude – prefer explicit fields, fall back to geometry centroid
+        let latitude: number | null = toNum(fields.lat) ?? null;
+        let longitude: number | null = toNum(fields.lon) ?? null;
+
+        if ((latitude === null || longitude === null) && geom?.type === "Polygon" && Array.isArray(geom.coordinates)) {
+            // crude centroid for first polygon ring
+            const ring: number[][] = geom.coordinates[0] as any;
+            if (Array.isArray(ring) && ring.length > 0) {
+                const [sumX, sumY] = ring.reduce<[number, number]>((acc, coord) => [acc[0] + coord[0], acc[1] + coord[1]], [0, 0]);
+                const count = ring.length;
+                longitude = longitude ?? sumX / count;
+                latitude = latitude ?? sumY / count;
+            }
+        }
+
+        /* ---------------------------- Map to schema ------------------------- */
         const detail: ParcelDetail = {
-            id: parcel.id ?? null,
-            geom: latitude !== null && longitude !== null ? { type: 'Point', coordinates: [longitude, latitude] } : null,
-            lastRefreshByRegrid: parcel.lastRefreshByRegrid ?? null,
+            id: fields.ogc_fid ? String(fields.ogc_fid) : feature.id ?? null,
+            geom: latitude !== null && longitude !== null ? { type: "Point", coordinates: [longitude, latitude] } : null,
+            lastRefreshByRegrid: fields.last_refresh ?? null,
             latitude,
-            ll_uuid: parcel.ll_uuid ?? null,
+            ll_uuid: fields.ll_uuid ?? null,
             longitude,
-            parcelNumber: parcel.parcelApn ?? parcel.assessment?.apn ?? null,
-            region: parcel.location?.locality?.toLowerCase() ?? null,
-            sourceUrl: `https://stage.travis.prodigycad.com/property-detail/${parcel.parcelApn ?? ''}`,
-            yearBuilt: parcel.primaryStructure?.yearBuilt ? Number(parcel.primaryStructure.yearBuilt) : null,
-            zoning: parcel.assessment?.zoning?.assessment ?? null,
+            parcelNumber: fields.parcelnumb ?? null,
+            region: (fields.city ?? fields.scity ?? "").toLowerCase() || null,
+            sourceUrl: `https://app.regrid.com${feature?.properties?.path ?? ""}`,
+            yearBuilt: toNum(fields.yearbuilt) ?? null,
+            zoning: fields.zoning ?? null,
             zoningDefinitionId: null,
-            dimensions: parcel.assessment?.lot ? {
-                gisSqft: metersToSquareFeet(parcel.assessment.lot.size) ?? null,
-                lotDepth: metersToFeet(parcel.assessment.lot.depth) ?? null,
-                lotWidth: metersToFeet(parcel.assessment.lot.width) ?? null,
-                parcelId: parcel.id ?? null
-            } : null,
-            appraisal: parcel.assessment ? {
-                parcelValue: parcel.assessment.marketValue?.total ?? null,
-                landValue: parcel.assessment.marketValue?.land ?? null,
-                improvementValue: parcel.assessment.marketValue?.improvements ?? null,
-                parcelId: parcel.id ?? null
-            } : null,
-            censusData: parcel.census ? {
-                censusBlock: parcel.census.blockGroup ? parcel.fips + parcel.census.tract + parcel.census.blockGroup : null,
-                censusTract: parcel.census.tract ?? null,
-                censusBlockGroup: parcel.census.blockGroup ?? null
-            } : null,
+            // Regrid does not directly expose lot dimensions – leave null for now
+            dimensions: null,
+            appraisal: {
+                parcelValue: toNum(fields.parval),
+                landValue: toNum(fields.landvalue) ?? null,
+                improvementValue: toNum(fields.improvevalue) ?? null,
+                parcelId: fields.ogc_fid ? String(fields.ogc_fid) : null
+            },
+            censusData: null,
             attributes: null,
             intersections: null,
-            streetAddress: parcel.location ? {
-                address: parcel.location.streetAddress,
-                city: parcel.location.locality?.toLowerCase(),
-                stateAbbreviation: parcel.location.regionCode,
-                zip: parcel.location.postalCode,
-                county: parcel.county?.toLowerCase()
-            } : null,
-            ownerInfo: parcel.owner ? {
-                owner: parcel.owner.names?.[0]?.fullName ?? null,
-                address: parcel.owner.streetAddress ?? null,
-                isOwnerOccupied: parcel.occupant?.owner ?? null
-            } : null,
-            parcelRecords: parcel ? [{
-                parcelId: parcel.id ?? null,
-                address: parcel.location?.streetAddress ?? null,
-                owner: parcel.owner?.names?.[0]?.fullName ?? null,
-                parcelNumber: parcel.parcelApn ?? null,
-                parcelValue: parcel.assessment?.marketValue?.total ?? null,
-                useDescription: parcel.landUse?.normalized?.description ?? null,
-                legalDescription: parcel.legalDescription?.[0] ?? null,
-                lastRefreshByRegrid: null
-            }] : null
+            streetAddress: {
+                address: fields.address ?? null,
+                city: (fields.city ?? fields.scity ?? null)?.toLowerCase() ?? null,
+                stateAbbreviation: fields.st_abbrev ?? fields.mail_state2 ?? null,
+                zip: fields.szip ?? fields.mail_zip ?? null,
+                county: (fields.county ?? null)?.toLowerCase() ?? null
+            },
+            ownerInfo: {
+                owner: fields.owner ?? null,
+                address: fields.mailadd ?? null,
+                isOwnerOccupied: null
+            },
+            parcelRecords: [{
+                parcelId: fields.ogc_fid ? String(fields.ogc_fid) : null,
+                address: fields.address ?? null,
+                owner: fields.owner ?? null,
+                parcelNumber: fields.parcelnumb ?? null,
+                parcelValue: toNum(fields.parval),
+                useDescription: fields.usedesc ?? null,
+                legalDescription: fields.legaldesc ?? null,
+                lastRefreshByRegrid: fields.last_refresh ?? null
+            }]
         };
 
         return { success: true, data: detail };
     } catch (error) {
-        console.error('Error fetching parcel detail:', error);
+        console.error("Error fetching parcel detail:", error);
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Failed to fetch parcel detail'
+            error: error instanceof Error ? error.message : "Failed to fetch parcel detail"
         };
     }
 }
-
-/** @deprecated Use `getParcelDetail` instead */
-export const getParcelByAddress = getParcelDetail;
 
 /**
  * Interface representing the translated zoning detail structure derived from the Zoneomics API.
@@ -467,7 +493,7 @@ export async function getParcelZoningDetail(parcelAddress: string): Promise<{ su
             throw new Error('Missing ZONEOMICS_API_KEY environment variable');
         }
 
-        const endpoint = `https://api.zoneomics.com/v2/zoneDetail?api_key=${apiKey}&address=${encodeURIComponent(parcelAddress)}&output_fields=plu,controls`;
+        const endpoint = `https://api.zoneomics.com/v2/zoneDetail?api_key=${apiKey}&address=${encodeURIComponent(parcelAddress)}&output_fields=plu,controls&replace_STF=false`;
         const response: Response = await fetch(endpoint, {
             headers: { 'Content-Type': 'application/json' },
             // Cache control: cache for 1 day and revalidate thereafter
@@ -537,6 +563,8 @@ export async function getParcelZoningDetail(parcelAddress: string): Promise<{ su
             .filter(([k, v]) => typeof v === 'boolean' && v === true)
             .map(([k]) => k)
             .join(', ');
+
+        console.log(controls?.far_standard?.standard?.max_far)
 
         const detail: ParcelZoningDetail = {
             id: zoneDetails.id ?? null,
