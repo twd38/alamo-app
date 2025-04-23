@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ReactNode } from 'react'
-import { getParcelDetail, ParcelDetail, getParcelZoningDetail, ParcelZoningDetail } from '@/lib/queries'
+import { getParcelDetail, ParcelDetail, getParcelZoningDetail, ParcelZoningDetail, getDevelopableParcels } from '@/lib/queries'
 import { PropertyDetail } from './property-detail'
 import { useSearchParams, useRouter } from 'next/navigation';
-import { throttle } from 'lodash';
+import { throttle, debounce } from 'lodash';
 
 
 // Properly type the SearchBox component
@@ -43,6 +43,10 @@ const Map = () => {
 
     const view = queryParams.get('view');
     const address = queryParams.get('address');
+    const developmentPlan = queryParams.get('developmentPlan');
+
+    const DEVELOPABLE_SRC_ID = 'developable-parcels-src';
+    const developableMarkersRef = useRef<mapboxgl.Marker[]>([]) // legacy; no longer used
 
     const createCustomLayer = async () => {
       const response = await fetch(`https://tiles.regrid.com/api/v1/sources?token=${regridToken}`, {
@@ -331,6 +335,200 @@ const Map = () => {
       fetchParcelData();
     }, [address]);
 
+    /**
+     * Helper: remove all developable parcel markers
+     */
+    const clearDevelopableMarkers = useCallback(() => {
+      const map = mapRef.current;
+      if (!map || !map.isStyleLoaded()) return;
+
+      // Remove Mapbox layers & source for developable parcels if they exist
+      if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
+      if (map.getLayer('clusters')) map.removeLayer('clusters');
+      if (map.getLayer('unclustered-point')) map.removeLayer('unclustered-point');
+      if (map.getSource(DEVELOPABLE_SRC_ID)) map.removeSource(DEVELOPABLE_SRC_ID);
+    }, []);
+
+    /**
+     * Helper: centroid of first polygon ring
+     */
+    const getPolygonCentroid = (coordinates: number[][]): [number, number] => {
+      const count = coordinates.length;
+      const [lngSum, latSum] = coordinates.reduce<[number, number]>(
+        (acc, [lng, lat]) => [acc[0] + lng, acc[1] + lat],
+        [0, 0],
+      );
+      return [lngSum / count, latSum / count];
+    };
+
+    /**
+     * Effect: Fetch and display developable parcels as markers when a development plan is selected.
+     * Cleans up old markers before adding new ones.
+     */
+    const fetchAndShowDevelopableParcels = useCallback(async (): Promise<void> => {
+      clearDevelopableMarkers();
+      if (!developmentPlan || !mapRef.current) return;
+      try {
+        setIsLoading(true);
+        setError(null);
+        // Build a simple Polygon geometry (GeoJSON) representing the current map viewport
+        const bounds = mapRef.current.getBounds?.();
+        if (!bounds) {
+          // Bounds could not be determined – fallback to no geometry filter
+          console.warn('Map bounds unavailable, querying without geometry constraint');
+        }
+        const sw = bounds?.getSouthWest();
+        const ne = bounds?.getNorthEast();
+        const viewportPolygon = bounds
+          ? {
+              type: 'Polygon' as const,
+              coordinates: [[
+                [sw!.lng, sw!.lat], // SW
+                [ne!.lng, sw!.lat], // SE
+                [ne!.lng, ne!.lat], // NE
+                [sw!.lng, ne!.lat], // NW
+                [sw!.lng, sw!.lat], // Close ring
+              ]],
+            }
+          : undefined;
+
+        const result = await getDevelopableParcels(developmentPlan, viewportPolygon);
+        if (!result.success || !result.data?.parcels?.features) {
+          setError('No developable parcels found.');
+          return;
+        }
+        
+        const features: GeoJSON.Feature<GeoJSON.Point, any>[] = result.data.parcels.features
+          .map((feature: any): GeoJSON.Feature<GeoJSON.Point, any> | null => {
+            const ring: number[][] = feature.geometry?.coordinates?.[0] ?? [];
+            if (!ring.length) return null;
+            const [lng, lat] = getPolygonCentroid(ring);
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [lng, lat],
+              },
+              properties: {
+                address: feature.properties?.fields?.address || feature.properties?.headline || 'Unknown',
+              },
+            };
+          })
+          .filter(Boolean) as GeoJSON.Feature<GeoJSON.Point, any>[];
+
+        const geojson: GeoJSON.FeatureCollection<GeoJSON.Point> = {
+          type: 'FeatureCollection',
+          features,
+        };
+
+        // Add/update source & layers
+        const map = mapRef.current!;
+        if (!map.getSource(DEVELOPABLE_SRC_ID)) {
+          map.addSource(DEVELOPABLE_SRC_ID, {
+            type: 'geojson',
+            data: geojson,
+            cluster: true,
+            clusterRadius: 50,
+            clusterMaxZoom: 15   // clusters exist only while zoom ≤ 12
+          });
+
+          // Cluster circles
+          map.addLayer({
+            id: 'clusters',
+            type: 'circle',
+            source: DEVELOPABLE_SRC_ID,
+            filter: ['has', 'point_count'],
+            paint: {
+              'circle-color': '#3b82f6',
+              'circle-radius': [
+                'step',
+                ['get', 'point_count'],
+                12, // base size
+                10, 16,
+                30, 20,
+              ],
+            },
+          });
+
+          // Cluster count labels
+          map.addLayer({
+            id: 'cluster-count',
+            type: 'symbol',
+            source: DEVELOPABLE_SRC_ID,
+            filter: ['has', 'point_count'],
+            layout: {
+              'text-field': '{point_count_abbreviated}',
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+              'text-size': 14,
+            },
+            paint: { 'text-color': '#ffffff' },
+          });
+
+          // Unclustered individual point
+          map.addLayer({
+            id: 'unclustered-point',
+            type: 'circle',
+            source: DEVELOPABLE_SRC_ID,
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+              'circle-color': '#3b82f6',
+              'circle-radius': 6,
+            },
+          });
+
+          // On click cluster zoom
+          map.on('click', 'clusters', (e) => {
+            const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+            const clusterId = features[0].properties?.cluster_id;
+            (map.getSource(DEVELOPABLE_SRC_ID) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(clusterId, (err, zoom) => {
+              const zoomLevel = zoom || 12;
+              if (err) return;
+              const center = (features[0].geometry as any).coordinates as mapboxgl.LngLatLike;
+              map.easeTo({ center, zoom: zoomLevel });
+            });
+          });
+
+          // Tooltip for unclustered point
+          map.on('click', 'unclustered-point', (e) => {
+            const props = e.features?.[0].properties as any;
+            const coordinates = (e.features?.[0].geometry as any).coordinates.slice();
+            new mapboxgl.Popup()
+              .setLngLat(coordinates as any)
+              .setHTML(`<strong>Developable Parcel</strong><br/>${props.address}`)
+              .addTo(map);
+          });
+        } else {
+          const src = map.getSource(DEVELOPABLE_SRC_ID) as mapboxgl.GeoJSONSource;
+          src.setData(geojson);
+        }
+      } catch (err) {
+        setError('Failed to load developable parcels.');
+      } finally {
+        setIsLoading(false);
+      }
+    }, [developmentPlan]);
+
+    // Debounced version to avoid excessive calls while panning/zooming
+    const debouncedFetchDevelopable = useMemo(() => debounce(fetchAndShowDevelopableParcels, 600), [fetchAndShowDevelopableParcels]);
+
+    // Attach map dragend handler once map + developmentPlan ready
+    useEffect(() => {
+      if (!mapRef.current || !developmentPlan) return;
+      const handler = () => debouncedFetchDevelopable();
+      mapRef.current.on('dragend', handler);
+      return () => {
+        mapRef.current?.off('dragend', handler);
+      };
+    }, [debouncedFetchDevelopable, developmentPlan]);
+
+    // Trigger fetch on mount & when developmentPlan changes
+    useEffect(() => {
+      fetchAndShowDevelopableParcels();
+      return () => {
+        clearDevelopableMarkers();
+      };
+    }, [fetchAndShowDevelopableParcels, clearDevelopableMarkers]);
+
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
     }
@@ -447,7 +645,7 @@ const Map = () => {
                   }}
                 />
               </div>
-              <div className="absolute bottom-4 right-4 z-10 bg-white p-2 rounded-md shadow-md text-xs text-gray-500">
+              <div className="absolute bottom-4 left-4 z-10 bg-white p-2 rounded-md shadow-md text-xs text-gray-500">
                 <p>Click anywhere on the map to select an address</p>
               </div>
               <div id="map-container" ref={mapContainerRef} className="w-full h-full" />

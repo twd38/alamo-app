@@ -425,31 +425,18 @@ export async function getParcelDetail(address: string): Promise<{ success: boole
  * Interface representing the translated zoning detail structure derived from the Zoneomics API.
  */
 export interface ParcelZoningDetail {
-    /** Unique identifier for the zoning detail (if provided by Zoneomics, otherwise null) */
-    readonly id: string | null;
-    /** Screenshot of the parcel (if provided by Zoneomics, otherwise null) */
-    readonly screenshot: string | null;
-    /** Five–digit FIPS (GEOID) for the county/municipality (if provided, otherwise null) */
-    readonly geoid: string | null;
-    /** Municipality identifier supplied by Zoneomics */
-    readonly municipalityId: number | null;
-    /** Municipality name supplied by Zoneomics */
-    readonly municipalityName: string | null;
-    /** Zoning code */
-    readonly zoning: string | null;
-    /** Zoning description */
-    readonly zoningDescription: string | null;
-    /** Zoning type (e.g. Planned, Base) */
-    readonly zoningType: string | null;
-    /** Zoning subtype */
-    readonly zoningSubtype: string | null;
-    /** Zoning objective/guide, if any */
-    readonly zoningObjective: string | null;
-    /** Link to the detailed zoning code */
-    readonly zoningCodeLink: string | null;
-
-    /** Categorised permitted land‑uses */
-    readonly permittedLandUses: {
+    id: string | null;
+    screenshot: string | null;
+    geoid: string | null;
+    municipalityId: number | null;
+    municipalityName: string | null;
+    zoning: string | null;
+    zoningDescription: string | null;
+    zoningType: string | null;
+    zoningSubtype: string | null;
+    zoningObjective: string | null;
+    zoningCodeLink: string | null;
+    permittedLandUses: {
         other: string[];
         lodging: string[];
         community: string[];
@@ -457,36 +444,20 @@ export interface ParcelZoningDetail {
         agriculture: string[];
         residential: string[];
     };
-
-    /** Comma separated list of boolean flags that are permitted as‑of‑right */
-    readonly permittedLandUsesAsOfRight: string | null;
-    /** Placeholder for conditional land‑uses (currently not parsed, kept for future use) */
-    readonly permittedLandUsesConditional: string | null;
-
-    /** Minimum lot area in square feet */
-    readonly minLotAreaSqFt: number ;
-    /** Minimum lot width in feet */
-    readonly minLotWidthFt: number ;
-    /** Maximum building height in feet */
-    readonly maxBuildingHeightFt: number ;
-    /** Maximum floor‑area ratio */
-    readonly maxFar: number ;
-    /** Minimum front setback in feet */
-    readonly minFrontSetbackFt: number ;
-    /** Minimum rear setback in feet */
-    readonly minRearSetbackFt: number;
-    /** Minimum side setback in feet or the string literal 'too-complex' when non‑numeric */
-    readonly minSideSetbackFt: number;
-    /** Maximum building coverage percentage */
-    readonly maxCoveragePct: number ;
-    /** Maximum impervious coverage percefntage */
-    readonly maxImperviousCoveragePct: number;
-    /** Minimum landscaped space percentage */
-    readonly minLandscapedSpacePct: number;
-    /** Minimum open space percentage */
-    readonly minOpenSpacePct: number ;
-    /** Maximum dwelling‑unit density per acre */
-    readonly maxDensityDuPerAcre: number ;
+    permittedLandUsesAsOfRight: string | null;
+    permittedLandUsesConditional: string | null;
+    minLotAreaSqFt: number;
+    minLotWidthFt: number;
+    maxBuildingHeightFt: number;
+    maxFar: number;
+    minFrontSetbackFt: number;
+    minRearSetbackFt: number;
+    minSideSetbackFt: number;
+    maxCoveragePct: number;
+    maxImperviousCoveragePct: number;
+    minLandscapedSpacePct: number;
+    minOpenSpacePct: number;
+    maxDensityDuPerAcre: number;
 }
 
 /**
@@ -620,12 +591,80 @@ export async function getParcelZoningDetail(parcelAddress: string): Promise<{ su
     }
 }
 
-// Keep the parcel‑by‑ID function for backward compatibility / reference
-export async function getParcelById(parcelId: string) {
-    const response = await fetch(`https://api.lightbox.com/v1/parcels/${parcelId}`, {
+// A lightweight subset of GeoJSON types sufficient for serialising geometries to the Regrid API.
+// We avoid depending on external '@types/geojson' to keep the build self‑contained.
+
+type GeojsonGeometry =
+  | {
+      type: 'Point' | 'MultiPoint';
+      coordinates: number[] | number[][];
+    }
+  | {
+      type: 'LineString' | 'MultiLineString';
+      coordinates: number[][] | number[][][];
+    }
+  | {
+      type: 'Polygon' | 'MultiPolygon';
+      coordinates: number[][][] | number[][][][];
+    };
+
+type GeojsonFeature = {
+  type: 'Feature';
+  geometry: GeojsonGeometry;
+  properties?: Record<string, unknown>;
+};
+
+type GeojsonFeatureCollection = {
+  type: 'FeatureCollection';
+  features: GeojsonFeature[];
+};
+
+type GeojsonInput = GeojsonGeometry | GeojsonFeature | GeojsonFeatureCollection;
+
+export async function getDevelopableParcels(
+    developmentPlanId: string,
+    geometry?: GeojsonInput,
+) {
+    // get the development plan
+    const developmentPlan = await prisma.developmentPlan.findUnique({
+        where: {
+            id: developmentPlanId
+        }
+    })
+
+    // get the parcels from regrid api by filtering by the development plan's minimum lot area
+    const token = process.env.REGRID_API_TOKEN ?? process.env.NEXT_PUBLIC_REGRID_TILES_TOKEN;
+    if (!token) {
+        throw new Error("Missing REGRID_API_TOKEN or NEXT_PUBLIC_REGRID_TILES_TOKEN environment variable");
+    }
+
+    const endpointBase = "https://app.regrid.com/api/v2/parcels/query";
+
+    // Build query parameters dynamically
+    const paramParts: string[] = [
+        `fields[ll_gissqft][gte]=${developmentPlan?.minimumLotArea}`,
+        // Limit the number of results to a reasonable amount for display
+        `limit=50`,
+        `token=${token}`
+    ];
+
+    // If a geometry was supplied, restrict the query to that area. GeoJSON must be URI‑encoded.
+    if (geometry) {
+        paramParts.push(`geojson=${encodeURIComponent(JSON.stringify(geometry))}`);
+    }
+
+    const url = `${endpointBase}?${paramParts.join('&')}`;
+
+    const response = await fetch(url, {
         headers: {
-            Authorization: `Bearer ${process.env.LIGHTBOX_CONSUMER_KEY}`
+            "Content-Type": "application/json"
         }
     });
-    return await response.json();
+
+    const json = await response.json();
+    return {
+        success: true,
+        data: json
+    };
 }
+
