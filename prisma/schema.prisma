@@ -371,15 +371,35 @@ model DevelopmentPlan {
   name String
   imageUrl String
   minimumLotArea  Float
-  minimumLotWidth Float
-  minimumLotDepth Float
+  minimumLotWidth Float // may change to "width". shouldn't require knowing setbacks
+  minimumLotDepth Float // may change to "depth". shouldn't require knowing setbacks
   height          Float
   grossUnits      Float
   grossUnitsPerAcre Float
-  floorAreaRatio Float
+  floorAreaRatio Float  // may not be necessary. or we could change it to "minFloorAreaRatio"
   buildingArea Float
-  imperviousCoverage Float
+  imperviousCoverage Float  
   alleyRequired Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Parcel {
+  id String @id @default(cuid())
+  parcelNumber String @unique
+  address String
+  area Float
+  zoningId String
+  zoning Zoning @relation(fields: [zoningId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Zoning {
+  id String @id @default(cuid())
+  zoningType String
+  description String
+  parcels Parcel[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

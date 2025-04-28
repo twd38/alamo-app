@@ -2,6 +2,7 @@
 import { prisma } from "./db"
 import { auth } from "./auth"
 import { Prisma } from "@prisma/client"
+import { createHash } from "crypto"
 
 export async function getUser() {
     const session = await auth()
@@ -621,50 +622,110 @@ type GeojsonFeatureCollection = {
 
 type GeojsonInput = GeojsonGeometry | GeojsonFeature | GeojsonFeatureCollection;
 
+// ----------------------------------------------------------------------------
+// Developable-parcel API response caching
+// ----------------------------------------------------------------------------
+
+/** Time-to-live for developable-parcel cache entries (in milliseconds). */
+const DEVELOPABLE_CACHE_TTL_MS = 1000 * 60 * 60 * 72; //72 hours
+
+interface DevelopableCacheEntry {
+    readonly timestamp: number;
+    readonly data: unknown;
+}
+
+/**
+ * Simple in-memory cache keyed by a stable hash of the request parameters.
+ * Note: This lives only for the lifetime of the running Node process and is
+ * therefore best-effort (fine for ISR/edge environments where functions are
+ * short-lived). For longer-term persistence, swap to Redis/Prisma, etc.
+ */
+const developableParcelsCache = new Map<string, DevelopableCacheEntry>();
+
+/**
+ * Builds a deterministic cache key from the development-plan id and optional
+ * geometry by hashing the concatenated string. This keeps potentially large
+ * GeoJSON strings out of the Map keys and avoids order-sensitivity issues.
+ */
+const buildDevelopableCacheKey = (
+    planId: string,
+    geometry?: GeojsonInput,
+): string => {
+    const rawKey = `${planId}::${geometry ? JSON.stringify(geometry) : "*"}`;
+    // SHA-1 is sufficient here – we just need a short deterministic key.
+    return createHash("sha1").update(rawKey).digest("hex");
+};
+
 export async function getDevelopableParcels(
     developmentPlanId: string,
     geometry?: GeojsonInput,
+    { useCache = true }: { useCache?: boolean } = {},
 ) {
-    // get the development plan
-    const developmentPlan = await prisma.developmentPlan.findUnique({
-        where: {
-            id: developmentPlanId
-        }
-    })
+    const cacheKey = buildDevelopableCacheKey(developmentPlanId, geometry);
 
-    // get the parcels from regrid api by filtering by the development plan's minimum lot area
-    const token = process.env.REGRID_API_TOKEN ?? process.env.NEXT_PUBLIC_REGRID_TILES_TOKEN;
+    if (useCache) {
+        const cached = developableParcelsCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < DEVELOPABLE_CACHE_TTL_MS) {
+            return { success: true, data: cached.data } as const;
+        }
+    }
+
+    // get the development plan from the database
+    const developmentPlan = await prisma.developmentPlan.findUnique({
+        where: { id: developmentPlanId },
+    });
+
+    if (!developmentPlan) {
+        return { success: false, error: "Development plan not found" } as const;
+    }
+
+    // Build Regrid query
+    const token =
+        process.env.REGRID_API_TOKEN ?? process.env.NEXT_PUBLIC_REGRID_TILES_TOKEN;
     if (!token) {
-        throw new Error("Missing REGRID_API_TOKEN or NEXT_PUBLIC_REGRID_TILES_TOKEN environment variable");
+        throw new Error(
+            "Missing REGRID_API_TOKEN or NEXT_PUBLIC_REGRID_TILES_TOKEN environment variable",
+        );
     }
 
     const endpointBase = "https://app.regrid.com/api/v2/parcels/query";
-
-    // Build query parameters dynamically
     const paramParts: string[] = [
-        `fields[ll_gissqft][gte]=${developmentPlan?.minimumLotArea}`,
-        // Limit the number of results to a reasonable amount for display
-        `limit=50`,
-        `token=${token}`
+        `fields[ll_gissqft][gte]=${developmentPlan.minimumLotArea}`,
+        `limit=20`,
+        `token=${token}`,
     ];
-
-    // If a geometry was supplied, restrict the query to that area. GeoJSON must be URI‑encoded.
     if (geometry) {
         paramParts.push(`geojson=${encodeURIComponent(JSON.stringify(geometry))}`);
     }
+    const url = `${endpointBase}?${paramParts.join("&")}`;
 
-    const url = `${endpointBase}?${paramParts.join('&')}`;
+    try {
+        const response = await fetch(url, {
+            headers: { "Content-Type": "application/json" },
+            // Cache on the edge for the same URL for 5 minutes as well.
+            next: { revalidate: DEVELOPABLE_CACHE_TTL_MS / 1000 },
+        });
 
-    const response = await fetch(url, {
-        headers: {
-            "Content-Type": "application/json"
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Regrid API error: ${response.status} – ${text}`);
         }
-    });
 
-    const json = await response.json();
-    return {
-        success: true,
-        data: json
-    };
+        const json = await response.json();
+
+        // Store successful response in cache
+        developableParcelsCache.set(cacheKey, {
+            timestamp: Date.now(),
+            data: json,
+        });
+
+        return { success: true, data: json } as const;
+    } catch (error) {
+        // Do not cache failures – just surface the error.
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to fetch developable parcels",
+        } as const;
+    }
 }
 

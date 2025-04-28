@@ -18,8 +18,8 @@ type SearchBoxType = typeof SearchBox & {
 
 const TypedSearchBox = SearchBox as SearchBoxType;
 
-const INITIAL_CENTER: [number, number] = [-97.7431, 30.2672]
-const INITIAL_ZOOM = 12
+const INITIAL_CENTER: [number, number] = [-97.7235671, 30.2540749]
+const INITIAL_ZOOM = 14
 
 const Map = () => {
     const mapRef = useRef<mapboxgl.Map | undefined>(undefined)
@@ -27,8 +27,12 @@ const Map = () => {
     const markerRef = useRef<mapboxgl.Marker | null>(null)
     const popupRef = useRef<mapboxgl.Popup | null>(null)
     const mapboxAccessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || ''
-    // Regrid Tiles API token – must be exposed as NEXT_PUBLIC_REGRID_TILES_TOKEN in your env
-    const regridToken = process.env.NEXT_PUBLIC_REGRID_TILES_TOKEN || ''
+    /**
+     * Mapbox tileset ID for Travis County parcels. Expected format: <username>.tx_travis_parcels.
+     * Expose as NEXT_PUBLIC_PARCELS_TILESET_ID in the environment. Falls back to the bare layer name when not provided
+     * so that you can hard-code the `url` below if desired.
+     */
+    const parcelsTilesetId = process.env.NEXT_PUBLIC_PARCELS_TILESET_ID || 'americanhousing.tx_travis_parcels'
 
     const [center, setCenter] = useState(INITIAL_CENTER)
     const [zoom, setZoom] = useState(INITIAL_ZOOM)
@@ -48,28 +52,12 @@ const Map = () => {
     const DEVELOPABLE_SRC_ID = 'developable-parcels-src';
     const developableMarkersRef = useRef<mapboxgl.Marker[]>([]) // legacy; no longer used
 
-    const createCustomLayer = async () => {
-      const response = await fetch(`https://tiles.regrid.com/api/v1/sources?token=${regridToken}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: {
-            parcel: true
-          },
-          fields: {
-            parcel: ["ogc_fid", "owner", "zoning", "address", "scity", "state2", "szip5", "ll_gissqft"]
-          },
-          minzoom: 16,
-          maxzoom: 21,
-        })
-      })
-
-      const data = await response.json()
-
-      return data
-    }
+    // Vector source & layer identifiers – keep them in constants so we only need to change in one place if required.
+    const PARCEL_SOURCE_ID = 'tx-travis-parcels' as const;
+    const PARCEL_FILL_LAYER_ID = 'parcels-fill' as const;
+    const PARCEL_OUTLINE_LAYER_ID = 'parcels-outline' as const;
+    // Tileset recipe indicates the internal layer is named "parcel"
+    const PARCEL_SOURCE_LAYER = 'parcel' as const;
 
     // Initialize the map and add layers
     useEffect(() => {
@@ -109,38 +97,35 @@ const Map = () => {
         // Change cursor to pointer when hovering over clickable areas
         mapRef.current.getCanvas().style.cursor = 'default';
 
-        // Add Regrid parcel tiles once the base style has loaded
-        mapRef.current.on('load', async () => {
-            if (!regridToken) {
-                // eslint-disable-next-line no-console
-                console.warn('Regrid token not found. Skipping Regrid parcel layer.');
-                return;
+        // Add parcel vector tiles (Mapbox tileset) once the base style has loaded
+        mapRef.current.on('load', () => {
+            // Build the Mapbox vector source URL. It must have the `mapbox://` prefix.
+            // If you defined NEXT_PUBLIC_PARCELS_TILESET_ID as "<username>.tx_travis_parcels" this will resolve correctly.
+            const sourceUrl = `mapbox://${parcelsTilesetId}`;
+
+            // Bail early if the URL is not well formed – helps during local development
+            if (!sourceUrl.startsWith('mapbox://')) {
+              // eslint-disable-next-line no-console
+              console.error('Invalid parcels tileset id. Expected format "<username>.tx_travis_parcels"');
+              return;
             }
 
-            const customLayer = await createCustomLayer()
-            const vectorTiles = customLayer?.vector
-            const sourceLayerId: string = customLayer.id
-
-            // Add Regrid vector tile source
-            if (!mapRef.current?.getSource('regrid-parcels-vt')) {
-                // Add the source
-                mapRef.current?.addSource('regrid-parcels-vt', {
+            if (!mapRef.current?.getSource(PARCEL_SOURCE_ID)) {
+                mapRef.current?.addSource(PARCEL_SOURCE_ID, {
                     type: 'vector',
-                    tiles: vectorTiles,
-                    minzoom: 16,
-                    maxzoom: 21,
-                    promoteId: 'ogc_fid', // Use unique parcel identifier so feature‑state can target individual parcels
+                    url: sourceUrl,
+                    promoteId: 'parcelnumb', // promote the parcel id for feature-state & faster lookups
                 });
 
                 // The tilejson response contains a unique `id` that must be used
                 // as the `source-layer` value when styling / querying the tiles.
 
-                // Add the fill layer – use the dynamic source‑layer id that came back
+                // Add the fill layer – use the dynamic source-layer id that came back
                 mapRef.current?.addLayer({
-                  id: 'regrid-parcels-fill',
+                  id: PARCEL_FILL_LAYER_ID,
                   type: 'fill',
-                  source: 'regrid-parcels-vt',
-                  'source-layer': sourceLayerId,
+                  source: PARCEL_SOURCE_ID,
+                  'source-layer': PARCEL_SOURCE_LAYER,
                   paint: {
                     'fill-color': '#3b82f6',
                     'fill-opacity': [
@@ -154,12 +139,12 @@ const Map = () => {
                 })
 
                 // Add a thin line layer on top for clearer parcel borders
-                if (!mapRef.current?.getLayer('regrid-parcels-outline')) {
+                if (!mapRef.current?.getLayer(PARCEL_OUTLINE_LAYER_ID)) {
                   mapRef.current?.addLayer({
-                    id: 'regrid-parcels-outline',
+                    id: PARCEL_OUTLINE_LAYER_ID,
                     type: 'line',
-                    source: 'regrid-parcels-vt',
-                    'source-layer': sourceLayerId,
+                    source: PARCEL_SOURCE_ID,
+                    'source-layer': PARCEL_SOURCE_LAYER,
                     paint: {
                       'line-color': '#3b82f6',
                       'line-width': 1,
@@ -180,10 +165,10 @@ const Map = () => {
 
                 mapRef.current?.addLayer(
                     {
-                        id: 'regrid-parcels-layer',
+                        id: 'parcels-layer', // invisible layer for feature querying
                         type: 'fill',
-                        source: 'regrid-parcels-vt',
-                        'source-layer': sourceLayerId,
+                        source: PARCEL_SOURCE_ID,
+                        'source-layer': PARCEL_SOURCE_LAYER,
                         paint: {
                           'fill-color': '#3b82f6',
                           'fill-opacity': 0,
@@ -210,30 +195,30 @@ const Map = () => {
             let hoveredParcelId: number | string | null = null;
             mapRef.current?.on(
               'mousemove',
-              'regrid-parcels-fill',
+              PARCEL_FILL_LAYER_ID,
               throttle((e) => {
                 if (!e.features?.length) return
                 const f = e.features[0] as mapboxgl.MapboxGeoJSONFeature
                 const props = f.properties as { [k: string]: unknown }
                 const id = f.id as number | string | undefined
 
-                // fields exposed by Regrid tiles
+                // fields exposed by Mapbox tiles
                 const address = props.address
                 const zoning = props.zoning
-                const parcelArea = props.ll_gissqft
+                const parcelArea = props.sqft
 
-                // Manage feature‑state hover toggle
+                // Manage feature-state hover toggle
                 if (id !== undefined) {
                   if (hoveredParcelId !== null && hoveredParcelId !== id) {
                     mapRef.current?.setFeatureState(
-                      { source: 'regrid-parcels-vt', sourceLayer: sourceLayerId, id: hoveredParcelId },
+                      { source: PARCEL_SOURCE_ID, sourceLayer: PARCEL_SOURCE_LAYER, id: hoveredParcelId },
                       { hover: false }
                     )
                   }
                   if (hoveredParcelId !== id) {
                     hoveredParcelId = id
                     mapRef.current?.setFeatureState(
-                      { source: 'regrid-parcels-vt', sourceLayer: sourceLayerId, id: hoveredParcelId },
+                      { source: PARCEL_SOURCE_ID, sourceLayer: PARCEL_SOURCE_LAYER, id: hoveredParcelId },
                       { hover: true }
                     )
                   }
@@ -263,11 +248,11 @@ const Map = () => {
             )
             
 
-            mapRef.current?.on('mouseleave', 'regrid-parcels-fill', () => {
+            mapRef.current?.on('mouseleave', PARCEL_FILL_LAYER_ID, () => {
               // Remove hover effect & popup
               if (hoveredParcelId !== null) {
                 mapRef.current?.setFeatureState(
-                  { source: 'regrid-parcels-vt', sourceLayer: sourceLayerId, id: hoveredParcelId },
+                  { source: PARCEL_SOURCE_ID, sourceLayer: PARCEL_SOURCE_LAYER, id: hoveredParcelId },
                   { hover: false }
                 )
               }
@@ -277,7 +262,7 @@ const Map = () => {
 
             // Register click handler *after* the layer exists to avoid the
             // "The provided layerId parameter is invalid" runtime error.
-            mapRef.current?.on('click', 'regrid-parcels-fill', handleMapClick)
+            mapRef.current?.on('click', PARCEL_FILL_LAYER_ID, handleMapClick)
         });
 
         return () => {
@@ -362,42 +347,55 @@ const Map = () => {
     };
 
     /**
+     * Cache: track the last viewport that was fetched to avoid duplicate network calls
+     */
+    const lastFetchedBoundsRef = useRef<mapboxgl.LngLatBounds | null>(null);
+
+    /**
      * Effect: Fetch and display developable parcels as markers when a development plan is selected.
      * Cleans up old markers before adding new ones.
      */
     const fetchAndShowDevelopableParcels = useCallback(async (): Promise<void> => {
-      clearDevelopableMarkers();
       if (!developmentPlan || !mapRef.current) return;
       try {
+        const currentBounds = mapRef.current.getBounds?.();
+        if (!currentBounds) return; // cannot determine viewport
+
+        // If we already fetched data for a viewport that fully contains the current one, skip
+        if (
+          lastFetchedBoundsRef.current &&
+          lastFetchedBoundsRef.current.contains(currentBounds.getNorthEast()) &&
+          lastFetchedBoundsRef.current.contains(currentBounds.getSouthWest())
+        ) {
+          return;
+        }
+
         setIsLoading(true);
         setError(null);
+
         // Build a simple Polygon geometry (GeoJSON) representing the current map viewport
-        const bounds = mapRef.current.getBounds?.();
-        if (!bounds) {
-          // Bounds could not be determined – fallback to no geometry filter
-          console.warn('Map bounds unavailable, querying without geometry constraint');
-        }
-        const sw = bounds?.getSouthWest();
-        const ne = bounds?.getNorthEast();
-        const viewportPolygon = bounds
-          ? {
-              type: 'Polygon' as const,
-              coordinates: [[
-                [sw!.lng, sw!.lat], // SW
-                [ne!.lng, sw!.lat], // SE
-                [ne!.lng, ne!.lat], // NE
-                [sw!.lng, ne!.lat], // NW
-                [sw!.lng, sw!.lat], // Close ring
-              ]],
-            }
-          : undefined;
+        const sw = currentBounds.getSouthWest();
+        const ne = currentBounds.getNorthEast();
+        const viewportPolygon = {
+          type: 'Polygon' as const,
+          coordinates: [[
+            [sw.lng, sw.lat], // SW
+            [ne.lng, sw.lat], // SE
+            [ne.lng, ne.lat], // NE
+            [sw.lng, ne.lat], // NW
+            [sw.lng, sw.lat], // Close ring
+          ]],
+        };
 
         const result = await getDevelopableParcels(developmentPlan, viewportPolygon);
         if (!result.success || !result.data?.parcels?.features) {
           setError('No developable parcels found.');
           return;
         }
-        
+
+        // Remember the bounds only after a successful fetch
+        lastFetchedBoundsRef.current = currentBounds;
+
         const features: GeoJSON.Feature<GeoJSON.Point, any>[] = result.data.parcels.features
           .map((feature: any): GeoJSON.Feature<GeoJSON.Point, any> | null => {
             const ring: number[][] = feature.geometry?.coordinates?.[0] ?? [];
@@ -429,7 +427,7 @@ const Map = () => {
             data: geojson,
             cluster: true,
             clusterRadius: 50,
-            clusterMaxZoom: 15   // clusters exist only while zoom ≤ 12
+            clusterMaxZoom: 15, // clusters exist only while zoom ≤ 12
           });
 
           // Cluster circles
@@ -478,12 +476,12 @@ const Map = () => {
 
           // On click cluster zoom
           map.on('click', 'clusters', (e) => {
-            const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-            const clusterId = features[0].properties?.cluster_id;
+            const clusteredFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+            const clusterId = clusteredFeatures[0].properties?.cluster_id;
             (map.getSource(DEVELOPABLE_SRC_ID) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(clusterId, (err, zoom) => {
               const zoomLevel = zoom || 12;
               if (err) return;
-              const center = (features[0].geometry as any).coordinates as mapboxgl.LngLatLike;
+              const center = (clusteredFeatures[0].geometry as any).coordinates as mapboxgl.LngLatLike;
               map.easeTo({ center, zoom: zoomLevel });
             });
           });
@@ -566,16 +564,16 @@ const Map = () => {
       setZoningData(null);
 
       const features = mapRef?.current?.queryRenderedFeatures(e.point, {
-        layers: ['regrid-parcels-fill'],
+        layers: [PARCEL_FILL_LAYER_ID],
       });
       
       if (!features || features.length === 0) return;
       
       const props = features[0].properties as { [k: string]: unknown }
-      const address = props.address as string
-      const city = props.scity as string
-      const state = props.state2 as string
-      const zip = props.szip5 as string
+      const address = (props.address ?? '') as string
+      const city = (props.city ?? props.scity ?? '') as string
+      const state = (props.state2 ?? props.state ?? '') as string
+      const zip = (props.szip ?? props.szip5 ?? '') as string
       const fullAddress = address + ', ' + city + ', ' + state + ' ' + zip
       
       const { lng, lat } = e.lngLat;
