@@ -5,11 +5,11 @@ import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ReactNode } from 'react'
-import { getParcelDetail, ParcelDetail, getParcelZoningDetail, ParcelZoningDetail, getDevelopableParcels } from '@/lib/queries'
+import { getParcelDetail, ParcelDetail, getParcelZoningDetail, ParcelZoningDetail, getDevelopmentPlan } from '@/lib/queries'
 import { PropertyDetail } from './property-detail'
 import { useSearchParams, useRouter } from 'next/navigation';
 import { throttle, debounce } from 'lodash';
-
+import { acresToSquareFeet } from '@/lib/utils';
 
 // Properly type the SearchBox component
 type SearchBoxType = typeof SearchBox & {
@@ -17,7 +17,6 @@ type SearchBoxType = typeof SearchBox & {
 };
 
 const TypedSearchBox = SearchBox as SearchBoxType;
-
 const INITIAL_CENTER: [number, number] = [-97.7235671, 30.2540749]
 const INITIAL_ZOOM = 14
 
@@ -52,12 +51,46 @@ const Map = () => {
     const DEVELOPABLE_SRC_ID = 'developable-parcels-src';
     const developableMarkersRef = useRef<mapboxgl.Marker[]>([]) // legacy; no longer used
 
+    // Maximum number of developable parcels to display at any given time
+    const MAX_DEVELOPABLE_PARCELS = 100;
+
     // Vector source & layer identifiers – keep them in constants so we only need to change in one place if required.
     const PARCEL_SOURCE_ID = 'tx-travis-parcels' as const;
     const PARCEL_FILL_LAYER_ID = 'parcels-fill' as const;
     const PARCEL_OUTLINE_LAYER_ID = 'parcels-outline' as const;
     // Tileset recipe indicates the internal layer is named "parcel"
     const PARCEL_SOURCE_LAYER = 'parcel' as const;
+
+    /**
+     * Store the numeric minimum lot-area requirement (sqft) from the selected development plan.
+     * Null means either no plan selected or the plan is still loading.
+     */
+    const [planMinLotArea, setPlanMinLotArea] = useState<number | null>(null);
+
+    // Fetch development-plan details whenever the id changes
+    useEffect(() => {
+      if (!developmentPlan) {
+        setPlanMinLotArea(null);
+        return;
+      }
+
+      // Lightweight API call – SSR route in /api/development-plan/[id]
+      const fetchPlan = async () => {
+        try {
+          const plan = await getDevelopmentPlan(developmentPlan);
+          const minArea: number | null = (plan as any)?.minimumLotArea ?? null;
+          setPlanMinLotArea(typeof minArea === 'number' && Number.isFinite(minArea) ? minArea : null);
+          // eslint-disable-next-line no-console
+          console.log('[Development-Plan] Loaded – minimumLotArea:', minArea);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to load development plan:', err);
+          setPlanMinLotArea(null);
+        }
+      };
+
+      fetchPlan();
+    }, [developmentPlan]);
 
     // Initialize the map and add layers
     useEffect(() => {
@@ -76,20 +109,6 @@ const Map = () => {
         markerRef.current = new mapboxgl.Marker({
             color: '#3b82f6',
         });
-
-
-        // Update the center and zoom state when the map moves
-        // mapRef.current.on('move', () => {
-        //     if (!mapRef.current) return;
-
-        //     // get the current center coordinates and zoom level from the map
-        //     const mapCenter = mapRef.current.getCenter()
-        //     const mapZoom = mapRef.current.getZoom()
-        
-        //     // update state
-        //     setCenter([ mapCenter.lng, mapCenter.lat ])
-        //     setZoom(mapZoom)
-        // });
 
         // Add map navigation controls
         mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -205,7 +224,8 @@ const Map = () => {
                 // fields exposed by Mapbox tiles
                 const address = props.address
                 const zoning = props.zoning
-                const parcelArea = props.sqft
+                const gisAcre = props.gisacre as number
+                const parcelArea = gisAcre ? acresToSquareFeet(gisAcre) : props.ll_gissqft
 
                 // Manage feature-state hover toggle
                 if (id !== undefined) {
@@ -223,6 +243,8 @@ const Map = () => {
                     )
                   }
                 }
+
+                console.log(props)
 
                 // set the popup content
                 popupRef.current!
@@ -326,12 +348,15 @@ const Map = () => {
     const clearDevelopableMarkers = useCallback(() => {
       const map = mapRef.current;
       if (!map || !map.isStyleLoaded()) return;
-
+      
       // Remove Mapbox layers & source for developable parcels if they exist
       if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
       if (map.getLayer('clusters')) map.removeLayer('clusters');
       if (map.getLayer('unclustered-point')) map.removeLayer('unclustered-point');
       if (map.getSource(DEVELOPABLE_SRC_ID)) map.removeSource(DEVELOPABLE_SRC_ID);
+
+      // Clear local sidebar listing as well
+      setDevelopableList([]);
     }, []);
 
     /**
@@ -347,6 +372,16 @@ const Map = () => {
     };
 
     /**
+     * Internal helper type representing a developable parcel and its pre-computed centroid & distance-squared
+     * from the current map centre. Used solely for in-memory sorting and limiting.
+     */
+    type DevelopableEntry = {
+      feature: mapboxgl.MapboxGeoJSONFeature;
+      centroid: [number, number];
+      distSq: number;
+    };
+
+    /**
      * Cache: track the last viewport that was fetched to avoid duplicate network calls
      */
     const lastFetchedBoundsRef = useRef<mapboxgl.LngLatBounds | null>(null);
@@ -355,13 +390,22 @@ const Map = () => {
      * Effect: Fetch and display developable parcels as markers when a development plan is selected.
      * Cleans up old markers before adding new ones.
      */
-    const fetchAndShowDevelopableParcels = useCallback(async (): Promise<void> => {
-      if (!developmentPlan || !mapRef.current) return;
+    const fetchAndShowDevelopableParcels = useCallback((): void => {
+      if (!developmentPlan || !mapRef.current ) return;
+
+
+      const map = mapRef.current;
+
+      // Ensure the parcels layer is present before querying features
+      if (!map.isStyleLoaded() || !map.getLayer(PARCEL_FILL_LAYER_ID)) {
+        return; // style not yet ready; will retry on next invocation
+      }
+
       try {
-        const currentBounds = mapRef.current.getBounds?.();
+        const currentBounds = map.getBounds?.();
         if (!currentBounds) return; // cannot determine viewport
 
-        // If we already fetched data for a viewport that fully contains the current one, skip
+        // Avoid redundant processing for the same viewport
         if (
           lastFetchedBoundsRef.current &&
           lastFetchedBoundsRef.current.contains(currentBounds.getNorthEast()) &&
@@ -373,61 +417,127 @@ const Map = () => {
         setIsLoading(true);
         setError(null);
 
-        // Build a simple Polygon geometry (GeoJSON) representing the current map viewport
-        const sw = currentBounds.getSouthWest();
-        const ne = currentBounds.getNorthEast();
-        const viewportPolygon = {
-          type: 'Polygon' as const,
-          coordinates: [[
-            [sw.lng, sw.lat], // SW
-            [ne.lng, sw.lat], // SE
-            [ne.lng, ne.lat], // NE
-            [sw.lng, ne.lat], // NW
-            [sw.lng, sw.lat], // Close ring
-          ]],
+        // Define bounding box in pixel space for efficient feature query
+        const swPixel = map.project(currentBounds.getSouthWest());
+        const nePixel = map.project(currentBounds.getNorthEast());
+
+        const rendered = map.queryRenderedFeatures(
+          [
+            [swPixel.x, nePixel.y] as [number, number], // top-left pixel
+            [nePixel.x, swPixel.y] as [number, number], // bottom-right pixel
+          ],
+          {
+            layers: [PARCEL_FILL_LAYER_ID],
+          },
+        ) as mapboxgl.MapboxGeoJSONFeature[];
+
+        // Use the fetched development-plan minimum lot-area requirement.
+        const minLotAreaSqft = planMinLotArea ?? 0;
+
+        // Filter developable parcels based on the lot-area requirement.
+        const developable = rendered.filter((f) => {
+          // Get the lot area in square feet.
+          const lotAreaSqft = (f.properties as any)?.ll_gissqft ? (f.properties as any)?.ll_gissqft : acresToSquareFeet((f.properties as any)?.gisacre);
+          
+          if (!minLotAreaSqft) return true;
+          return typeof lotAreaSqft === 'number' && Number.isFinite(lotAreaSqft) && lotAreaSqft >= minLotAreaSqft;
+        });
+
+        // Map center – used to prioritise parcels closest to the current view centre
+        const centerLngLat = map.getCenter();
+
+        // Helper to compute centroid for any geometry type (point/polygon/multipolygon)
+        const toCentroid = (feature: mapboxgl.MapboxGeoJSONFeature): [number, number] | null => {
+          if (feature.geometry.type === 'Point') {
+            return feature.geometry.coordinates as [number, number];
+          }
+          if (feature.geometry.type === 'Polygon') {
+            const ring: number[][] = (feature.geometry as any).coordinates?.[0] ?? [];
+            return ring.length ? getPolygonCentroid(ring) : null;
+          }
+          if (feature.geometry.type === 'MultiPolygon') {
+            const ring: number[][] = (feature.geometry as any).coordinates?.[0]?.[0] ?? [];
+            return ring.length ? getPolygonCentroid(ring) : null;
+          }
+          return null;
         };
 
-        const result = await getDevelopableParcels(developmentPlan, viewportPolygon);
-        if (!result.success || !result.data?.parcels?.features) {
-          setError('No developable parcels found.');
-          return;
-        }
-
-        // Remember the bounds only after a successful fetch
-        lastFetchedBoundsRef.current = currentBounds;
-
-        const features: GeoJSON.Feature<GeoJSON.Point, any>[] = result.data.parcels.features
-          .map((feature: any): GeoJSON.Feature<GeoJSON.Point, any> | null => {
-            const ring: number[][] = feature.geometry?.coordinates?.[0] ?? [];
-            if (!ring.length) return null;
-            const [lng, lat] = getPolygonCentroid(ring);
-            return {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [lng, lat],
-              },
-              properties: {
-                address: feature.properties?.fields?.address || feature.properties?.headline || 'Unknown',
-              },
-            };
+        // Sort developable parcels by distance to map centre & take only the closest N
+        const sortedDevelopable: DevelopableEntry[] = developable
+          .map((f): DevelopableEntry | null => {
+            const centroid = toCentroid(f);
+            if (!centroid) return null;
+            const dx = centroid[0] - centerLngLat.lng;
+            const dy = centroid[1] - centerLngLat.lat;
+            const distSq = dx * dx + dy * dy; // squared Euclidean distance (good enough for small spans)
+            return { feature: f, centroid, distSq };
           })
-          .filter(Boolean) as GeoJSON.Feature<GeoJSON.Point, any>[];
+          .filter((d): d is DevelopableEntry => d !== null)
+          .sort((a, b) => a.distSq - b.distSq) // nearest first
+          .slice(0, MAX_DEVELOPABLE_PARCELS);
+
+        // For future use: full list of candidate features (currently unused after limiting)
+        const _limitedDevelopable: mapboxgl.MapboxGeoJSONFeature[] = sortedDevelopable.map((d) => d.feature);
+
+        // --------------------------------------------------------------------------------
+        // Build sidebar entries & GeoJSON point features for clustering in one pass.
+        // --------------------------------------------------------------------------------
+
+        const developableTempList: DevelopableListEntry[] = [];
+
+        const pointFeatures: GeoJSON.Feature<GeoJSON.Point, any>[] = sortedDevelopable.map(({ centroid, feature }) => {
+          const address = (feature.properties as any)?.address || (feature.properties as any)?.headline || 'Unknown';
+          const sqftRaw = (feature.properties as any)?.ll_gissqft || (feature.properties as any)?.sqft || null;
+          // Additional attributes for sidebar listing
+          const zoning = (feature.properties as any)?.zoning ?? null;
+          const parcelValueRaw = (feature.properties as any)?.parval ?? (feature.properties as any)?.parcel_value ?? null;
+          const parcelValue =
+            typeof parcelValueRaw === 'number' && Number.isFinite(parcelValueRaw)
+              ? parcelValueRaw
+              : Number.isFinite(Number(parcelValueRaw))
+                ? Number(parcelValueRaw)
+                : null;
+
+          // Populate sidebar entry list (limited to the same max count)
+          // We'll push into array then set state once outside loop for performance.
+          developableTempList.push({
+            id: feature.id as any,
+            centroid,
+            address,
+            sqft: typeof sqftRaw === 'number' && Number.isFinite(sqftRaw) ? sqftRaw : null,
+            zoning: typeof zoning === 'string' ? zoning : null,
+            parcelValue,
+            feature,
+          });
+
+          return {
+            type: 'Feature' as const,
+            geometry: {
+              type: 'Point' as const,
+              coordinates: centroid,
+            },
+            properties: {
+              address,
+              sqft: typeof sqftRaw === 'number' && Number.isFinite(sqftRaw) ? sqftRaw : null,
+              zoning: typeof zoning === 'string' ? zoning : null,
+              parcelValue,
+            },
+          } satisfies GeoJSON.Feature<GeoJSON.Point, any>;
+        });
 
         const geojson: GeoJSON.FeatureCollection<GeoJSON.Point> = {
           type: 'FeatureCollection',
-          features,
+          features: pointFeatures,
         };
 
-        // Add/update source & layers
-        const map = mapRef.current!;
+        // Add or update the clustered source & layers
         if (!map.getSource(DEVELOPABLE_SRC_ID)) {
           map.addSource(DEVELOPABLE_SRC_ID, {
             type: 'geojson',
             data: geojson,
             cluster: true,
             clusterRadius: 50,
-            clusterMaxZoom: 15, // clusters exist only while zoom ≤ 12
+            clusterMaxZoom: 14, // clusters exist only while zoom ≤ 15
           });
 
           // Cluster circles
@@ -441,9 +551,9 @@ const Map = () => {
               'circle-radius': [
                 'step',
                 ['get', 'point_count'],
-                12, // base size
-                10, 16,
-                30, 20,
+                12,
+                10, 24,
+                // 30, 20,
               ],
             },
           });
@@ -474,19 +584,21 @@ const Map = () => {
             },
           });
 
-          // On click cluster zoom
+          // On click: zoom into clusters
           map.on('click', 'clusters', (e) => {
             const clusteredFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
             const clusterId = clusteredFeatures[0].properties?.cluster_id;
-            (map.getSource(DEVELOPABLE_SRC_ID) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(clusterId, (err, zoom) => {
-              const zoomLevel = zoom || 12;
-              if (err) return;
-              const center = (clusteredFeatures[0].geometry as any).coordinates as mapboxgl.LngLatLike;
-              map.easeTo({ center, zoom: zoomLevel });
-            });
+            (map.getSource(DEVELOPABLE_SRC_ID) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(
+              clusterId,
+              (err, zoom) => {
+                if (err) return;
+                const center = (clusteredFeatures[0].geometry as any).coordinates as mapboxgl.LngLatLike;
+                map.easeTo({ center, zoom: zoom || 12 });
+              },
+            );
           });
 
-          // Tooltip for unclustered point
+          // Tooltip for individual developable parcel
           map.on('click', 'unclustered-point', (e) => {
             const props = e.features?.[0].properties as any;
             const coordinates = (e.features?.[0].geometry as any).coordinates.slice();
@@ -499,12 +611,21 @@ const Map = () => {
           const src = map.getSource(DEVELOPABLE_SRC_ID) as mapboxgl.GeoJSONSource;
           src.setData(geojson);
         }
+
+        // Cache the bounds that were just processed
+        lastFetchedBoundsRef.current = currentBounds;
+
+        // Sync React state with the freshly generated list (after mapping to avoid
+        // triggering multiple renders).
+        setDevelopableList(developableTempList);
       } catch (err) {
-        setError('Failed to load developable parcels.');
+        setError('Failed to identify developable parcels.');
+        // eslint-disable-next-line no-console
+        console.error(err);
       } finally {
         setIsLoading(false);
       }
-    }, [developmentPlan]);
+    }, [developmentPlan, planMinLotArea]);
 
     // Debounced version to avoid excessive calls while panning/zooming
     const debouncedFetchDevelopable = useMemo(() => debounce(fetchAndShowDevelopableParcels, 600), [fetchAndShowDevelopableParcels]);
@@ -597,9 +718,37 @@ const Map = () => {
       router.refresh();
     }
 
+    /**
+     * Local state: list of developable parcels (limited & sorted – kept in sync with the
+     * GeoJSON source used for clustering).
+     * Each entry includes the centroid coordinates so we can quickly pan the map when
+     * the user interacts with the sidebar listing.
+     */
+    type DevelopableListEntry = {
+      /** Underlying feature id – may be undefined for some geometries */
+      id: string | number | undefined;
+      /** Centroid coordinates ([lng, lat]) */
+      centroid: [number, number];
+      /** Human-readable address or fallback string */
+      address: string;
+      /** Lot area in square-feet (nullable) */
+      sqft: number | null;
+      /** Zoning code (nullable) */
+      zoning: string | null;
+      /** Parcel assessed value in USD (nullable) */
+      parcelValue: number | null;
+      /** Original Mapbox feature (for potential future use / highlighting) */
+      feature: mapboxgl.MapboxGeoJSONFeature;
+    };
+
+    const [developableList, setDevelopableList] = useState<DevelopableListEntry[]>([]);
+
+    /** Filter text for the sidebar search box */
+    const [developableFilter, setDevelopableFilter] = useState<string>('');
+
     return (
         <div className="flex flex-row h-full w-full">
-            {/* Property data card panel - Only show when an address is selected or during loading */}
+            {/* Sidebar: property detail (when a single parcel selected) */}
             {(view == "property_detail") ? (
                 <div className="w-1/4 min-w-[400px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
                     <PropertyDetail 
@@ -610,8 +759,59 @@ const Map = () => {
                 </div>
             ) : null }
             
-            {/* Map container - Full width when no property is selected, reduced width when property is showing */}
-            <div className={`relative ${(view == "property_detail") ? 'w-3/4' : 'w-full'} h-full`}>
+            {/* Sidebar: developable parcels list (shown when a developmentPlan is active and property_detail not open) */}
+            {developmentPlan && view !== 'property_detail' && (
+              <div className="w-1/4 min-w-[320px] max-w-sm flex flex-col border-r border-gray-200 bg-white overflow-y-auto max-h-[calc(100vh-48px)]">
+                <div className="p-4 sticky top-0 bg-white z-10 shadow-sm">
+                  <input
+                    type="text"
+                    placeholder="Filter parcels by address…"
+                    value={developableFilter}
+                    onChange={(e) => setDevelopableFilter(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Listing */}
+                <ul className="divide-y divide-gray-200 text-sm">
+                  {developableList
+                    .filter((d) => {
+                      if (!developableFilter.trim()) return true;
+                      return d.address.toLowerCase().includes(developableFilter.toLowerCase());
+                    })
+                    .map((d) => (
+                      <li
+                        key={String(d.id) + d.centroid.join(',')}
+                        className="p-4 cursor-pointer hover:bg-gray-50"
+                        onClick={() => {
+                          if (mapRef.current) {
+                            mapRef.current.easeTo({ center: d.centroid, zoom: Math.max(mapRef.current.getZoom(), 15) });
+                          }
+                          if (markerRef.current) {
+                            markerRef.current.setLngLat(d.centroid).addTo(mapRef.current!);
+                          }
+                        }}
+                      >
+                        <p className="font-semibold text-gray-800 truncate">{d.address}</p>
+                        <p className="text-gray-500">Zoning: {d.zoning ?? '—'}</p>
+                        {d.sqft !== null && (
+                          <p className="text-gray-500">Lot size: {d.sqft.toLocaleString()} ft²</p>
+                        )}
+                        {d.parcelValue !== null && (
+                          <p className="text-gray-500">Parcel Value: ${d.parcelValue.toLocaleString()}</p>
+                        )}
+                      </li>
+                    ))}
+
+                  {developableList.length === 0 && (
+                    <li className="p-4 text-gray-500">No developable parcels in view</li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Map container - dynamic width depending on sidebar presence */}
+            <div className={`relative ${(view === 'property_detail' || (developmentPlan && view !== 'property_detail')) ? 'w-3/4' : 'w-full'} h-full`}>
               <div className='absolute top-4 left-4 z-10 w-[400px]'>
                 <TypedSearchBox
                   options={{

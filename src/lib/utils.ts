@@ -180,3 +180,7 @@ export function metersToSquareFeet(meters: number) {
 export function metersToFeet(meters: number) {
   return meters * 3.28084
 }
+
+export function acresToSquareFeet(acres: number) {
+  return acres * 43560
+}
