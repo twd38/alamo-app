@@ -10,17 +10,17 @@ module.exports = {
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
-        pathname: ''
+        pathname: '/**'
       },
       {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
-        pathname: ''
+        pathname: '/**'
       },
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
-        pathname: ''
+        pathname: '/**'
       },
       {
         protocol: 'https',
