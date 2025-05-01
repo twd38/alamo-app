@@ -43,7 +43,7 @@ const Map = () => {
     const [center, setCenter] = useState(INITIAL_CENTER)
     const [zoom, setZoom] = useState(INITIAL_ZOOM)
     const [searchValue, setSearchValue] = useState('')
-    const [openDevelopmentPlansModal, setOpenDevelopmentPlansModal] = useState(true)
+    const [openDevelopmentPlansModal, setOpenDevelopmentPlansModal] = useState(false)
     const [parcelData, setParcelData] = useState<ParcelDetail | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -771,6 +771,7 @@ const Map = () => {
     };
 
     const [developableList, setDevelopableList] = useState<DevelopableListEntry[]>([]);
+    const [fullDevelopableList, setFullDevelopableList] = useState<DevelopableListEntry[]>([]);
 
     // Memoised list of parcels after applying the minimum-area filter (client-side only)
     // const filteredDevelopableList = useMemo(() => {
@@ -784,21 +785,21 @@ const Map = () => {
     return (
         <div className="flex flex-row h-full w-full">
             {/* Sidebar: property detail (when a single parcel selected) */}
-            {/* {(view == "property_detail") ? (
-                <div className="w-1/4 min-w-[400px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
-                    <PropertyDetail 
-                        parcel={parcelData} 
-                        parcelZoning={zoningData}
-                        onClose={handleClosePropertyDetail}
-                    />
-                </div>
-            ) : null } */}
+            {(view == "property_detail") ? (
+              <div className="w-1/4 min-w-[400px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
+                  <PropertyDetail 
+                      parcel={parcelData} 
+                      parcelZoning={zoningData}
+                      onClose={handleClosePropertyDetail}
+                  />
+              </div>
+            ) : null }
             
             {/* Sidebar: developable parcels list (shown when a developmentPlan is active and property_detail not open) */}
             {developmentPlan && view !== 'property_detail' && (
-              <div className="w-1/4 min-w-[320px] max-w-sm flex flex-col border-r border-gray-200 bg-white overflow-y-auto max-h-[calc(100vh-48px)]">
+              <div className="w-1/4 min-w-[375px] max-w-sm flex flex-col border-r border-gray-200 bg-white overflow-y-auto max-h-[calc(100vh-48px)]">
                 {/* Header */}
-                <div className="flex items-center justify-between py-1 px-4 border-b sticky top-0 bg-white z-20">
+                <div className="flex items-center justify-between py-1 px-3 border-b sticky top-0 bg-white z-20">
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg font-medium text-gray-800">Developable Parcels</h1>
                   </div>
@@ -818,54 +819,21 @@ const Map = () => {
                   </Button>
                 </div>
 
-                {/* Development-plan summary */}
-                {/* {planDetail && (
-                  <div className="p-4 flex gap-4 items-start border-b">
-                    {planDetail.imageUrl && (
-                      <Image
-                        src={planDetail.imageUrl}
-                        alt={planDetail.name}
-                        width={64}
-                        height={64}
-                        className="rounded-md object-cover flex-shrink-0"
-                      />
-                    )}
-                    <div className="flex flex-col">
-                      <p className="font-semibold text-gray-800 leading-snug">{planDetail.name}</p>
-                      {planDetail.minimumLotArea && (
-                        <p className="text-gray-500 text-xs">
-                          Required area: {planDetail.minimumLotArea.toLocaleString()} ft²
-                        </p>
-                      )}
-                      {(planDetail.minimumLotWidth || planDetail.minimumLotDepth) && (
-                        <p className="text-gray-500 text-xs">
-                          Min dimensions: {planDetail.minimumLotWidth?.toLocaleString() ?? '—'} ×{' '}
-                          {planDetail.minimumLotDepth?.toLocaleString() ?? '—'} ft
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )} */}
-
                 {/* Filters */}
-                <div className="p-4 border-b">
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <div className="border border-green-600 rounded-md text-xs px-2 py-1 bg-white text-green-700 flex items-center">
-                      <span className="mr-2">Parcel area min:</span>
-                      {/* <Input
-                        type="number"
-                        value={parcelAreaMin}
-                        onChange={(e) => setParcelAreaMin(e.target.value)}
-                        className="w-24 h-6 p-0 border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-green-700"
-                      /> */}
-
+                <div className="p-2 border-b">
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex-1 space-y-2">
+                      <div className="border border-green-500 rounded-md text-xs px-2 py-0.5 bg-white text-green-700 w-fit">
+                        Parcel area min: {parcelAreaMin} ft²
+                      </div>
+                      <Button variant="outline" className="flex items-center text-xs px-2 py-1 h-8">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Filters
+                      </Button>
                     </div>
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <SlidersHorizontal className="h-4 w-4" />
-                      Filters
-                    </Button>
-                    <div className="ml-auto text-gray-600 text-sm flex items-center">
-                      Showing {developableList.length} of {developableList.length} results
+                    
+                    <div className="flex-2 text-gray-600 text-sm flex items-end">
+                      <span className="text-gray-600 text-xs">Showing {developableList.length} of {developableList.length} results</span>
                     </div>
                   </div>
                 </div>
@@ -879,7 +847,7 @@ const Map = () => {
                     return (
                       <div
                         key={String(d.id) + d.centroid.join(',')}
-                        className="flex p-4 gap-4 cursor-pointer hover:bg-gray-50"
+                        className="flex p-3 gap-3 cursor-pointer hover:bg-gray-50"
                         onClick={() => {
                           if (mapRef.current) {
                             mapRef.current.easeTo({
