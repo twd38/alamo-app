@@ -10,6 +10,13 @@ import { PropertyDetail } from './property-detail'
 import { useSearchParams, useRouter } from 'next/navigation';
 import { throttle, debounce } from 'lodash';
 import { acresToSquareFeet } from '@/lib/utils';
+import Image from 'next/image'
+import type { DevelopmentPlan } from '@prisma/client'
+import { Button } from '@/components/ui/button'
+import DevelopmentPlansModal from './development-plans-modal'
+import { X, SlidersHorizontal, Hammer } from 'lucide-react'
+import { useQueryState } from 'nuqs'
+
 
 // Properly type the SearchBox component
 type SearchBoxType = typeof SearchBox & {
@@ -36,17 +43,22 @@ const Map = () => {
     const [center, setCenter] = useState(INITIAL_CENTER)
     const [zoom, setZoom] = useState(INITIAL_ZOOM)
     const [searchValue, setSearchValue] = useState('')
+    const [openDevelopmentPlansModal, setOpenDevelopmentPlansModal] = useState(true)
     const [parcelData, setParcelData] = useState<ParcelDetail | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [zoningData, setZoningData] = useState<ParcelZoningDetail | null>(null)
+
+    // Selected development-plan details (full object)
+    const [planDetail, setPlanDetail] = useState<DevelopmentPlan | null>(null)
 
     const queryParams = useSearchParams();
     const router = useRouter();
 
     const view = queryParams.get('view');
     const address = queryParams.get('address');
-    const developmentPlan = queryParams.get('developmentPlan');
+
+    const [developmentPlan, setDevelopmentPlan] = useQueryState('developmentPlan')
 
     const DEVELOPABLE_SRC_ID = 'developable-parcels-src';
     const developableMarkersRef = useRef<mapboxgl.Marker[]>([]) // legacy; no longer used
@@ -67,6 +79,9 @@ const Map = () => {
      */
     const [planMinLotArea, setPlanMinLotArea] = useState<number | null>(null);
 
+    // After planMinLotArea state declaration, add local filter state synced with planMinLotArea
+    const [parcelAreaMin, setParcelAreaMin] = useState<string>(planMinLotArea ? String(planMinLotArea) : '')
+
     // Fetch development-plan details whenever the id changes
     useEffect(() => {
       if (!developmentPlan) {
@@ -78,6 +93,7 @@ const Map = () => {
       const fetchPlan = async () => {
         try {
           const plan = await getDevelopmentPlan(developmentPlan);
+          setPlanDetail(plan as any);
           const minArea: number | null = (plan as any)?.minimumLotArea ?? null;
           setPlanMinLotArea(typeof minArea === 'number' && Number.isFinite(minArea) ? minArea : null);
           // eslint-disable-next-line no-console
@@ -91,6 +107,13 @@ const Map = () => {
 
       fetchPlan();
     }, [developmentPlan]);
+
+    // Sync the parcel-area input whenever the development-plan minimum lot area changes
+    useEffect(() => {
+      if (planMinLotArea !== null) {
+        setParcelAreaMin(String(planMinLotArea))
+      }
+    }, [planMinLotArea])
 
     // Initialize the map and add layers
     useEffect(() => {
@@ -355,8 +378,9 @@ const Map = () => {
       if (map.getLayer('unclustered-point')) map.removeLayer('unclustered-point');
       if (map.getSource(DEVELOPABLE_SRC_ID)) map.removeSource(DEVELOPABLE_SRC_ID);
 
-      // Clear local sidebar listing as well
+      // Clear local sidebar listing and cached bounds so next fetch executes
       setDevelopableList([]);
+      lastFetchedBoundsRef.current = null;
     }, []);
 
     /**
@@ -630,13 +654,18 @@ const Map = () => {
     // Debounced version to avoid excessive calls while panning/zooming
     const debouncedFetchDevelopable = useMemo(() => debounce(fetchAndShowDevelopableParcels, 600), [fetchAndShowDevelopableParcels]);
 
-    // Attach map dragend handler once map + developmentPlan ready
+    // Attach map moveend handler once map + developmentPlan ready – this fires after any pan or zoom,
+    // ensuring the developable-parcels list stays in sync with the visible viewport.
     useEffect(() => {
-      if (!mapRef.current || !developmentPlan) return;
+      const map = mapRef.current;
+      if (!map || !developmentPlan) return;
+
       const handler = () => debouncedFetchDevelopable();
-      mapRef.current.on('dragend', handler);
+
+      map.on('moveend', handler);
+
       return () => {
-        mapRef.current?.off('dragend', handler);
+        map.off('moveend', handler);
       };
     }, [debouncedFetchDevelopable, developmentPlan]);
 
@@ -743,13 +772,19 @@ const Map = () => {
 
     const [developableList, setDevelopableList] = useState<DevelopableListEntry[]>([]);
 
-    /** Filter text for the sidebar search box */
-    const [developableFilter, setDevelopableFilter] = useState<string>('');
+    // Memoised list of parcels after applying the minimum-area filter (client-side only)
+    // const filteredDevelopableList = useMemo(() => {
+    //   const minSqft = Number(parcelAreaMin)
+    //   if (Number.isFinite(minSqft) && minSqft > 0) {
+    //     return developableList.filter((d) => (d.sqft ?? 0) >= minSqft)
+    //   }
+    //   return developableList
+    // }, [developableList, parcelAreaMin])
 
     return (
         <div className="flex flex-row h-full w-full">
             {/* Sidebar: property detail (when a single parcel selected) */}
-            {(view == "property_detail") ? (
+            {/* {(view == "property_detail") ? (
                 <div className="w-1/4 min-w-[400px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
                     <PropertyDetail 
                         parcel={parcelData} 
@@ -757,97 +792,192 @@ const Map = () => {
                         onClose={handleClosePropertyDetail}
                     />
                 </div>
-            ) : null }
+            ) : null } */}
             
             {/* Sidebar: developable parcels list (shown when a developmentPlan is active and property_detail not open) */}
             {developmentPlan && view !== 'property_detail' && (
               <div className="w-1/4 min-w-[320px] max-w-sm flex flex-col border-r border-gray-200 bg-white overflow-y-auto max-h-[calc(100vh-48px)]">
-                <div className="p-4 sticky top-0 bg-white z-10 shadow-sm">
-                  <input
-                    type="text"
-                    placeholder="Filter parcels by address…"
-                    value={developableFilter}
-                    onChange={(e) => setDevelopableFilter(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                {/* Header */}
+                <div className="flex items-center justify-between py-1 px-4 border-b sticky top-0 bg-white z-20">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-medium text-gray-800">Developable Parcels</h1>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={() => {
+                      // Close the sidebar by clearing the developmentPlan query param
+                      const params = new URLSearchParams(Array.from(queryParams.entries()))
+                      params.delete('developmentPlan')
+                      router.push(`/explorer?${params.toString()}`)
+                    }}
+                  >
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">Close</span>
+                  </Button>
                 </div>
 
-                {/* Listing */}
-                <ul className="divide-y divide-gray-200 text-sm">
-                  {developableList
-                    .filter((d) => {
-                      if (!developableFilter.trim()) return true;
-                      return d.address.toLowerCase().includes(developableFilter.toLowerCase());
-                    })
-                    .map((d) => (
-                      <li
+                {/* Development-plan summary */}
+                {/* {planDetail && (
+                  <div className="p-4 flex gap-4 items-start border-b">
+                    {planDetail.imageUrl && (
+                      <Image
+                        src={planDetail.imageUrl}
+                        alt={planDetail.name}
+                        width={64}
+                        height={64}
+                        className="rounded-md object-cover flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex flex-col">
+                      <p className="font-semibold text-gray-800 leading-snug">{planDetail.name}</p>
+                      {planDetail.minimumLotArea && (
+                        <p className="text-gray-500 text-xs">
+                          Required area: {planDetail.minimumLotArea.toLocaleString()} ft²
+                        </p>
+                      )}
+                      {(planDetail.minimumLotWidth || planDetail.minimumLotDepth) && (
+                        <p className="text-gray-500 text-xs">
+                          Min dimensions: {planDetail.minimumLotWidth?.toLocaleString() ?? '—'} ×{' '}
+                          {planDetail.minimumLotDepth?.toLocaleString() ?? '—'} ft
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )} */}
+
+                {/* Filters */}
+                <div className="p-4 border-b">
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <div className="border border-green-600 rounded-md text-xs px-2 py-1 bg-white text-green-700 flex items-center">
+                      <span className="mr-2">Parcel area min:</span>
+                      {/* <Input
+                        type="number"
+                        value={parcelAreaMin}
+                        onChange={(e) => setParcelAreaMin(e.target.value)}
+                        className="w-24 h-6 p-0 border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-green-700"
+                      /> */}
+
+                    </div>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filters
+                    </Button>
+                    <div className="ml-auto text-gray-600 text-sm flex items-center">
+                      Showing {developableList.length} of {developableList.length} results
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property listings */}
+                <div className="divide-y">
+                  {developableList.map((d) => {
+                    const [houseNumber, ...streetParts] = d.address.split(' ')
+                    const street = streetParts.join(' ')
+                    const imageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${d.centroid[0]},${d.centroid[1]},18,0,0/600x400?access_token=${mapboxAccessToken}`
+                    return (
+                      <div
                         key={String(d.id) + d.centroid.join(',')}
-                        className="p-4 cursor-pointer hover:bg-gray-50"
+                        className="flex p-4 gap-4 cursor-pointer hover:bg-gray-50"
                         onClick={() => {
                           if (mapRef.current) {
-                            mapRef.current.easeTo({ center: d.centroid, zoom: Math.max(mapRef.current.getZoom(), 15) });
+                            mapRef.current.easeTo({
+                              center: d.centroid,
+                              zoom: Math.max(mapRef.current.getZoom(), 15),
+                            })
                           }
                           if (markerRef.current) {
-                            markerRef.current.setLngLat(d.centroid).addTo(mapRef.current!);
+                            markerRef.current.setLngLat(d.centroid).addTo(mapRef.current!)
                           }
                         }}
                       >
-                        <p className="font-semibold text-gray-800 truncate">{d.address}</p>
-                        <p className="text-gray-500">Zoning: {d.zoning ?? '—'}</p>
-                        {d.sqft !== null && (
-                          <p className="text-gray-500">Lot size: {d.sqft.toLocaleString()} ft²</p>
-                        )}
-                        {d.parcelValue !== null && (
-                          <p className="text-gray-500">Parcel Value: ${d.parcelValue.toLocaleString()}</p>
-                        )}
-                      </li>
-                    ))}
+                        <div className="relative w-32 h-24 flex-shrink-0 rounded-md overflow-hidden">
+                          <Image src={imageUrl} alt={d.address} fill className="object-cover" />
+                          <div className="absolute bottom-1 left-1 bg-white rounded-sm px-1 py-0.5 text-xs">
+                            Mapbox
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h2 className="text-sm font-medium text-gray-900 mb-3">
+                            {houseNumber} {street}
+                          </h2>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            <div className="text-gray-600">Zoning</div>
+                            <div className="text-right font-medium">{d.zoning ?? '—'}</div>
+
+                            <div className="text-gray-600">Lot size</div>
+                            <div className="text-right font-medium">
+                              {d.sqft !== null ? `${d.sqft.toLocaleString()} ft²` : '—'}
+                            </div>
+
+                            <div className="text-gray-600">Parcel value</div>
+                            <div className="text-right font-medium">
+                              {d.parcelValue !== null ? `$${d.parcelValue.toLocaleString()}` : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
 
                   {developableList.length === 0 && (
-                    <li className="p-4 text-gray-500">No developable parcels in view</li>
+                    <div className="p-4 text-gray-500">No developable parcels match the criteria.</div>
                   )}
-                </ul>
+                </div>
               </div>
             )}
 
             {/* Map container - dynamic width depending on sidebar presence */}
             <div className={`relative ${(view === 'property_detail' || (developmentPlan && view !== 'property_detail')) ? 'w-3/4' : 'w-full'} h-full`}>
-              <div className='absolute top-4 left-4 z-10 w-[400px]'>
-                <TypedSearchBox
-                  options={{
-                    proximity: center,
-                    types: [
-                      'postcode',
-                      'place',
-                      'locality',
-                      'neighborhood',
-                      'street',
-                      'address'
-                    ]
-                  }}
-                  value={searchValue}
-                  onChange={handleSearchChange}
-                  onRetrieve={handleSearchResultSelected}
-                  accessToken={mapboxAccessToken}
-                  marker={false} // Disable the default marker, we'll use our own
-                  mapboxgl={mapboxgl}
-                  placeholder='Search for an address, city, zip, etc'
-                  map={mapRef.current}
-                  theme={{
-                    variables: {
-                      fontFamily: '"Open Sans", sans-serif',
-                      unit: '16px',
-                      borderRadius: '8px',
-                      boxShadow: '0px 2.44px 9.75px 0px rgba(95, 126, 155, 0.2)'
-                    }
-                  }}
-                />
+              <div className='absolute top-4 left-4 z-10 flex items-center space-x-2'>
+                <div className='w-[400px]'>
+                  <TypedSearchBox
+                    options={{
+                      proximity: center,
+                      types: [
+                        'postcode',
+                        'place',
+                        'locality',
+                        'neighborhood',
+                        'street',
+                        'address'
+                      ]
+                    }}
+                    value={searchValue}
+                    onChange={handleSearchChange}
+                    onRetrieve={handleSearchResultSelected}
+                    accessToken={mapboxAccessToken}
+                    marker={false} // Disable the default marker, we'll use our own
+                    mapboxgl={mapboxgl}
+                    placeholder='Search for an address, city, zip, etc'
+                    map={mapRef.current}
+                    theme={{
+                      variables: {
+                        fontFamily: '"Open Sans", sans-serif',
+                        unit: '16px',
+                        borderRadius: '8px',
+                        boxShadow: '0px 2.44px 9.75px 0px rgba(95, 126, 155, 0.2)'
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-lg h-9 w-9 bg-white"
+                  onClick={() => setOpenDevelopmentPlansModal(true)}
+                  aria-label="Open development plans"
+                >
+                  <Hammer className="h-5 w-5" />
+                </Button>
               </div>
               <div className="absolute bottom-4 left-4 z-10 bg-white p-2 rounded-md shadow-md text-xs text-gray-500">
                 <p>Click anywhere on the map to select an address</p>
               </div>
               <div id="map-container" ref={mapContainerRef} className="w-full h-full" />
             </div>
+            <DevelopmentPlansModal open={openDevelopmentPlansModal} onOpenChange={setOpenDevelopmentPlansModal} />
         </div>
     );
 }

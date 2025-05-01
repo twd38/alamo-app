@@ -73,6 +73,7 @@
     "next-themes": "^0.4.4",
     "novel": "^1.0.2",
     "novel-extensions": "link:novel/extensions",
+    "nuqs": "^2.4.3",
     "openai": "^4.89.0",
     "pdfreader": "^3.0.7",
     "postcss": "^8.4.49",
