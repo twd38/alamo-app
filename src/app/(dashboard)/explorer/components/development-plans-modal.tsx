@@ -11,20 +11,20 @@ import { useQueryState } from 'nuqs'
 // Sample data for housing plans
 const housingPlans = [
   {
-    id: 1,
+    id: 2,
     name: "Modern Duplex",
     image: "https://pub-d17172a416754e0185595c0afbba34ef.r2.dev/duplex_2unit.png",
     zoningTypes: ["SF-3", "SF-4"],
-    area: "1,800 sqft",
+    area: "5,000 sqft",
     units: 2,
     category: "single-family",
   },
   {
-    id: 2,
+    id: 1,
     name: "Duplex + Back House",
     image: "https://pub-d17172a416754e0185595c0afbba34ef.r2.dev/combined_3unit.png",
     zoningTypes: ["SF-3", "SF-4"],
-    area: "3,000 sq ft",
+    area: "8,310 sqft",
     units: 3,
     category: "custom",
   },

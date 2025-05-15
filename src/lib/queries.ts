@@ -21,8 +21,22 @@ export async function getJobs() {
     return await prisma.job.findMany()
 }
 
-export async function getWorkstations() {
-    return await prisma.workStation.findMany({
+export async function getAllTasks() {
+    return await prisma.task.findMany({
+        where: {
+            deletedOn: null
+        },
+        include: {
+            assignees: true,
+            createdBy: true,
+            files: true,
+            tags: true
+        }
+    })
+}
+
+export async function getKanbanSections() {
+    return await prisma.kanbanSection.findMany({
         where: {
             deletedOn: null
         },
@@ -38,25 +52,36 @@ export async function getWorkstations() {
                 include: {
                     assignees: true,
                     createdBy: true,
-                    files: true
+                    files: true,
+                    tags: true
                 }
             }
         }
     })
 }
 
-export async function getWorkstationJobs(workstationId: string) {
-    return await prisma.job.findMany({
-        where: {
-            workStationId: workstationId
+export async function getAllTags() {
+    return await prisma.taskTag.findMany({
+        select: {
+            id: true,
+            name: true,
+            color: true
         }
     })
 }
 
-export async function getWorkstation(workstationId: string) {
-    return await prisma.workStation.findUnique({
+export async function getKanbanSectionJobs(kanbanSectionId: string) {
+    return await prisma.job.findMany({
         where: {
-            id: workstationId
+            kanbanSectionId: kanbanSectionId
+        }
+    })
+}
+
+export async function getKanbanSection(kanbanSectionId: string) {
+    return await prisma.kanbanSection.findUnique({
+        where: {
+            id: kanbanSectionId
         }
     })
 }
@@ -598,4 +623,12 @@ export async function getDevelopmentPlan(developmentPlanId: string) {
     });
 
     return developmentPlan;
+}
+
+export async function getAllViews() {
+    return await prisma.boardView.findMany({
+        include: {
+            createdBy: true
+        }
+    })
 }

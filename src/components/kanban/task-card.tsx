@@ -3,12 +3,12 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent, CardHeader } from "src/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "src/components/ui/avatar"
-import { Clock, Calendar, User2, Hash, AlertCircle } from "lucide-react"
+import { Clock, Calendar, User2, Hash, AlertCircle, Tag } from "lucide-react"
 import { Badge } from "src/components/ui/badge"
 import Image from "next/image"
 import { Prisma } from "@prisma/client"
 import { useAtom } from "jotai"
-import { taskModal } from "@/components/production/utils"
+import { taskModal } from "@/components/board/utils"
 import { getStatusConfig } from "@/lib/utils"
 
 type TaskWithRelations = Prisma.TaskGetPayload<{
@@ -16,6 +16,7 @@ type TaskWithRelations = Prisma.TaskGetPayload<{
     assignees: true
     createdBy: true
     files: true
+    tags: true
   }
 }>
 
@@ -42,22 +43,21 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
     setActiveTask({
       type: "view",
       taskId: task.id,
-      workstationId: task.workStationId,
+      kanbanSectionId: task.kanbanSectionId,
     });
   };
 
   return (
-    <div className="">
       <Card 
         ref={setNodeRef} 
         style={style} 
         {...listeners} 
         {...attributes} 
-        className="mb-4 cursor-pointer"
+        className="cursor-pointer"
         onClick={handleClick}
       >
         <CardHeader className="p-4 flex flex-row justify-between items-start">
-          <div className="space-y-1">
+          <div>
             <p className="text-sm text-muted-foreground">{task.taskNumber}</p>
             <h3 className="font-semibold">{task.name}</h3>
           </div>
@@ -72,11 +72,12 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
               <span>{task.taskNumber}</span>
             </div> */}
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              {(() => {
-                const { label, variant } = getStatusConfig(task.status)
-                return <Badge variant={variant}>{label}</Badge>
-              })()}
+              <Tag className="h-4 w-4" />
+              {
+                task.tags.map((tag) => (
+                  <Badge key={tag.id} className={`bg-${tag.color}-500`}>{tag.name}</Badge>
+                ))
+              }
             </div>
         
             <div className="flex items-center gap-2">
@@ -95,9 +96,7 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
                     {task.assignees.map((assignee) => (
                       <Avatar key={assignee.id} className="h-6 w-6 border-2 border-background">
                         <AvatarImage src={assignee.image || ""} />
-                        <AvatarFallback>
-                          {assignee.name?.split(' ').map(word => word[0]).join('').toUpperCase()}
-                        </AvatarFallback>
+                        <AvatarFallback>{assignee.name?.[0]}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
@@ -110,7 +109,7 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
               ) : (
                 <>
                   <Avatar className="h-6 w-6">
-                    <AvatarFallback>UN</AvatarFallback>
+                    <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                   <span className="text-muted-foreground">Unassigned</span>
                 </>
@@ -119,7 +118,6 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
           </div>
         </CardContent>
       </Card>
-    </div>
   )
 }
 

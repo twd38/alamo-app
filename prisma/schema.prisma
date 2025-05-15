@@ -23,7 +23,7 @@ model User {
   assignedTasks Task[] 
   createdInstructions WorkInstruction[]
   approvedInstructions WorkInstruction[] @relation("ApprovedInstructions")
-
+  boardViews BoardView[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -75,6 +75,12 @@ enum Status {
   scrapped
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model File {
   id          String @id @default(cuid())
   url         String
@@ -111,8 +117,8 @@ model Job {
   ownerId       String
   owner         User   @relation(fields: [ownerId], references: [id], name: "OwnerRelation")
   assignees     JobAssignee[]   
-  workStationId String?
-  workStation   WorkStation? @relation(fields: [workStationId], references: [id])
+  kanbanSectionId String?
+  kanbanSection   KanbanSection? @relation(fields: [kanbanSectionId], references: [id])
   files         File[]
   deletedOn     DateTime?
 }
@@ -131,25 +137,55 @@ model Task {
   name          String
   taskNumber    String
   status        Status
+  tags          TaskTag[]
+  priority      Priority? @default(LOW)
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id])
   dueDate       DateTime
   description   String
+  dependencies  Task[] @relation("TaskDependencies")
+  dependentTasks Task[] @relation("TaskDependencies")
   createdById   String
   createdBy     User   @relation(fields: [createdById], references: [id], name: "CreatedByRelation")
   assignees     User[]   
-  workStationId String?
-  workStation   WorkStation? @relation(fields: [workStationId], references: [id])
+  kanbanSectionId String?
+  kanbanSection   KanbanSection? @relation(fields: [kanbanSectionId], references: [id])
   files         File[]
   deletedOn     DateTime?
   taskOrder     Int @default(0)
 }
 
-model WorkStation {
+model TaskTag {
+  id String @id @default(cuid())
+  name String
+  color String? @default("bg-gray-500")
+  tasks Task[]
+}
+
+model Project {
+  id String @id @default(cuid())
+  name String
+  color String? @default("bg-gray-500")
+  tasks Task[]
+}
+
+model KanbanSection {
   id          String @id @default(cuid())
   name        String
   kanbanOrder Int
   jobs        Job[]
   tasks       Task[]
   deletedOn   DateTime?
+}
+
+model BoardView {
+  id String @id @default(cuid())
+  name String
+  filters Json
+  createdById String
+  createdBy User @relation(fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
  
 model MissionMessage {

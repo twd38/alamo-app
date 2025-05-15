@@ -10,11 +10,11 @@ import { PropertyDetail } from './property-detail'
 import { useSearchParams, useRouter } from 'next/navigation';
 import { throttle, debounce } from 'lodash';
 import { acresToSquareFeet } from '@/lib/utils';
-import Image from 'next/image'
 import type { DevelopmentPlan } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import DevelopmentPlansModal from './development-plans-modal'
-import { X, SlidersHorizontal, Hammer } from 'lucide-react'
+import { Hammer } from 'lucide-react'
+import DevelopableParcelsSidebar from './developable-parcels-sidebar'
 import { useQueryState } from 'nuqs'
 
 
@@ -25,7 +25,7 @@ type SearchBoxType = typeof SearchBox & {
 
 const TypedSearchBox = SearchBox as SearchBoxType;
 const INITIAL_CENTER: [number, number] = [-97.7235671, 30.2540749]
-const INITIAL_ZOOM = 14
+const INITIAL_ZOOM = 13
 
 const Map = () => {
     const mapRef = useRef<mapboxgl.Map | undefined>(undefined)
@@ -82,6 +82,10 @@ const Map = () => {
     // After planMinLotArea state declaration, add local filter state synced with planMinLotArea
     const [parcelAreaMin, setParcelAreaMin] = useState<string>(planMinLotArea ? String(planMinLotArea) : '')
 
+    useEffect(() => {
+      getDevelopableParcelCount();
+    }, [developmentPlan]);
+
     // Fetch development-plan details whenever the id changes
     useEffect(() => {
       if (!developmentPlan) {
@@ -98,6 +102,7 @@ const Map = () => {
           setPlanMinLotArea(typeof minArea === 'number' && Number.isFinite(minArea) ? minArea : null);
           // eslint-disable-next-line no-console
           console.log('[Development-Plan] Loaded – minimumLotArea:', minArea);
+
         } catch (err) {
           // eslint-disable-next-line no-console
           console.error('Failed to load development plan:', err);
@@ -267,7 +272,7 @@ const Map = () => {
                   }
                 }
 
-                console.log(props)
+                // console.log(props)
 
                 // set the popup content
                 popupRef.current!
@@ -380,6 +385,7 @@ const Map = () => {
 
       // Clear local sidebar listing and cached bounds so next fetch executes
       setDevelopableList([]);
+      // setFullDevelopableCount(0);
       lastFetchedBoundsRef.current = null;
     }, []);
 
@@ -432,8 +438,7 @@ const Map = () => {
         // Avoid redundant processing for the same viewport
         if (
           lastFetchedBoundsRef.current &&
-          lastFetchedBoundsRef.current.contains(currentBounds.getNorthEast()) &&
-          lastFetchedBoundsRef.current.contains(currentBounds.getSouthWest())
+          lastFetchedBoundsRef.current.getCenter() === currentBounds.getCenter()
         ) {
           return;
         }
@@ -454,6 +459,7 @@ const Map = () => {
             layers: [PARCEL_FILL_LAYER_ID],
           },
         ) as mapboxgl.MapboxGeoJSONFeature[];
+        
 
         // Use the fetched development-plan minimum lot-area requirement.
         const minLotAreaSqft = planMinLotArea ?? 0;
@@ -560,8 +566,8 @@ const Map = () => {
             type: 'geojson',
             data: geojson,
             cluster: true,
-            clusterRadius: 50,
-            clusterMaxZoom: 14, // clusters exist only while zoom ≤ 15
+            clusterRadius: 100,
+            clusterMaxZoom: 15, // clusters exist only while zoom ≤ 15
           });
 
           // Cluster circles
@@ -642,6 +648,8 @@ const Map = () => {
         // Sync React state with the freshly generated list (after mapping to avoid
         // triggering multiple renders).
         setDevelopableList(developableTempList);
+
+
       } catch (err) {
         setError('Failed to identify developable parcels.');
         // eslint-disable-next-line no-console
@@ -772,6 +780,8 @@ const Map = () => {
 
     const [developableList, setDevelopableList] = useState<DevelopableListEntry[]>([]);
     const [fullDevelopableList, setFullDevelopableList] = useState<DevelopableListEntry[]>([]);
+    // Track the total number of developable parcels (before client-side limiting)
+    const [fullDevelopableCount, setFullDevelopableCount] = useState<number>(0);
 
     // Memoised list of parcels after applying the minimum-area filter (client-side only)
     // const filteredDevelopableList = useMemo(() => {
@@ -781,6 +791,58 @@ const Map = () => {
     //   }
     //   return developableList
     // }, [developableList, parcelAreaMin])
+
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !developmentPlan) return;
+
+      map.on('moveend', () => {
+        const sourceFeatures = map.querySourceFeatures(DEVELOPABLE_SRC_ID);
+        const clusterFeatures = sourceFeatures.filter(
+          f => typeof f.properties?.point_count === 'number'
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+          'zoom', map.getZoom().toFixed(1),
+          'total', sourceFeatures.length,
+          'clusters', clusterFeatures.length
+        );
+      });
+    }, [developmentPlan]);
+
+    /**
+     * Count developable parcels from the full tileset source using the current minimum lot area filter.
+     * @returns The total number of parcels meeting the developable criteria.
+     */
+    const getDevelopableParcelCount = () => {
+      const map = mapRef.current;
+      if (!map || !map.isStyleLoaded()) return 0;
+
+      // Query all vector-source features (no bounding box filter)
+      const features: mapboxgl.MapboxGeoJSONFeature[] =
+        map.querySourceFeatures(PARCEL_SOURCE_ID, { sourceLayer: PARCEL_SOURCE_LAYER });
+
+      // Filter by area and count
+      const count = features.reduce<number>((count, feature) => {
+        const props = feature.properties as Record<string, unknown>;
+        const lotAreaSqft: number =
+          typeof props.ll_gissqft === 'number'
+            ? props.ll_gissqft
+            : typeof props.gisacre === 'number'
+            ? acresToSquareFeet(props.gisacre)
+            : 0;
+
+        const isDevelopable =
+          planMinLotArea === null ||
+          (Number.isFinite(lotAreaSqft) && lotAreaSqft >= planMinLotArea);
+
+        return isDevelopable ? count + 1 : count;
+      }, 0);
+
+      console.log("Developable Parcel Count:", count);
+
+      setFullDevelopableCount(count);
+    };
 
     return (
         <div className="flex flex-row h-full w-full">
@@ -797,103 +859,19 @@ const Map = () => {
             
             {/* Sidebar: developable parcels list (shown when a developmentPlan is active and property_detail not open) */}
             {developmentPlan && view !== 'property_detail' && (
-              <div className="w-1/4 min-w-[375px] max-w-sm flex flex-col border-r border-gray-200 bg-white overflow-y-auto max-h-[calc(100vh-48px)]">
-                {/* Header */}
-                <div className="flex items-center justify-between py-1 px-3 border-b sticky top-0 bg-white z-20">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-medium text-gray-800">Developable Parcels</h1>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full"
-                    onClick={() => {
-                      // Close the sidebar by clearing the developmentPlan query param
-                      const params = new URLSearchParams(Array.from(queryParams.entries()))
-                      params.delete('developmentPlan')
-                      router.push(`/explorer?${params.toString()}`)
-                    }}
-                  >
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">Close</span>
-                  </Button>
-                </div>
-
-                {/* Filters */}
-                <div className="p-2 border-b">
-                  <div className="flex flex-wrap gap-3">
-                    <div className="flex-1 space-y-2">
-                      <div className="border border-green-500 rounded-md text-xs px-2 py-0.5 bg-white text-green-700 w-fit">
-                        Parcel area min: {parcelAreaMin} ft²
-                      </div>
-                      <Button variant="outline" className="flex items-center text-xs px-2 py-1 h-8">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filters
-                      </Button>
-                    </div>
-                    
-                    <div className="flex-2 text-gray-600 text-sm flex items-end">
-                      <span className="text-gray-600 text-xs">Showing {developableList.length} of {developableList.length} results</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Property listings */}
-                <div className="divide-y">
-                  {developableList.map((d) => {
-                    const [houseNumber, ...streetParts] = d.address.split(' ')
-                    const street = streetParts.join(' ')
-                    const imageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${d.centroid[0]},${d.centroid[1]},18,0,0/600x400?access_token=${mapboxAccessToken}`
-                    return (
-                      <div
-                        key={String(d.id) + d.centroid.join(',')}
-                        className="flex p-3 gap-3 cursor-pointer hover:bg-gray-50"
-                        onClick={() => {
-                          if (mapRef.current) {
-                            mapRef.current.easeTo({
-                              center: d.centroid,
-                              zoom: Math.max(mapRef.current.getZoom(), 15),
-                            })
-                          }
-                          if (markerRef.current) {
-                            markerRef.current.setLngLat(d.centroid).addTo(mapRef.current!)
-                          }
-                        }}
-                      >
-                        <div className="relative w-32 h-24 flex-shrink-0 rounded-md overflow-hidden">
-                          <Image src={imageUrl} alt={d.address} fill className="object-cover" />
-                          <div className="absolute bottom-1 left-1 bg-white rounded-sm px-1 py-0.5 text-xs">
-                            Mapbox
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h2 className="text-sm font-medium text-gray-900 mb-3">
-                            {houseNumber} {street}
-                          </h2>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            <div className="text-gray-600">Zoning</div>
-                            <div className="text-right font-medium">{d.zoning ?? '—'}</div>
-
-                            <div className="text-gray-600">Lot size</div>
-                            <div className="text-right font-medium">
-                              {d.sqft !== null ? `${d.sqft.toLocaleString()} ft²` : '—'}
-                            </div>
-
-                            <div className="text-gray-600">Parcel value</div>
-                            <div className="text-right font-medium">
-                              {d.parcelValue !== null ? `$${d.parcelValue.toLocaleString()}` : '—'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  {developableList.length === 0 && (
-                    <div className="p-4 text-gray-500">No developable parcels match the criteria.</div>
-                  )}
-                </div>
-              </div>
+              <DevelopableParcelsSidebar
+                developableList={developableList}
+                fullDevelopableCount={fullDevelopableCount}
+                parcelAreaMin={parcelAreaMin}
+                mapRef={mapRef}
+                markerRef={markerRef}
+                mapboxAccessToken={mapboxAccessToken}
+                onClose={() => {
+                  const params = new URLSearchParams(Array.from(queryParams.entries()))
+                  params.delete('developmentPlan')
+                  router.push(`/explorer?${params.toString()}`)
+                }}
+              />
             )}
 
             {/* Map container - dynamic width depending on sidebar presence */}

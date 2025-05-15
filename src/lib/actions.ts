@@ -3,9 +3,9 @@ import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
 import { Status } from '@prisma/client';
 import { auth } from 'src/lib/auth';
-import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType } from '@prisma/client';
+import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType, TaskTag } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
-import { generateNewPartNumbers } from '@/lib/utils';
+import { generateNewPartNumbers, generateRandomColor } from '@/lib/utils';
 import { checkFeasibility } from "@/lib/site-engine/feasibility";
 import { buildYield } from "@/lib/site-engine/yield";
 import { runFinance } from "@/lib/site-engine/finance";
@@ -19,8 +19,8 @@ export async function updateDataAndRevalidate(path: string) {
     return { message: "Data updated and cache revalidated" };
 }
 
-export async function getWorkstations() {
-    const workstations = await prisma.workStation.findMany({
+export async function getKanbanSections() {
+    const kanbanSections = await prisma.kanbanSection.findMany({
         where: {
             deletedOn: null
         },
@@ -46,7 +46,7 @@ export async function getWorkstations() {
     });
     
     console.log('Retrieved workstations:', 
-        workstations.map(w => ({
+        kanbanSections.map(w => ({
             id: w.id,
             name: w.name,
             taskCount: w.tasks.length,
@@ -54,23 +54,24 @@ export async function getWorkstations() {
         }))
     );
     
-    return workstations;
+    return kanbanSections;
 }
 
-export async function createWorkStation(name: string) {
-    await prisma.workStation.create({
+export async function createKanbanSection(name: string) {
+    const result = await prisma.kanbanSection.create({
       data: {
         name,
         kanbanOrder: 0
       }
     })
     revalidatePath('/production')
+    return { success: true, data: result };
     // redirect('/production')
   }
 
-export async function updateWorkStationTasks({id, tasks}: {id:string, tasks:Task[]}) {
+export async function updateKanbanSectionTasks({id, tasks}: {id:string, tasks:Task[]}) {
     try {
-        const result = await prisma.workStation.update({
+        const result = await prisma.kanbanSection.update({
             where: { id },
             data: { tasks: { connect: tasks.map(task => ({ id: task.id })) } }
         });
@@ -83,16 +84,16 @@ export async function updateWorkStationTasks({id, tasks}: {id:string, tasks:Task
     }
 }
 
-export async function updateWorkStationKanbanOrder(id: string, kanbanOrder: number) {
-    await prisma.workStation.update({
+export async function updateKanbanSectionKanbanOrder(id: string, kanbanOrder: number) {
+    await prisma.kanbanSection.update({
         where: { id },
         data: { kanbanOrder }
     });
     revalidatePath('/production');
 }
 
-export async function deleteWorkStation(id: string) {
-    await prisma.workStation.update({
+export async function deleteKanbanSection(id: string) {
+    await prisma.kanbanSection.update({
         where: { id },
         data: { deletedOn: new Date() }
     });
@@ -126,9 +127,10 @@ export async function createTask(data: {
     description: string;
     createdById: string;
     assignees: string[];
-    workStationId: string;
+    kanbanSectionId: string;
     taskOrder: number;
     files?: File[];
+    tags?: string[];
 }) {
     try {
         const session = await auth()
@@ -159,9 +161,12 @@ export async function createTask(data: {
                 assignees: {
                     connect: data.assignees.map(userId => ({ id: userId }))
                 },
-                workStationId: data.workStationId,
+                kanbanSectionId: data.kanbanSectionId,
                 files: {
                     create: fileData
+                },
+                tags: {
+                    connect: data.tags?.map(tag => ({ id: tag })) || []
                 }
             },
             include: {
@@ -185,7 +190,7 @@ export async function moveTask(taskId: string, targetWorkStationId: string, newO
             // Get all tasks in the target workstation
             const targetTasks = await tx.task.findMany({
                 where: {
-                    workStationId: targetWorkStationId,
+                    kanbanSectionId: targetWorkStationId,
                     deletedOn: null,
                     id: { not: taskId }
                 },
@@ -207,7 +212,7 @@ export async function moveTask(taskId: string, targetWorkStationId: string, newO
                     tx.task.update({
                         where: { id: task.id },
                         data: { 
-                            workStationId: targetWorkStationId,
+                            kanbanSectionId: targetWorkStationId,
                             taskOrder: index 
                         }
                     })
@@ -254,7 +259,7 @@ export async function deleteTask(taskId: string) {
             where: { id: taskId },
             data: { 
               deletedOn: new Date(),
-              workStationId: null
+              kanbanSectionId: null
             }
         });
         
@@ -290,7 +295,7 @@ export async function duplicateTask(taskId: string) {
                 dueDate: originalTask.dueDate,
                 description: originalTask.description,
                 createdById: originalTask.createdById,
-                workStationId: originalTask.workStationId,
+                kanbanSectionId: originalTask.kanbanSectionId,
                 taskOrder: originalTask.taskOrder + 1,
                 assignees: {
                     connect: originalTask.assignees.map(assignee => ({ id: assignee.id }))
@@ -327,10 +332,12 @@ export async function updateTask(taskId: string, data: {
     dueDate: Date | undefined;
     description: string;
     assignees: string[];
-    workStationId?: string;
+    kanbanSectionId?: string;
     taskOrder: number;
     files?: (File | { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
+    tags?: string[];
 }) {
+    console.log("Updating task", taskId, data)
     try {
         // Get existing files
         const existingTask = await prisma.task.findUnique({
@@ -408,7 +415,10 @@ export async function updateTask(taskId: string, data: {
                 assignees: {
                     set: data.assignees.map(userId => ({ id: userId }))
                 },
-                workStationId: data.workStationId,
+                tags: {
+                    set: data.tags?.map(tag => ({ id: tag })) || []
+                },
+                kanbanSectionId: data.kanbanSectionId,
                 files: {
                     deleteMany: {
                         id: {
@@ -427,7 +437,7 @@ export async function updateTask(taskId: string, data: {
             include: {
                 assignees: true,
                 files: true
-            }
+            },
         });
 
         return { success: true, data: result };
@@ -435,6 +445,22 @@ export async function updateTask(taskId: string, data: {
         console.error('Error updating task:', error.stack);
         return { success: false, error: 'Failed to update task' };
     }
+}
+
+export async function createTag({
+    name,
+    color
+}: {
+    name: string;
+    color: string;
+}) {
+    const result = await prisma.taskTag.create({
+        data: {
+            name,
+            color
+        }
+    });
+    return { success: true, data: result };
 }
 
 // Helper function to check if a file is a File instance
@@ -832,4 +858,30 @@ export async function evaluateLot(lot: Lot) {
     const fin = runFinance(lot, scheme, yld, assumptions);
     return { scheme: scheme.name, status: "feasible", yld, fin };
   });
+}
+
+export async function createBoardView(name: string, filters: any) {
+  try {
+    // Get user from auth
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const result = await prisma.boardView.create({
+      data: {
+        name,
+        filters,
+        createdById: userId,
+      }
+    });
+
+    revalidatePath('/board');
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error creating board view:', error);
+    return { success: false, error: 'Failed to create board view' };
+  }
 }

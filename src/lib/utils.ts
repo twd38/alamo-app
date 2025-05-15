@@ -184,3 +184,15 @@ export function metersToFeet(meters: number) {
 export function acresToSquareFeet(acres: number) {
   return acres * 43560
 }
+
+export function generateRandomColor() {
+  const colors = [
+    "slate", "gray", "zinc", "neutral", "stone",
+    "red", "orange", "amber", "yellow", "lime",
+    "green", "emerald", "teal", "cyan", "sky",
+    "blue", "indigo", "violet", "purple", "fuchsia",
+    "pink", "rose"
+  ]
+  const color = colors[Math.floor(Math.random() * colors.length)] 
+  return color
+}

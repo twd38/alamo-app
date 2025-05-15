@@ -7,24 +7,26 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from 'src/components/ui/dialog';
 import { Input } from 'src/components/ui/input';
 import { Button } from 'src/components/ui/button';
-import { createWorkStation } from '@/lib/actions';
+import { createKanbanSection } from '@/lib/actions';
 
-const workstationSchema = z.object({
-  workstationName: z.string().min(1, 'Workstation name is required'),
+const sectionSchema = z.object({
+  sectionName: z.string().min(1, 'Section name is required'),
 });
 
-export default function NewWorkstationDialog({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(workstationSchema),
+export default function NewSectionDialog({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({
+    resolver: zodResolver(sectionSchema),
   });
 
   const onSubmit = async (data: any) => {
     try {
-      await createWorkStation(data.workstationName);
-      console.log('Workstation created successfully');
+      await createKanbanSection(data.sectionName);
+      // clear the form
+      reset();
+      console.log('Section created successfully');
       onClose();
     } catch (error) {
-      console.error('Error creating workstation:', error);
+      console.error('Error creating new section:', error);
     }
   };
 
@@ -32,19 +34,19 @@ export default function NewWorkstationDialog({ isOpen, onClose }: { isOpen: bool
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Workstation</DialogTitle>
+          <DialogTitle>Create New Section</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4 pb-4">
             <Input
-              placeholder="Workstation Name"
-              {...register('workstationName')}
+              placeholder="Section Name"
+              {...register('sectionName')}
             />
             {/* {errors.workstationName && <p className="text-red-500">{String(errors.workstationName.message)}</p>} */}
           </div>
           
           <DialogFooter>
-            <Button type="submit">Create</Button>
+            <Button type="submit" isLoading={isSubmitting}>Create</Button>
             <Button variant="outline" onClick={onClose}>Cancel</Button>
           </DialogFooter>
         </form>

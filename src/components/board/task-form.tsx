@@ -21,12 +21,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, X, Paperclip, File } from "lucide-react";
 import useSWR from 'swr';
-import { getAllUsers, getWorkstations } from '@/lib/queries';
+import { 
+    getAllUsers, 
+    getKanbanSections,
+    getAllTags
+} from '@/lib/queries';
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Status, User, Task } from "@prisma/client";
+import { Status, User, Task, TaskTag } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
-import { createTask, deleteTask, duplicateTask, updateTask, updateDataAndRevalidate, getFileUrlFromKey } from "@/lib/actions";
+import { 
+    createTask, 
+    deleteTask, 
+    duplicateTask, 
+    updateTask, 
+    updateDataAndRevalidate, 
+    getFileUrlFromKey, 
+    createTag 
+} from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";
@@ -49,11 +61,13 @@ import { MarkdownEditor } from "@/components/markdown-editor";
 import { getStatusConfig, formatFileSize } from "@/lib/utils"
 import { toast } from "react-hot-toast";
 import STLViewer from "@/components/stl-viewer";
+import { generateRandomColor } from "@/lib/utils";
 
 interface TaskWithRelations extends Task {
     assignees: User[];
     createdBy: User;
     files: any[];
+    tags: string[];
 }
 
 // Define the form schema using Zod
@@ -66,7 +80,7 @@ const formSchema = z.object({
     description: z.string(),
     createdById: z.string(),
     assignees: z.array(z.string()),
-    workStationId: z.string().optional(),
+    kanbanSectionId: z.string().optional(),
     files: z.array(
         z.union([
             //  or existing file records
@@ -91,7 +105,8 @@ const formSchema = z.object({
                 message: "Must be a valid file"
             })
         ])
-    ).optional()
+    ).optional(),
+    tags: z.array(z.string()).optional()
 })
 
 const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
@@ -99,7 +114,8 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const router = useRouter()
   const { data: users } = useSWR('allUsers', getAllUsers);
-  const { data: workStations } = useSWR('allWorkStations', getWorkstations);
+  const { data: kanbanSections } = useSWR('allKanbanSections', getKanbanSections);
+  const { data: tags } = useSWR('allTags', getAllTags);
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -113,8 +129,9 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       description: task?.description || "{}",
       createdById: task?.createdById || "",
       assignees: task?.assignees.map(a => a.id) || [],
-      workStationId: task?.workStationId || activeTask.workstationId || undefined,
-      files: task?.files || []
+      kanbanSectionId: task?.kanbanSectionId || activeTask.kanbanSectionId || undefined,
+      files: task?.files || [],
+      tags: task?.tags
     }
   })
 
@@ -133,9 +150,10 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           dueDate: data.dueDate,
           description: data.description,
           assignees: data.assignees,
-          workStationId: data.workStationId,
+          kanbanSectionId: data.kanbanSectionId,
           taskOrder: task.taskOrder,
-          files: data.files
+          files: data.files,
+          tags: data.tags
         });
       } else {
         // Create new task
@@ -147,9 +165,10 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           description: data.description,
           createdById: data.createdById,
           assignees: data.assignees,
-          workStationId: data.workStationId || "",
+          kanbanSectionId: data.kanbanSectionId || "",
           taskOrder: 0,
-          files: data.files as File[]
+          files: data.files as File[],
+          tags: data.tags
         });
       }
 
@@ -163,7 +182,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       setActiveTask({
         type: null,
         taskId: null,
-        workstationId: null,
+        kanbanSectionId: null,
       })
       updateDataAndRevalidate("/production")
       router.refresh();
@@ -183,7 +202,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
         setActiveTask({
             type: null,
             taskId: null,
-            workstationId: null,
+            kanbanSectionId: null,
         })
         router.refresh();
       } else {
@@ -205,7 +224,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
         setActiveTask({
             type: null,
             taskId: null,
-            workstationId: null,
+            kanbanSectionId: null,
         })
         router.refresh();
       } else {
@@ -253,6 +272,9 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
     }
   };
 
+  const isLoading = form.formState.isSubmitting
+  console.log(isLoading)
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(submitForm)} className="space-y-8">
@@ -264,6 +286,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                         variant="outline" 
                         size="sm" 
                         className="gap-2"
+                        isLoading={isLoading}
                     >
                         <Check className="h-4 w-4" />
                         {task ? 'Save changes' : 'Create task'}
@@ -359,7 +382,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                        {/* <FormField
                             control={form.control}
                             name="status"
                             render={({ field }) => (
@@ -398,7 +421,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        />
+                        /> */}
                         <FormField
                             control={form.control}
                             name="dueDate"
@@ -437,16 +460,75 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                 </FormItem>
                             )}
                         />
+
+                        {/* section */}
                         <FormField
                             control={form.control}
-                            name="workStationId"
+                            name="kanbanSectionId"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Work Station</FormLabel>
-                                    <ComboBox field={field} defaultValues={workStations || []} />
+                                    <FormLabel className="w-24">Section</FormLabel>
+                                    <ComboBox 
+                                        field={field} 
+                                        defaultValues={kanbanSections || []} 
+                                    />
                                 </FormItem>
                             )}
                         />
+
+                        {/* tags */}
+                        <FormField
+                            control={form.control}
+                            name="tags"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2">
+                                    <FormLabel className="w-24">Tags</FormLabel>
+                                    <ComboBox 
+                                        field={field} 
+                                        defaultValues={tags || []} 
+                                        onCreateValue={async (value) => {
+                                            const color = generateRandomColor()
+                                            const result = await createTag({
+                                                name: value,
+                                                color: color
+                                            })
+                                            const newTag = result.data
+                                            return newTag
+                                        }}
+                                        renderSelected={(tag) => (
+                                            <Badge 
+                                                key={tag.id}
+                                                className={`flex items-center gap-1 bg-${tag.color}-500`}
+                                            >
+                                                {tag.name}
+                                            </Badge>
+                                        )}
+                                        renderOption={(tag, isSelected) => (
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <Badge 
+                                                    key={tag.id}
+                                                    className={`bg-${tag.color}-500 hover:bg-${tag.color}-500/80`}
+                                                >
+                                                    {tag.name}
+                                                </Badge>
+                                                <Check
+                                                    className={cn(
+                                                        "ml-auto",
+                                                        isSelected ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
+                                        multiSelect
+                                    />
+                                </FormItem>
+                            )}
+                            
+                        />
+
+                        
+
+                        
 
                         <FormField
                             control={form.control}
@@ -519,6 +601,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                 </FormItem>
                             )}
                         />
+                        
                     </div>
 
                 <div className="gap-2 pt-2">

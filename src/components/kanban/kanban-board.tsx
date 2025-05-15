@@ -1,54 +1,130 @@
 "use client"
 
-import { useState, startTransition } from "react"
+import { useState, startTransition, useMemo } from "react"
 import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core"
 import { SortableContext, horizontalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { KanbanColumn } from "./kanban-column"
 import { TaskCard } from "./task-card"
-import type { WorkStation, Job, Task, User } from "@prisma/client"
+import type { KanbanSection, Job, Task, User, TaskTag } from "@prisma/client"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { updateWorkStationKanbanOrder, moveTask, reorderTasks } from '@/lib/actions'
+import { updateKanbanSectionKanbanOrder, moveTask, reorderTasks } from '@/lib/actions'
 import { useOptimistic } from 'react'
 import { toast } from 'react-hot-toast'
 import { MouseSensor, KeyboardSensor } from '@/lib/dnd-sensors'
-import TaskDetail from '@/components/production/task-detail';
+import TaskDetail from '@/components/board/task-detail';
 import { useAtom } from 'jotai';
-import { taskModal } from '@/components/production/utils';
+import { taskModal, filterStateAtom, FilterType } from '@/components/board/utils';
+import { useFilterAtom, isValidUser, isValidString, isValidDate } from "@/components/filter-popover"
 
 export const dynamic = 'force-dynamic';
 
-type WorkstationWithJobsAndTasks = WorkStation & {
+type KanbanSectionWithJobsAndTasks = KanbanSection & {
   jobs: Job[];
     tasks: (Task & {
       assignees: User[];
       createdBy: User;
       files: any[];
+      tags: TaskTag[];
     })[];
 };
 
 export function KanbanBoard({
   columns,
+  tasks,
 }: {
-  columns: WorkstationWithJobsAndTasks[]
+  columns: KanbanSectionWithJobsAndTasks[]
+  tasks: Task[]
 }) {
   // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sortableColumns, setSortableColumns] = useOptimistic(columns);
   const [activeTask, setActiveTask] = useAtom(taskModal)
+  const [filterState, setFilterState] = useFilterAtom("kanban-board")
+
   const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null
+  const cleanActiveTaskData = activeTaskData ? {
+    ...activeTaskData,
+    tags: activeTaskData.tags.map((tag) => tag.id)
+  } : null
+  
+  // Apply filters to tasks
+  const applyFilters = (task: Task & {
+    assignees: User[];
+    createdBy: User;
+    files: any[];
+    tags: TaskTag[];
+  }, filters: FilterType[]): boolean => {
+    // If no filters, return all tasks
+    if (!filters || filters.length === 0) return true;
+
+    // Check if task matches all filters (AND logic)
+    return filters.every((filter) => {
+      const { type, operator, value } = filter;
+      
+      // Skip empty filters
+      if (!value.trim()) return true;
+
+      // Convert value to lowercase for case-insensitive comparison
+      const filterValue = value.toLowerCase().trim();
+            
+      switch (type) {
+        case "Assignee":
+          const assigneeIds = task.assignees.map(user => user.id?.toLowerCase() || "");
+          return isValidUser(assigneeIds, operator, filterValue)
+          
+        case "Tag":
+          const tagNames = task.tags.map(tag => tag.name?.toLowerCase() || "");
+          return isValidString(tagNames, operator, filterValue)
+          
+        case "Due date":
+          if (!task.dueDate) return operator === "is not";
+          const dueDate = new Date(task.dueDate).toISOString().split('T')[0];
+          return isValidDate(dueDate, operator, filterValue)
+          
+        case "Created by":
+          const creatorName = task.createdBy?.name?.toLowerCase() || "";
+          const creatorEmail = task.createdBy?.email?.toLowerCase() || "";
+          
+          if (operator === "is") 
+            return creatorName === filterValue || creatorEmail === filterValue;
+          if (operator === "is not") 
+            return creatorName !== filterValue && creatorEmail !== filterValue;
+          if (operator === "contains") 
+            return creatorName.includes(filterValue) || creatorEmail.includes(filterValue);
+          if (operator === "does not contain") 
+            return !creatorName.includes(filterValue) && !creatorEmail.includes(filterValue);
+          break;
+          
+        default:
+          return true;
+      }
+      
+      return true; // Default case if no condition is met
+    });
+  };
+
+  // Filter columns based on the filterState
+  const filteredColumns = useMemo(() => {
+    return sortableColumns.map(column => ({
+      ...column,
+      tasks: column.tasks.filter(task => applyFilters(task, filterState.filters))
+    }));
+  }, [sortableColumns, filterState]);
 
   // console.log(sortableColumns)
   // console.log(activeId)
   // console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
-
+  console.log(tasks)
+  console.log(filterState)
+  
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if(active.id === over?.id) return;
     if (!over) return;
 
-    const activeColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobsAndTasks) => column.name === active.id);
-    const overColumnIndex = sortableColumns.findIndex((column: WorkstationWithJobsAndTasks) => column.name === over.id);
+    const activeColumnIndex = sortableColumns.findIndex((column: KanbanSectionWithJobsAndTasks) => column.name === active.id);
+    const overColumnIndex = sortableColumns.findIndex((column: KanbanSectionWithJobsAndTasks) => column.name === over.id);
 
     if (activeColumnIndex !== -1 && overColumnIndex !== -1) {
       // Handle column reordering
@@ -67,7 +143,7 @@ export function KanbanBoard({
         // Update all column orders in a single batch
         Promise.all(
           updatedColumns.map((workstation, index) => 
-            updateWorkStationKanbanOrder(workstation.id, index)
+            updateKanbanSectionKanbanOrder(workstation.id, index)
           )
         ).catch(() => {
           // Revert to previous state on error
@@ -188,11 +264,11 @@ export function KanbanBoard({
     setActiveId(active.id);
   };
 
-  const handleAddTask = (workstationId: string) => {
+  const handleAddTask = (kanbanSectionId: string) => {
     setActiveTask({
       type: "new",
       taskId: null,
-      workstationId: workstationId,
+      kanbanSectionId: kanbanSectionId,
     });
   }
 
@@ -221,9 +297,9 @@ export function KanbanBoard({
               sensors={sensors}
               id="kanban-board"
             >
-                <SortableContext items={sortableColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
+                <SortableContext items={filteredColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
                 
-                  {sortableColumns.map((column, index) => (
+                  {filteredColumns.map((column, index) => (
                     <KanbanColumn key={index} id={column.id} name={column.name} jobs={column.jobs} tasks={column.tasks} handleAddTask={() => handleAddTask(column.id)} />
                   ))}
 
@@ -245,7 +321,7 @@ export function KanbanBoard({
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      <TaskDetail task={activeTaskData || null}/>
+      <TaskDetail task={cleanActiveTaskData || null}/>
     </div>
   )
 }

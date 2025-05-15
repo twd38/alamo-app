@@ -6,7 +6,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { TaskCard } from "./task-card"
 import { Button } from "src/components/ui/button"
 import { MoreHorizontal, Edit, Trash, Plus } from "lucide-react"
-import { Job, Task, User } from "@prisma/client"
+import { Job, Task, User, TaskTag } from "@prisma/client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import {
 } from "src/components/ui/dropdown-menu"
 import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
-import { deleteWorkStation } from '@/lib/actions';
+import { deleteKanbanSection } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 // export const dynamic = 'force-dynamic';
 
@@ -27,6 +27,7 @@ interface KanbanColumnProps {
     assignees: User[];
     createdBy: User;
     files: any[];
+    tags: TaskTag[];
   })[]
   handleAddTask?: () => void
 }
@@ -62,7 +63,7 @@ export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanCol
   const handleDeleteColumn = async () => {
     console.log(`Deleting column with id: ${id}`);
     try{
-      await deleteWorkStation(id);
+      await deleteKanbanSection(id);
       toast.success('Column deleted');
       setDeleteAlertOpen(false);
     } catch (error) {
@@ -87,7 +88,7 @@ export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanCol
         className="flex-1 min-w-[280px] max-w-[350px] transition-all duration-200"
       >
         <div className="bg-muted/50 rounded-lg">
-          <div className="p-3 bg-primary/5 rounded-t-lg border-b">
+          <div className="px-3 py-2 bg-primary/5 rounded-t-lg border-b">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <h2 className="text-sm font-semibold truncate">{name}</h2>
@@ -126,9 +127,9 @@ export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanCol
               </div>
             </div>
           </div>
-          <div className="p-3">
+          <div className="p-2">
             <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto min-h-[400px]">
+              <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto min-h-[400px]">
                 {tasks.map((task) => (
                   task ? <TaskCard key={task.id} task={task} /> : null
                 ))}

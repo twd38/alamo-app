@@ -12,14 +12,14 @@ import {
 } from "src/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "src/components/ui/collapsible"
 import { ChevronRight } from "lucide-react"
-import { Factory, Library, BookOpen, Settings2, ShoppingCart, Globe } from "lucide-react"
+import { Factory, Library, BookOpen, Settings2, ShoppingCart, Globe, SquareKanban } from "lucide-react"
 import { usePathname } from "next/navigation";
 
 const items = [
     {
-      title: "Production",
-      url: "/production",
-      icon: Factory,      
+      title: "Board",
+      url: "/board",
+      icon: SquareKanban,      
     },
     {
       title: "Parts",

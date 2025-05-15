@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command"
+import { Check, ChevronsUpDown, PlusCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FormItem, FormControl, FormMessage } from "@/components/ui/form"
 import { ControllerRenderProps, FieldValues, Path } from "react-hook-form"
@@ -43,6 +43,8 @@ export interface ComboBoxProps<
     renderOption?: (value: TItem, isSelected: boolean) => React.ReactNode;
     /** Optional className for the ComboBox */
     className?: string;
+    /** Optional callback for creating new values */
+    onCreateValue?: (name: string) => Promise<TItem> | TItem;
 }
 
 /**
@@ -59,21 +61,31 @@ export function ComboBox<
     multiSelect,
     renderSelected,
     renderOption,
-    className
+    className,
+    onCreateValue
 }: ComboBoxProps<TItem, TFieldValues, TName>) {
     const [open, setOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
+    const [isCreating, setIsCreating] = useState(false)
+    const [localValues, setLocalValues] = useState<TItem[]>(defaultValues || [])
     
-    const filteredItems = defaultValues.filter((value) => 
+    // Update localValues when defaultValues changes
+    useEffect(() => {
+        if (defaultValues) {
+            setLocalValues(defaultValues)
+        }
+    }, [JSON.stringify(defaultValues)])
+    
+    const filteredItems = localValues.filter((value) => 
         value.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
     const getSelectedItems = (): TItem[] => {
         if (!field.value) return [];
         if (multiSelect && Array.isArray(field.value)) {
-            return field.value.map((id: string) => defaultValues.find(item => item.id === id)!).filter(Boolean);
+            return field.value.map((id: string) => localValues.find(item => item.id === id)!).filter(Boolean);
         }
-        const item = defaultValues.find(item => item.id === field.value);
+        const item = localValues.find(item => item.id === field.value);
         return item ? [item] : [];
     }
 
@@ -90,6 +102,38 @@ export function ComboBox<
         }
         setSearchQuery("");
     }
+
+    const handleCreateValue = async () => {
+        if (!onCreateValue || !searchQuery.trim()) return;
+        
+        try {
+            setIsCreating(true);
+            const newItem = await onCreateValue(searchQuery.trim());
+            
+            // Optimistically update the local values
+            setLocalValues(prev => [...prev, newItem]);
+            
+            if (multiSelect) {
+                const currentValue = (field.value as string[]) || [];
+                field.onChange([...currentValue, newItem.id]);
+            } else {
+                field.onChange(newItem.id);
+                setOpen(false);
+            }
+            
+            setSearchQuery("");
+        } catch (error) {
+            console.error("Error creating new value:", error);
+        } finally {
+            setIsCreating(false);
+        }
+    }
+    
+    const canCreateValue = onCreateValue && 
+        searchQuery.trim() !== "" && 
+        !localValues.some(item => 
+            item.name.toLowerCase() === searchQuery.toLowerCase()
+        );
     
     return (
         <FormItem className="flex flex-col">
@@ -134,7 +178,24 @@ export function ComboBox<
                             onValueChange={setSearchQuery}
                         />
                         <CommandList>
-                            <CommandEmpty>None found.</CommandEmpty>
+                            <CommandEmpty>
+                                {canCreateValue ? (
+                                    <div className="py-2 px-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full justify-start text-sm"
+                                            onClick={handleCreateValue}
+                                            disabled={isCreating}
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Create "{searchQuery}"
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    "None found."
+                                )}
+                            </CommandEmpty>
                             <CommandGroup>
                                 {filteredItems.map((value) => {
                                     const isSelected = multiSelect 
@@ -164,6 +225,17 @@ export function ComboBox<
                                     )
                                 })}
                             </CommandGroup>
+                            {canCreateValue && (
+                                <>
+                                    <CommandSeparator />
+                                    <CommandGroup>
+                                        <CommandItem onSelect={handleCreateValue}>
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Create "{searchQuery}"
+                                        </CommandItem>
+                                    </CommandGroup>
+                                </>
+                            )}
                         </CommandList>
                     </Command>
                 </PopoverContent>

@@ -4,12 +4,13 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import TaskForm from './task-form';
 import { taskModal } from './utils';
 import { useAtom } from 'jotai';
-import { Task, User } from '@prisma/client';
+import { Task, User, TaskTag } from '@prisma/client';
 
 interface TaskWithRelations extends Task {
     assignees: User[];
     createdBy: User;
     files: any[];
+    tags: string[];
 }
 
 // Mock data for team members
@@ -19,7 +20,7 @@ export default function TaskDetail({task}: {task: TaskWithRelations | null}) {
     setActiveTask({
       type: null,
       taskId: null,
-      workstationId: null,
+      kanbanSectionId: null,
     })
   }
 
@@ -27,7 +28,7 @@ export default function TaskDetail({task}: {task: TaskWithRelations | null}) {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange} >
-      <SheetContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-full max-w-[90vw] sm:max-w-[700px] overflow-y-auto p-0" >
+      <SheetContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-full max-w-[90vw] sm:max-w-[50vw] overflow-y-auto p-0" >
         <SheetTitle className="hidden">Task</SheetTitle>
         <TaskForm task={task} />
       </SheetContent>
