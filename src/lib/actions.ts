@@ -919,28 +919,16 @@ export async function createBoard({name, isPrivate, collaboratorIds}: Board) {
         name,
         private: isPrivate,
         createdById: userId,
+        collaborators: {
+          connect: collaboratorIds.map(id => ({ id }))
+        }
       },
       include: {
-        createdBy: true
+        createdBy: true,
+        collaborators: true
       }
     });
     
-    // Add collaborators using direct SQL
-    if (collaboratorIds.length > 0) {
-      for (const collaboratorId of collaboratorIds) {
-        try {
-          // Use the _BoardToUser implicit relation table that Prisma creates for many-to-many
-          await prisma.$executeRawUnsafe(
-            `INSERT INTO "_BoardToUser" ("A", "B") VALUES ($1, $2)`,
-            board.id,
-            collaboratorId
-          );
-        } catch (e) {
-          console.error(`Failed to add collaborator ${collaboratorId}:`, e);
-        }
-      }
-    }
-
     revalidatePath('/board');
     return { success: true, data: board };
   } catch (error) {

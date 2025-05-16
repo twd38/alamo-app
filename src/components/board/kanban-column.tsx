@@ -85,7 +85,7 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
         {...listeners}
         className="flex-1 min-w-[280px] max-w-[350px] transition-all duration-200"
       >
-        <div className="bg-muted/50 rounded-lg">
+        <div className="bg-muted/50 rounded-lg flex flex-col h-[calc(100vh-200px)]">
           <div className="px-3 py-2 bg-primary/5 rounded-t-lg border-b">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -125,9 +125,9 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
               </div>
             </div>
           </div>
-          <div className="p-2">
+          <div className="p-2 flex-1 overflow-hidden">
             <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto min-h-[400px]">
+              <div className="space-y-2 h-full overflow-y-auto">
                 {tasks.map((task) => (
                   task ? <TaskCard key={task.id} task={task} /> : null
                 ))}

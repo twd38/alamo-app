@@ -15,6 +15,9 @@ import TaskDetail from '@/components/board/task-detail';
 import { useAtom } from 'jotai';
 import { taskModal, filterStateAtom, FilterType } from '@/components/board/utils';
 import { useFilterAtom, isValidUser, isValidString, isValidDate } from "@/components/filter-popover"
+import { Plus } from "lucide-react"
+import NewSectionDialog from "./new-section-dialog"
+import { KanbanColumnNew } from "./kanban-column-add"
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +44,7 @@ export function KanbanBoard({
   const [sortableColumns, setSortableColumns] = useOptimistic(columns);
   const [activeTask, setActiveTask] = useAtom(taskModal)
   const [filterState, setFilterState] = useFilterAtom("kanban-board")
+  const [isNewSectionDialogOpen, setIsNewSectionDialogOpen] = useState(false);
 
   const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null
   const cleanActiveTaskData = activeTaskData ? {
@@ -285,7 +289,7 @@ export function KanbanBoard({
 
   return (
     <div className="">
-      <ScrollArea className="whitespace-nowrap ">
+      <ScrollArea className="whitespace-nowrap">
         <div className="flex gap-2 py-4 w-max">
             <DndContext 
               onDragEnd={handleDragEnd} 
@@ -298,6 +302,9 @@ export function KanbanBoard({
                   {filteredColumns.map((column, index) => (
                     <KanbanColumn key={index} id={column.id} name={column.name} tasks={column.tasks} handleAddTask={() => handleAddTask(column.id)} />
                   ))}
+
+                  {/* Add new section button */}
+                  <KanbanColumnNew onAddColumn={() => setIsNewSectionDialogOpen(true)} />
 
                 </SortableContext>
                 <DragOverlay>
@@ -317,6 +324,11 @@ export function KanbanBoard({
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
       <TaskDetail task={cleanActiveTaskData || null} boardId={boardId}/>
+      <NewSectionDialog 
+        boardId={boardId} 
+        isOpen={isNewSectionDialogOpen} 
+        onClose={() => setIsNewSectionDialogOpen(false)} 
+      />
     </div>
   )
 }
