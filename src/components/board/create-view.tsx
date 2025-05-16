@@ -21,9 +21,10 @@ type FormValues = z.infer<typeof viewSchema>;
 interface CreateViewDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  boardId: string;
 }
 
-export default function CreateViewDialog({ isOpen, onClose }: CreateViewDialogProps) {
+export default function CreateViewDialog({ isOpen, onClose, boardId }: CreateViewDialogProps) {
   // Get the current filters from the filter atom
   const [filterState] = useFilterAtom("kanban-board");
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function CreateViewDialog({ isOpen, onClose }: CreateViewDialogPr
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const result = await createBoardView(data.viewName, filterState.filters);
+      const result = await createBoardView(data.viewName, filterState.filters, boardId);
       
       if (result.success) {
         toast.success('View created successfully');

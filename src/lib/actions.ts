@@ -19,13 +19,13 @@ export async function updateDataAndRevalidate(path: string) {
     return { message: "Data updated and cache revalidated" };
 }
 
-export async function getKanbanSections() {
+export async function getKanbanSections(boardId?: string) {
     const kanbanSections = await prisma.kanbanSection.findMany({
         where: {
-            deletedOn: null
+            deletedOn: null,
+            boardId: boardId
         },
         include: {
-            jobs: true,
             tasks: {
                 where: {
                     deletedOn: null
@@ -49,25 +49,25 @@ export async function getKanbanSections() {
         kanbanSections.map(w => ({
             id: w.id,
             name: w.name,
-            taskCount: w.tasks.length,
-            taskOrders: w.tasks.map(t => t.taskOrder)
+            taskCount: w.tasks?.length || 0,
+            taskOrders: w.tasks?.map(t => t.taskOrder) || []
         }))
     );
     
     return kanbanSections;
 }
 
-export async function createKanbanSection(name: string) {
+export async function createKanbanSection(name: string, boardId: string) {
     const result = await prisma.kanbanSection.create({
       data: {
         name,
-        kanbanOrder: 0
+        kanbanOrder: 0,
+        boardId
       }
     })
     revalidatePath('/production')
     return { success: true, data: result };
-    // redirect('/production')
-  }
+}
 
 export async function updateKanbanSectionTasks({id, tasks}: {id:string, tasks:Task[]}) {
     try {
@@ -128,6 +128,7 @@ export async function createTask(data: {
     createdById: string;
     assignees: string[];
     kanbanSectionId: string;
+    boardId: string;
     taskOrder: number;
     files?: File[];
     tags?: string[];
@@ -163,6 +164,7 @@ export async function createTask(data: {
                     connect: data.assignees.map(userId => ({ id: userId }))
                 },
                 kanbanSectionId: data.kanbanSectionId,
+                boardId: data.boardId,
                 files: {
                     create: fileData
                 },
@@ -335,6 +337,7 @@ export async function updateTask(taskId: string, data: {
     description: string;
     assignees: string[];
     kanbanSectionId?: string;
+    boardId?: string;
     taskOrder: number;
     files?: (File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
     tags?: string[];
@@ -422,6 +425,7 @@ export async function updateTask(taskId: string, data: {
                     set: data.tags?.map(tag => ({ id: tag })) || []
                 },
                 kanbanSectionId: data.kanbanSectionId,
+                boardId: data.boardId,
                 private: data.private,
                 files: {
                     deleteMany: {
@@ -451,15 +455,18 @@ export async function updateTask(taskId: string, data: {
 
 export async function createTag({
     name,
-    color
+    color,
+    boardId
 }: {
     name: string;
     color: string;
+    boardId: string;
 }) {
     const result = await prisma.taskTag.create({
         data: {
             name,
-            color
+            color,
+            boardId
         }
     });
     return { success: true, data: result };
@@ -862,7 +869,7 @@ export async function evaluateLot(lot: Lot) {
   });
 }
 
-export async function createBoardView(name: string, filters: any) {
+export async function createBoardView(name: string, filters: any, boardId: string) {
   try {
     // Get user from auth
     const session = await auth();
@@ -877,6 +884,7 @@ export async function createBoardView(name: string, filters: any) {
         name,
         filters,
         createdById: userId,
+        boardId
       }
     });
 
@@ -885,5 +893,134 @@ export async function createBoardView(name: string, filters: any) {
   } catch (error) {
     console.error('Error creating board view:', error);
     return { success: false, error: 'Failed to create board view' };
+  }
+}
+
+// Board CRUD operations
+type Board = {
+  name: string;
+  isPrivate: boolean;
+  collaboratorIds: string[];
+}
+
+export async function createBoard({name, isPrivate, collaboratorIds}: Board) {
+  try {
+    // Get user from auth
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Create the board
+    const board = await prisma.board.create({
+      data: {
+        name,
+        private: isPrivate,
+        createdById: userId,
+      },
+      include: {
+        createdBy: true
+      }
+    });
+    
+    // Add collaborators using direct SQL
+    if (collaboratorIds.length > 0) {
+      for (const collaboratorId of collaboratorIds) {
+        try {
+          // Use the _BoardToUser implicit relation table that Prisma creates for many-to-many
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO "_BoardToUser" ("A", "B") VALUES ($1, $2)`,
+            board.id,
+            collaboratorId
+          );
+        } catch (e) {
+          console.error(`Failed to add collaborator ${collaboratorId}:`, e);
+        }
+      }
+    }
+
+    revalidatePath('/board');
+    return { success: true, data: board };
+  } catch (error) {
+    console.error('Error creating board:', error);
+    return { success: false, error: 'Failed to create board' };
+  }
+}
+
+export async function updateBoard(boardId: string, data: {
+  name?: string;
+  private?: boolean;
+}) {
+  try {
+    // Get user from auth
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Verify the user has permission to update this board
+    const board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        createdById: userId
+      }
+    });
+
+    if (!board) {
+      return { success: false, error: 'Board not found or you do not have permission to update it' };
+    }
+
+    const result = await prisma.board.update({
+      where: { id: boardId },
+      data: {
+        name: data.name,
+        private: data.private
+      }
+    });
+
+    revalidatePath('/board');
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error updating board:', error);
+    return { success: false, error: 'Failed to update board' };
+  }
+}
+
+export async function deleteBoard(boardId: string) {
+  try {
+    // Get user from auth
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Verify the user has permission to delete this board
+    const board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        createdById: userId
+      }
+    });
+
+    if (!board) {
+      return { success: false, error: 'Board not found or you do not have permission to delete it' };
+    }
+
+    // Delete the board
+    await prisma.board.delete({
+      where: { id: boardId }
+    });
+
+    revalidatePath('/board');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting board:', error);
+    return { success: false, error: 'Failed to delete board' };
   }
 }

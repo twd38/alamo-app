@@ -13,14 +13,14 @@ const sectionSchema = z.object({
   sectionName: z.string().min(1, 'Section name is required'),
 });
 
-export default function NewSectionDialog({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export default function NewSectionDialog({ boardId, isOpen, onClose }: { boardId: string, isOpen: boolean, onClose: () => void }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({
     resolver: zodResolver(sectionSchema),
   });
 
   const onSubmit = async (data: any) => {
     try {
-      await createKanbanSection(data.sectionName);
+      await createKanbanSection(data.sectionName, boardId);
       // clear the form
       reset();
       console.log('Section created successfully');

@@ -25,9 +25,10 @@ const operatorOptions = [
 
 type ActionPanelProps = {
     views: BoardView[]
+    boardId: string
 }
 
-export function ActionPanel({views}: ActionPanelProps) {
+export function ActionPanel({views, boardId}: ActionPanelProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
     const [activeTask, setActiveTask] = useAtom(taskModal)
@@ -137,8 +138,8 @@ export function ActionPanel({views}: ActionPanelProps) {
                     </div>
                 </div>
             </div>
-            <NewSectionDialog isOpen={isDialogOpen} onClose={closeNewSectionDialog} />
-            <CreateViewDialog isOpen={isCreateViewDialogOpen} onClose={closeCreateViewDialog} />
+            <NewSectionDialog boardId={boardId} isOpen={isDialogOpen} onClose={closeNewSectionDialog} />
+            {/* <CreateViewDialog isOpen={isCreateViewDialogOpen} onClose={closeCreateViewDialog} /> */}
         </div>
     );
 }

@@ -22,7 +22,6 @@ import { toast } from 'react-hot-toast';
 interface KanbanColumnProps {
   id: string
   name: string
-  jobs: Job[]
   tasks: (Task & {
     assignees: User[];
     createdBy: User;
@@ -32,14 +31,13 @@ interface KanbanColumnProps {
   handleAddTask?: () => void
 }
 
-export function KanbanColumn({ id, name, jobs, tasks, handleAddTask }: KanbanColumnProps) {
+export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: name });
   const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isDragging } = useSortable({ 
     id: name,
     data: {
       type: 'column',
       tasks,
-      jobs,
     }
   });
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);

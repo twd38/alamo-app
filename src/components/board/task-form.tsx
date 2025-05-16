@@ -39,7 +39,7 @@ import {
     getFileUrlFromKey, 
     createTag 
 } from "@/lib/actions";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useAtom } from "jotai";
 import { taskModal } from "./utils";
 import { DeleteAlert } from "@/components/delete-alert";
@@ -103,13 +103,14 @@ const formSchema = z.object({
     private: z.boolean().default(false)
 })
 
-const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
+const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: string }) => {
   const [activeTask, setActiveTask] = useAtom(taskModal)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const router = useRouter()
+
   const { data: users } = useSWR('allUsers', getAllUsers);
-  const { data: kanbanSections } = useSWR('allKanbanSections', getKanbanSections);
-  const { data: tags } = useSWR('allTags', getAllTags);
+  const { data: kanbanSections } = useSWR('allKanbanSections', () => getKanbanSections(boardId));
+  const { data: tags } = useSWR('allTags', () => getAllTags(boardId));
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -162,6 +163,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           createdById: data.createdById,
           assignees: data.assignees,
           kanbanSectionId: data.kanbanSectionId || "",
+          boardId: boardId,
           taskOrder: 0,
           files: data.files as File[],
           tags: data.tags,
@@ -487,7 +489,8 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                             const color = generateRandomColor()
                                             const result = await createTag({
                                                 name: value,
-                                                color: color
+                                                color: color,
+                                                boardId: boardId
                                             })
                                             const newTag = result.data
                                             return newTag

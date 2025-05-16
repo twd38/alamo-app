@@ -35,16 +35,72 @@ export async function getAllTasks() {
     })
 }
 
-export async function getKanbanSections() {
+export async function getBoards() {
+    const session = await auth();
+    const userId = session?.user?.id;
+    
+    if (!userId) return [];
+    
+    // Use prisma's standard API
+    return await prisma.board.findMany({
+        where: {
+            OR: [
+                { private: false },
+                { createdById: userId },
+                {
+                    // Find boards where user is a collaborator
+                    collaborators: {
+                        some: { id: userId }
+                    }
+                }
+            ]
+        },
+        include: {
+            createdBy: true,
+        },
+        orderBy: {
+            createdAt: 'desc'
+        }
+    });
+}
+
+export async function getBoard(boardId: string) {
+    const session = await auth();
+    const userId = session?.user?.id;
+    
+    if (!userId) return null;
+    
+    return await prisma.board.findFirst({
+        where: {
+            id: boardId,
+            OR: [
+                { private: false },
+                { createdById: userId },
+                {
+                    // Find boards where user is a collaborator
+                    collaborators: {
+                        some: { id: userId }
+                    }
+                }
+            ]
+        },
+        include: {
+            createdBy: true,
+            collaborators: true,
+        }
+    });
+}
+
+export async function getKanbanSections(boardId: string) {
     const session = await auth()
     const userId = session?.user?.id
     
     return await prisma.kanbanSection.findMany({
         where: {
-            deletedOn: null
+            deletedOn: null,
+            boardId: boardId
         },
         include: {
-            jobs: true,
             tasks: {
                 where: {
                     deletedOn: null,
@@ -70,20 +126,15 @@ export async function getKanbanSections() {
     })
 }
 
-export async function getAllTags() {
+export async function getAllTags(boardId?: string) {
     return await prisma.taskTag.findMany({
+        where: {
+            boardId: boardId
+        },
         select: {
             id: true,
             name: true,
             color: true
-        }
-    })
-}
-
-export async function getKanbanSectionJobs(kanbanSectionId: string) {
-    return await prisma.job.findMany({
-        where: {
-            kanbanSectionId: kanbanSectionId
         }
     })
 }
@@ -635,8 +686,11 @@ export async function getDevelopmentPlan(developmentPlanId: string) {
     return developmentPlan;
 }
 
-export async function getAllViews() {
+export async function getAllViews(boardId?: string) {
     return await prisma.boardView.findMany({
+        where: {
+            boardId: boardId
+        },
         include: {
             createdBy: true
         }

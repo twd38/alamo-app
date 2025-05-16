@@ -19,7 +19,6 @@ import { useFilterAtom, isValidUser, isValidString, isValidDate } from "@/compon
 export const dynamic = 'force-dynamic';
 
 type KanbanSectionWithJobsAndTasks = KanbanSection & {
-  jobs: Job[];
     tasks: (Task & {
       assignees: User[];
       createdBy: User;
@@ -31,9 +30,11 @@ type KanbanSectionWithJobsAndTasks = KanbanSection & {
 export function KanbanBoard({
   columns,
   tasks,
+  boardId,
 }: {
   columns: KanbanSectionWithJobsAndTasks[]
   tasks: Task[]
+  boardId: string
 }) {
   // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -295,7 +296,7 @@ export function KanbanBoard({
                 <SortableContext items={filteredColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
                 
                   {filteredColumns.map((column, index) => (
-                    <KanbanColumn key={index} id={column.id} name={column.name} jobs={column.jobs} tasks={column.tasks} handleAddTask={() => handleAddTask(column.id)} />
+                    <KanbanColumn key={index} id={column.id} name={column.name} tasks={column.tasks} handleAddTask={() => handleAddTask(column.id)} />
                   ))}
 
                 </SortableContext>
@@ -304,7 +305,6 @@ export function KanbanBoard({
                       <KanbanColumn
                         id={activeId}
                         name={sortableColumns.find(column => column.name === activeId)!.name}
-                        jobs={sortableColumns.find(column => column.name === activeId)!.jobs}
                         tasks={sortableColumns.find(column => column.name === activeId)!.tasks}
                         // handleAddTask={() => handleAddTask()}
                       />
@@ -316,7 +316,7 @@ export function KanbanBoard({
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      <TaskDetail task={cleanActiveTaskData || null}/>
+      <TaskDetail task={cleanActiveTaskData || null} boardId={boardId}/>
     </div>
   )
 }
