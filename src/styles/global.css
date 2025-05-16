@@ -113,15 +113,40 @@
   }
 }
 
-
-
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Markdown editor compact styling */
+.prose h1 {
+  font-size: 1.75rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.prose h2 {
+  font-size: 1.25rem !important;
+}
+.prose p {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+  line-height: 1.4 !important;
+}
+
+.prose {
+  line-height: 1.5 !important;
+}
+
+.prose > * + * {
+  margin-top: 0.75em !important;
+}
+
+.prose li + li {
+  margin-top: 0.25em !important;
 }
 
 pre {
@@ -211,13 +236,4 @@ input[type='search']::-moz-search-cancel-button {
 /* Microsoft Edge */
 input[type='search']::-ms-clear {
   display: none;
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
 }

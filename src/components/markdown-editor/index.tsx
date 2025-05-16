@@ -152,7 +152,7 @@ export const MarkdownEditor = ({
             handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
             attributes: {
               class:
-                `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full`,
+                `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full prose-p:my-1 prose-p:leading-tight`,
             },
           }}
           onUpdate={({ editor }) => {

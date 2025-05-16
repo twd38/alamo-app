@@ -41,7 +41,7 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
     if ((e.target as HTMLElement).closest('button')) return;
     
     setActiveTask({
-      type: "view",
+      type: "edit",
       taskId: task.id,
       kanbanSectionId: task.kanbanSectionId,
     });

@@ -537,7 +537,7 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                             />
                                             <span className="text-sm text-muted-foreground">
-                                                Only visible to assignees and creator
+                                                Only visible to creator
                                             </span>
                                         </div>
                                     </FormControl>
