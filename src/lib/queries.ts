@@ -637,8 +637,6 @@ export async function getParcelZoningDetail(parcelAddress: string): Promise<{ su
             .map(([k]) => k)
             .join(', ');
 
-        console.log(controls?.far_standard?.standard?.max_far)
-
         const detail: ParcelZoningDetail = {
             id: zoneDetails.id ?? null,
             screenshot: screenshot ?? null,

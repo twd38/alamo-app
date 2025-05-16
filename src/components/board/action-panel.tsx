@@ -130,7 +130,6 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem onClick={createNewTask} disabled>Job</DropdownMenuItem>
                                 <DropdownMenuItem onClick={createNewTask}>Task</DropdownMenuItem>
                                 <DropdownMenuItem onClick={openNewSectionDialog}>Section</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -139,7 +138,7 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
                 </div>
             </div>
             <NewSectionDialog boardId={boardId} isOpen={isDialogOpen} onClose={closeNewSectionDialog} />
-            {/* <CreateViewDialog isOpen={isCreateViewDialogOpen} onClose={closeCreateViewDialog} /> */}
+            <CreateViewDialog boardId={boardId} isOpen={isCreateViewDialogOpen} onClose={closeCreateViewDialog} />
         </div>
     );
 }

@@ -136,7 +136,7 @@ export function FilterPopover({
   // Use the appropriate atom based on storageKey
   const filterStateAtom = storageKey ? getAtomForKey(storageKey) : defaultFilterStateAtom;
   const [filterState, setFilterState] = useAtom<FilterState>(filterStateAtom);
-  console.log(filterState)
+
   // Initialize filters from either stored state or initialFilters
   const [filters, setFilters] = useState<FilterItem[]>(() => {
     if (storageKey && filterState.filters && filterState.filters.length > 0) {

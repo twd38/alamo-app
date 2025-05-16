@@ -3,13 +3,11 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent, CardHeader } from "src/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "src/components/ui/avatar"
-import { Clock, Calendar, User2, Hash, AlertCircle, Tag } from "lucide-react"
+import { Calendar, User2,Tag } from "lucide-react"
 import { Badge } from "src/components/ui/badge"
-import Image from "next/image"
 import { Prisma } from "@prisma/client"
 import { useAtom } from "jotai"
 import { taskModal } from "@/components/board/utils"
-import { getStatusConfig } from "@/lib/utils"
 
 type TaskWithRelations = Prisma.TaskGetPayload<{
   include: {
@@ -63,31 +61,25 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0">
-          {/* <div className="aspect-square relative mb-4 rounded-md overflow-hidden border">
-            <Image src={ "/placeholder.svg"} alt={task.name} fill className="object-cover" />
-          </div> */}
           <div className="space-y-3 text-sm">
-            {/* <div className="flex items-center gap-2">
-              <Hash className="h-4 w-4" />
-              <span>{task.taskNumber}</span>
-            </div> */}
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
               {
                 task.tags.map((tag) => (
-                  <Badge key={tag.id} className={`bg-${tag.color}-500`}>{tag.name}</Badge>
+                  <Badge key={tag.id}>{tag.name}</Badge>
                 ))
               }
+              {/* {
+                task.tags.map((tag) => (
+                  <Badge key={tag.id} className={`bg-${tag.color}-500`}>{tag.name}</Badge>
+                ))
+              } */}
             </div>
         
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               <span>{task.dueDate.toLocaleDateString()}</span>
             </div>
-            {/* <div className="flex items-center gap-2">
-              <User2 className="h-4 w-4" />
-              <span>{task.createdBy.name}</span>
-            </div> */}
             <div className="flex items-center gap-2">
               <User2 className="h-4 w-4" />
               {task.assignees.length > 0 ? (

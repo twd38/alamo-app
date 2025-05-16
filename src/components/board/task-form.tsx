@@ -132,7 +132,6 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
 
   // Handle form submission
   const submitForm = async (data: z.infer<typeof formSchema>) => {
-    console.log("form data", data)
     try {
       let result;
       
@@ -269,7 +268,6 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
   };
 
   const isLoading = form.formState.isSubmitting
-  console.log(isLoading)
 
   return (
     <Form {...form}>
@@ -473,7 +471,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                         />
 
                         {/* tags */}
-                        <FormField
+                        {/* <FormField
                             control={form.control}
                             name="tags"
                             render={({ field }) => (
@@ -505,6 +503,53 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                                 <Badge 
                                                     key={tag.id}
                                                     className={`bg-${tag.color}-500 hover:bg-${tag.color}-500/80`}
+                                                >
+                                                    {tag.name}
+                                                </Badge>
+                                                <Check
+                                                    className={cn(
+                                                        "ml-auto",
+                                                        isSelected ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
+                                        multiSelect
+                                    />
+                                </FormItem>
+                            )}
+                        /> */}
+                        <FormField
+                            control={form.control}
+                            name="tags"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2">
+                                    <FormLabel className="w-24">Tags</FormLabel>
+                                    <ComboBox 
+                                        field={field} 
+                                        defaultValues={tags || []} 
+                                        onCreateValue={async (value) => {
+                                            const color = generateRandomColor()
+                                            const result = await createTag({
+                                                name: value,
+                                                color: color,
+                                                boardId: boardId
+                                            })
+                                            const newTag = result.data
+                                            return newTag
+                                        }}
+                                        renderSelected={(tag) => (
+                                            <Badge 
+                                                key={tag.id}
+                                                className={`flex items-center gap-1`}
+                                            >
+                                                {tag.name}
+                                            </Badge>
+                                        )}
+                                        renderOption={(tag, isSelected) => (
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <Badge 
+                                                    key={tag.id}
                                                 >
                                                     {tag.name}
                                                 </Badge>
