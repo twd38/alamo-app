@@ -153,6 +153,7 @@ model Task {
   files         File[]
   deletedOn     DateTime?
   taskOrder     Int @default(0)
+  private       Boolean @default(false)
 }
 
 model TaskTag {

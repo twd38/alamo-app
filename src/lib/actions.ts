@@ -131,6 +131,7 @@ export async function createTask(data: {
     taskOrder: number;
     files?: File[];
     tags?: string[];
+    private?: boolean;
 }) {
     try {
         const session = await auth()
@@ -167,7 +168,8 @@ export async function createTask(data: {
                 },
                 tags: {
                     connect: data.tags?.map(tag => ({ id: tag })) || []
-                }
+                },
+                private: data.private || false
             },
             include: {
                 assignees: true,
@@ -334,8 +336,9 @@ export async function updateTask(taskId: string, data: {
     assignees: string[];
     kanbanSectionId?: string;
     taskOrder: number;
-    files?: (File | { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
+    files?: (File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
     tags?: string[];
+    private?: boolean;
 }) {
     console.log("Updating task", taskId, data)
     try {
@@ -419,6 +422,7 @@ export async function updateTask(taskId: string, data: {
                     set: data.tags?.map(tag => ({ id: tag })) || []
                 },
                 kanbanSectionId: data.kanbanSectionId,
+                private: data.private,
                 files: {
                     deleteMany: {
                         id: {
@@ -428,10 +432,8 @@ export async function updateTask(taskId: string, data: {
                     create: fileData,
                     // Keep existing files that weren't deleted
                     connect: newFiles
-                        .filter((f): f is { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string } => 
-                            !isFileInstance(f)
-                        )
-                        .map(f => ({ id: f.id }))
+                        .filter(f => !isFileInstance(f) && 'id' in f)
+                        .map(f => ({ id: (f as any).id }))
                 }
             },
             include: {
@@ -464,7 +466,7 @@ export async function createTag({
 }
 
 // Helper function to check if a file is a File instance
-function isFileInstance(file: File | { id: string; url: string; name: string; type: string; size: number; taskId: string; jobId: string }): file is File {
+function isFileInstance(file: File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string }): file is File {
     return file instanceof File;
 }
 

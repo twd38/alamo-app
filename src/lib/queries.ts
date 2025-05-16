@@ -36,6 +36,9 @@ export async function getAllTasks() {
 }
 
 export async function getKanbanSections() {
+    const session = await auth()
+    const userId = session?.user?.id
+    
     return await prisma.kanbanSection.findMany({
         where: {
             deletedOn: null
@@ -44,7 +47,14 @@ export async function getKanbanSections() {
             jobs: true,
             tasks: {
                 where: {
-                    deletedOn: null
+                    deletedOn: null,
+                    OR: [
+                        { private: false },
+                        { 
+                            private: true,
+                            createdById: userId
+                        }
+                    ]
                 },
                 orderBy: {
                     taskOrder: 'asc'

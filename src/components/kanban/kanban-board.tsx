@@ -111,11 +111,6 @@ export function KanbanBoard({
     }));
   }, [sortableColumns, filterState]);
 
-  // console.log(sortableColumns)
-  // console.log(activeId)
-  // console.log(sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeId))
-  console.log(tasks)
-  console.log(filterState)
   
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

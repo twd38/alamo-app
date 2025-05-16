@@ -9,6 +9,7 @@ import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import { UserSelect } from '@/components/user-select';
 import { User } from "@prisma/client"
+import { Switch } from "@/components/ui/switch"
 
 
 export type FilterItem = {
@@ -22,7 +23,7 @@ export type FilterOption = {
   label: string
   value: string
   icon: React.ReactNode
-  inputType?: "text" | "number" | "date" | "user"
+  inputType?: "text" | "number" | "date" | "user" | "boolean"
   userOptions?: any[]
 }
 
@@ -93,6 +94,13 @@ const ValueInput = ({ filter, filterOptions, updateFilter }: { filter: FilterIte
     />
   }
 
+  if(filterOption?.inputType === "boolean") {
+    return <Switch
+      checked={filter.value === "true"}
+      onCheckedChange={(checked: any) => updateFilter(filter.id, "value", checked.toString())}
+    />
+  }
+
   return (
     <Input
       type="text"
@@ -128,7 +136,7 @@ export function FilterPopover({
   // Use the appropriate atom based on storageKey
   const filterStateAtom = storageKey ? getAtomForKey(storageKey) : defaultFilterStateAtom;
   const [filterState, setFilterState] = useAtom<FilterState>(filterStateAtom);
-  
+  console.log(filterState)
   // Initialize filters from either stored state or initialFilters
   const [filters, setFilters] = useState<FilterItem[]>(() => {
     if (storageKey && filterState.filters && filterState.filters.length > 0) {

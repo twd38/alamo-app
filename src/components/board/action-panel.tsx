@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input"
-import { ChevronDown, Filter, Search, Tag, User, Calendar, CheckCircle, Plus } from "lucide-react"
+import { ChevronDown, Filter, Search, Tag, User, Calendar, CheckCircle, Plus, Lock } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import NewSectionDialog from './new-section-dialog';
 import CreateViewDialog from './create-view';
@@ -14,15 +14,20 @@ import { getAllUsers, getAllViews } from '@/lib/queries';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useFilterAtom } from '@/components/filter-popover';
 import useSWR from 'swr';
+import { BoardView } from '@prisma/client';
 
-  const operatorOptions = [
+const operatorOptions = [
     { label: "is", value: "is"},
     { label: "is not", value: "is_not" },
     { label: "contains", value: "contains" },
     { label: "does not contain", value: "does_not_contain" },
-  ]
+]
 
-export function ActionPanel() {
+type ActionPanelProps = {
+    views: BoardView[]
+}
+
+export function ActionPanel({views}: ActionPanelProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
     const [activeTask, setActiveTask] = useAtom(taskModal)
@@ -30,9 +35,6 @@ export function ActionPanel() {
 
     // use swr to get all users
     const { data: allUsers, isLoading } = useSWR('all-users', getAllUsers);
-    const { data: allViews, isLoading: isLoadingViews } = useSWR('all-views', getAllViews);
-
-    console.log(allViews)
 
     const openNewSectionDialog = () => {
       setIsDialogOpen(true);
@@ -64,7 +66,7 @@ export function ActionPanel() {
 
     const handleViewChange = (viewId: string) => {
         console.log(viewId)
-        const viewFilter: any = allViews?.find((view) => view.id === viewId)?.filters
+        const viewFilter: any = views?.find((view) => view.id === viewId)?.filters
         console.log(viewFilter)
         // // set the filter state to the view filters
         setFilterState({
@@ -78,6 +80,7 @@ export function ActionPanel() {
         { label: "Due date", value: "due_date", icon: <Calendar className="h-4 w-4 mr-2" /> },
         { label: "Created by", value: "created_by", icon: <User className="h-4 w-4 mr-2" /> },
         { label: "Completed on", value: "completed_on", icon: <CheckCircle className="h-4 w-4 mr-2" /> },
+        { label: "Private", value: "private", icon: <Lock className="h-4 w-4 mr-2" />, inputType: "boolean" },
     ]
 
     return (
@@ -91,7 +94,7 @@ export function ActionPanel() {
                     <TabsList>
                         <TabsTrigger value="task">Overview</TabsTrigger>
                         {
-                            allViews?.map((view) => (
+                            views?.map((view) => (
                                 <TabsTrigger key={view.id} value={view.id}>{view.name}</TabsTrigger>
                             ))
                         }

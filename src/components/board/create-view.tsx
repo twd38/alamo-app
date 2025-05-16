@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { createBoardView } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 import { useFilterAtom } from '@/components/filter-popover';
+import { useRouter } from 'next/navigation';
 
 const viewSchema = z.object({
   viewName: z.string().min(1, 'View name is required'),
@@ -25,6 +26,7 @@ interface CreateViewDialogProps {
 export default function CreateViewDialog({ isOpen, onClose }: CreateViewDialogProps) {
   // Get the current filters from the filter atom
   const [filterState] = useFilterAtom("kanban-board");
+  const router = useRouter();
   
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<FormValues>({
     resolver: zodResolver(viewSchema),
@@ -38,6 +40,7 @@ export default function CreateViewDialog({ isOpen, onClose }: CreateViewDialogPr
         toast.success('View created successfully');
         reset();
         onClose();
+        router.refresh();
       } else {
         toast.error(result.error || 'Failed to create view');
       }

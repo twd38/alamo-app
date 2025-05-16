@@ -50,13 +50,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { getStatusConfig, formatFileSize } from "@/lib/utils"
 import { toast } from "react-hot-toast";
@@ -106,7 +99,8 @@ const formSchema = z.object({
             })
         ])
     ).optional(),
-    tags: z.array(z.string()).optional()
+    tags: z.array(z.string()).optional(),
+    private: z.boolean().default(false)
 })
 
 const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
@@ -131,7 +125,8 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
       assignees: task?.assignees.map(a => a.id) || [],
       kanbanSectionId: task?.kanbanSectionId || activeTask.kanbanSectionId || undefined,
       files: task?.files || [],
-      tags: task?.tags
+      tags: task?.tags,
+      private: task?.private || false
     }
   })
 
@@ -153,7 +148,8 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           kanbanSectionId: data.kanbanSectionId,
           taskOrder: task.taskOrder,
           files: data.files,
-          tags: data.tags
+          tags: data.tags,
+          private: data.private
         });
       } else {
         // Create new task
@@ -168,7 +164,8 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
           kanbanSectionId: data.kanbanSectionId || "",
           taskOrder: 0,
           files: data.files as File[],
-          tags: data.tags
+          tags: data.tags,
+          private: data.private
         });
       }
 
@@ -523,12 +520,30 @@ const TaskForm = ({ task }: { task: TaskWithRelations | null }) => {
                                     />
                                 </FormItem>
                             )}
-                            
                         />
 
-                        
-
-                        
+                        <FormField
+                            control={form.control}
+                            name="private"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2">
+                                    <FormLabel className="w-24">Private</FormLabel>
+                                    <FormControl>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={field.value}
+                                                onChange={field.onChange}
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                            <span className="text-sm text-muted-foreground">
+                                                Only visible to assignees and creator
+                                            </span>
+                                        </div>
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}
