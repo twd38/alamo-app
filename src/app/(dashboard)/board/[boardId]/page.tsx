@@ -6,7 +6,13 @@ import { BoardsTopBar } from '@/components/board/top-bar'
 import PageContainer from '@/components/page-container';
 export const dynamic = 'force-dynamic';
 
-export default async function ProductionPage({params}: {params: {boardId: string}}) {
+type BoardPageProps = {
+  params: Promise<{
+    boardId: string;
+  }>
+}
+
+export default async function ProductionPage({params}: BoardPageProps) {
   const { boardId } = await params;
   const [tasks, kanbanSections, views, boards] = await Promise.all([
     getAllTasks(),
