@@ -57,6 +57,7 @@ export async function getBoards() {
         },
         include: {
             createdBy: true,
+            collaborators: true,
         },
         orderBy: {
             createdAt: 'desc'
