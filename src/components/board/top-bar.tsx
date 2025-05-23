@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import CreateBoardDialog from './create-board';
+import CreateBoardDialog from './create-board-dialog';
 import EditBoardDialog from './edit-board-dialog';
 import { ConfirmDeleteAlert } from '@/components/confirm-delete-alert';
 import { deleteBoard } from '@/lib/actions';
@@ -134,15 +134,14 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
-              Edit board details
+              Edit board
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>Manage access</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => setIsDeleteOpen(true)}
               className="text-red-600"
             >
-              Archive Board
+              Archive board
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -153,6 +152,8 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
         onClose={() => setIsEditOpen(false)}
         boardId={activeBoard.id}
         boardName={activeBoard.name}
+        isPrivate={activeBoard.private}
+        collaboratorIds={activeBoard.collaborators.map(c => c.id)}
       />
       <ConfirmDeleteAlert
         isOpen={isDeleteOpen}

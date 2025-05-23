@@ -1,21 +1,40 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useDebouncedCallback } from 'use-debounce';
+import { Checkbox } from '@/components/ui/checkbox';
+import { UserSelect } from '@/components/user-select';
 import { updateBoard } from '@/lib/actions';
+import { getAllUsers, getUser } from '@/lib/queries';
 import { toast } from 'react-hot-toast';
+import { User } from '@prisma/client';
+import { useState } from 'react';
+
+const boardSchema = z.object({
+  boardName: z.string().min(1, 'Board name is required'),
+  isPrivate: z.boolean().default(false),
+  collaboratorIds: z.array(z.string()).optional().default([]),
+});
+
+type FormValues = z.infer<typeof boardSchema>;
 
 interface EditBoardDialogProps {
   boardId: string;
   boardName: string;
+  isPrivate: boolean;
+  collaboratorIds: string[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -23,29 +42,82 @@ interface EditBoardDialogProps {
 export default function EditBoardDialog({
   boardId,
   boardName,
+  isPrivate: initialIsPrivate,
+  collaboratorIds: initialCollaboratorIds,
   isOpen,
   onClose
 }: EditBoardDialogProps) {
-  const [name, setName] = useState(boardName);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<FormValues>({
+    resolver: zodResolver(boardSchema),
+    defaultValues: {
+      boardName: boardName,
+      isPrivate: initialIsPrivate,
+      collaboratorIds: initialCollaboratorIds,
+    }
+  });
+
+  const isPrivate = watch('isPrivate');
+  const collaboratorIds = watch('collaboratorIds');
 
   useEffect(() => {
+    async function fetchUsers() {
+      try {
+        setLoading(true);
+        const fetchedUsers = await getAllUsers();
+        const currentUser = await getUser();
+        // Filter out the current user
+        const filteredUsers = fetchedUsers.filter(
+          user => user.id !== currentUser?.id
+        ) as User[];
+        
+        setUsers(filteredUsers);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
     if (isOpen) {
-      setName(boardName);
+      fetchUsers();
+      reset({
+        boardName: boardName,
+        isPrivate: initialIsPrivate,
+        collaboratorIds: initialCollaboratorIds,
+      });
     }
-  }, [boardName, isOpen]);
+  }, [isOpen, boardName, initialIsPrivate, initialCollaboratorIds, reset]);
 
-  const debouncedSave = useDebouncedCallback(async (value: string) => {
-    if (!value) return;
-    const result = await updateBoard(boardId, { name: value });
-    if (!result.success) {
-      toast.error(result.error || 'Failed to update board');
+  const handleCheckboxChange = (checked: boolean) => {
+    setValue('isPrivate', checked);
+  };
+
+  const handleCollaboratorsChange = (selectedIds: string | string[]) => {
+    const ids = Array.isArray(selectedIds) ? selectedIds : [selectedIds].filter(Boolean);
+    setValue('collaboratorIds', ids);
+  };
+
+  const onSubmit = async (data: FormValues) => {
+    try {
+      const result = await updateBoard(boardId, {
+        name: data.boardName,
+        private: data.isPrivate,
+        collaboratorIds: data.collaboratorIds
+      });
+      
+      if (result.success) {
+        toast.success('Board updated successfully');
+        onClose();
+      } else {
+        toast.error(result.error || 'Failed to update board');
+      }
+    } catch (error) {
+      console.error('Error updating board:', error);
+      toast.error('Error updating board');
     }
-  }, 250);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setName(value);
-    debouncedSave(value);
   };
 
   return (
@@ -54,10 +126,59 @@ export default function EditBoardDialog({
         <DialogHeader>
           <DialogTitle>Edit Board Details</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 pt-2">
-          <Label htmlFor="board-name">Name</Label>
-          <Input id="board-name" value={name} onChange={handleChange} />
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="space-y-4 pb-4">
+            <div className="space-y-2">
+              <Label htmlFor="boardName">Board Name</Label>
+              <Input
+                id="boardName"
+                placeholder="My Board"
+                {...register('boardName')}
+              />
+              {errors.boardName && (
+                <p className="text-sm text-red-500">{errors.boardName.message}</p>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="isPrivate" 
+                checked={isPrivate}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="isPrivate">Private board (only visible to you and collaborators)</Label>
+            </div>
+
+            {isPrivate && (
+              <div className="space-y-2 pt-2">
+                <Label>Collaborators</Label>
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading users...</p>
+                ) : (
+                  <UserSelect 
+                    users={users}
+                    value={collaboratorIds}
+                    onChange={handleCollaboratorsChange}
+                    multiSelect={true}
+                    placeholder="Select collaborators"
+                  />
+                )}
+                <p className="text-xs text-gray-500">
+                  Collaborators can view and edit this board
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

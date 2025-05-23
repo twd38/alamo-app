@@ -17,7 +17,7 @@ interface UserAccessListProps {
   isPublic?: boolean
 }
 
-export function UserAccessList({ users, maxVisible = 2, overlapAmount = 8, isPublic = false }: UserAccessListProps) {
+export function UserAccessList({ users, maxVisible = 3, overlapAmount = 8, isPublic = false }: UserAccessListProps) {
     const visibleUsers = users.slice(0, maxVisible)
     const remainingCount = users.length - maxVisible
     console.log(users)

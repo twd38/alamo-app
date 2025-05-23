@@ -940,6 +940,7 @@ export async function createBoard({name, isPrivate, collaboratorIds}: Board) {
 export async function updateBoard(boardId: string, data: {
   name?: string;
   private?: boolean;
+  collaboratorIds?: string[];
 }) {
   try {
     // Get user from auth
@@ -966,7 +967,14 @@ export async function updateBoard(boardId: string, data: {
       where: { id: boardId },
       data: {
         name: data.name,
-        private: data.private
+        private: data.private,
+        collaborators: data.collaboratorIds ? {
+          set: data.collaboratorIds.map(id => ({ id }))
+        } : undefined
+      },
+      include: {
+        createdBy: true,
+        collaborators: true
       }
     });
 
