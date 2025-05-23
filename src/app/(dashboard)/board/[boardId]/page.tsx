@@ -17,15 +17,19 @@ export default async function ProductionPage({params}: BoardPageProps) {
   const [tasks, kanbanSections, views, boards] = await Promise.all([
     getAllTasks(),
     getKanbanSections(boardId),
-    getAllViews(),
+    getAllViews(boardId),
     getBoards(),
   ]);
 
-  const activeBoardName = boards.find((board) => board.id === boardId)?.name || boardId
+  const activeBoard = boards.find((board) => board.id === boardId)
+
+  if(!activeBoard) {
+    return <div>Board not found</div>
+  }
 
   return (
     <div>
-      <BoardsTopBar activeBoardName={activeBoardName} boards={boards} />
+      <BoardsTopBar activeBoard={activeBoard} boards={boards} />
       <PageContainer>
         <ActionPanel views={views} boardId={boardId} />
         <KanbanBoard columns={kanbanSections} tasks={tasks} boardId={boardId} />
