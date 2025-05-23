@@ -39,8 +39,10 @@ export async function uploadFileToR2(file: File, path: string): Promise<{ url: s
     ContentType: file.type,
   });
 
-  // Upload file using presigned URL
-  const upload = await fetch(key, {
+  // Upload file using a presigned URL
+  const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+
+  const upload = await fetch(presignedUrl, {
     method: "PUT",
     body: file,
     headers: {
