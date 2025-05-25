@@ -896,6 +896,48 @@ export async function createBoardView(name: string, filters: any, boardId: strin
   }
 }
 
+export async function updateBoardView(boardViewId: string, data: {
+  name?: string;
+  filters?: any;
+}) {
+  try {
+    console.log(boardViewId, data)
+    // Get user from auth
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Verify the user has permission to update this board view
+    // const boardView = await prisma.boardView.findFirst({
+    //   where: {
+    //     id: boardViewId,
+    //     createdById: userId
+    //   }
+    // });
+
+    // if (!boardView) {
+    //   return { success: false, error: 'Board view not found or you do not have permission to update it' };
+    // }
+
+    const result = await prisma.boardView.update({
+      where: { id: boardViewId },
+      data: {
+        name: data.name,
+        filters: data.filters
+      }
+    });
+
+    revalidatePath('/board');
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error updating board view:', error);
+    return { success: false, error: 'Failed to update board view' };
+  }
+}
+
 // Board CRUD operations
 type Board = {
   name: string;

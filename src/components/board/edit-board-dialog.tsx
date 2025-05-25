@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,7 +20,6 @@ import { updateBoard } from '@/lib/actions';
 import { getAllUsers, getUser } from '@/lib/queries';
 import { toast } from 'react-hot-toast';
 import { User } from '@prisma/client';
-import { useState } from 'react';
 
 const boardSchema = z.object({
   boardName: z.string().min(1, 'Board name is required'),

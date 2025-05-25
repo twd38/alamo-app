@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronDown, X, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -128,15 +128,16 @@ export function FilterPopover({
   operatorOptions,
   onApplyFilters,
   storageKey,
-  initialFilters = [{ id: "0", type: filterOptions[0]?.label || "", operator: operatorOptions[0]?.label || "", value: "" }],
+  initialFilters = [], 
   buttonText = "Filter"
 }: FilterPopoverProps) {
   const [open, setOpen] = useState(false)
   
+  
   // Use the appropriate atom based on storageKey
   const filterStateAtom = storageKey ? getAtomForKey(storageKey) : defaultFilterStateAtom;
   const [filterState, setFilterState] = useAtom<FilterState>(filterStateAtom);
-
+  
   // Initialize filters from either stored state or initialFilters
   const [filters, setFilters] = useState<FilterItem[]>(() => {
     if (storageKey && filterState.filters && filterState.filters.length > 0) {
@@ -144,6 +145,13 @@ export function FilterPopover({
     }
     return initialFilters;
   });
+
+  // Update filters when initialFilters changes
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [initialFilters]);
   
   const clearFilters = () => {
     setFilters([]);

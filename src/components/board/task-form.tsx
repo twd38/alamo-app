@@ -272,14 +272,14 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(submitForm)} className="space-y-8">
-        <div className="h-full overflow-y-auto py-2">
+        <div className="h-full overflow-y-auto">
             <div className="space-y-2">
-                <div className="flex items-center justify-between px-6">
+                <div className="flex items-center justify-between px-6 border-b h-12">
                     <Button 
                         type="submit"
                         variant="outline" 
                         size="sm" 
-                        className="gap-2"
+                        className="gap-1"
                         isLoading={isLoading}
                     >
                         <Check className="h-4 w-4" />
@@ -308,7 +308,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                         )}
                     </div>
                 </div>
-                <div className="w-full h-[1px] bg-border" />
+                {/* <div className="w-full h-[1px] bg-border" /> */}
 
                 <div className="px-4 space-y-2">
                     <FormField

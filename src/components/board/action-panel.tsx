@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input"
-import { ChevronDown, Filter, Search, Tag, User, Calendar, CheckCircle, Plus, Lock } from "lucide-react"
+import { ChevronDown, Filter, Search, Tag, User, Calendar, CheckCircle, Plus, Lock, MoreVertical, Save, FilePlus } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import NewSectionDialog from './new-section-dialog';
 import CreateViewDialog from './create-view';
@@ -14,7 +14,10 @@ import { getAllUsers, getAllViews } from '@/lib/queries';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useFilterAtom } from '@/components/filter-popover';
 import useSWR from 'swr';
+import { updateBoardView } from '@/lib/actions';
 import { BoardView } from '@prisma/client';
+import { toast } from 'react-hot-toast';
+import UpdateViewDialog from './update-view-dialog';
 
 const operatorOptions = [
     { label: "is", value: "is"},
@@ -31,9 +34,12 @@ type ActionPanelProps = {
 export function ActionPanel({views, boardId}: ActionPanelProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
+    const [isUpdateViewDialogOpen, setIsUpdateViewDialogOpen] = useState(false);
     const [activeTask, setActiveTask] = useAtom(taskModal)
     const [filterState, setFilterState] = useFilterAtom("kanban-board")
-
+    const [activeView, setActiveView] = useState<BoardView | null>(null)
+    console.log("activeView", activeView)
+    console.log("filterState", filterState)
     // use swr to get all users
     const { data: allUsers, isLoading } = useSWR('all-users', getAllUsers);
 
@@ -53,6 +59,14 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
       setIsCreateViewDialogOpen(false);
     };
 
+    const openUpdateViewDialog = () => {
+        setIsUpdateViewDialogOpen(true);
+    }
+
+    const closeUpdateViewDialog = () => {
+        setIsUpdateViewDialogOpen(false);
+    }
+
     const createNewTask = () => {
         setActiveTask({
             type: "new",
@@ -66,13 +80,22 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
     };
 
     const handleViewChange = (viewId: string) => {
-        console.log(viewId)
         const viewFilter: any = views?.find((view) => view.id === viewId)?.filters
-        console.log(viewFilter)
         // // set the filter state to the view filters
         setFilterState({
             filters: viewFilter || [],
         })
+        setActiveView(views?.find((view) => view.id === viewId) || null)
+    }
+
+    const handleUpdateView = () => {
+        console.log("filterState", filterState)
+        if(activeView?.id) {
+            updateBoardView(activeView.id, {
+                filters: filterState.filters,
+            })
+            toast.success("View updated")
+        }
     }
 
     const filterOptions: FilterOption[] = [
@@ -83,6 +106,11 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
         { label: "Completed on", value: "completed_on", icon: <CheckCircle className="h-4 w-4 mr-2" /> },
         { label: "Private", value: "private", icon: <Lock className="h-4 w-4 mr-2" />, inputType: "boolean" },
     ]
+
+    // on mount, set filter state to empty
+    useEffect(() => {
+        setFilterState({ filters: [] });
+    }, [setFilterState]);
 
     return (
         <div>
@@ -100,23 +128,36 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
                             ))
                         }
                     </TabsList>
-                    
                 </Tabs>
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mx-1"
-                    onClick={openCreateViewDialog}
-                    title="Create new view"
-                >
-                    <Plus className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="mx-1"
+                            title="View options"
+                        >
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem disabled={!activeView} onClick={openUpdateViewDialog}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Update view
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={openCreateViewDialog}>
+                            <FilePlus className="h-4 w-4 mr-2" />
+                            Create view
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="flex items-center gap-2 ml-auto">
                     <FilterPopover
                         filterOptions={filterOptions}
                         operatorOptions={operatorOptions}
                         onApplyFilters={handleApplyFilters}
                         storageKey="kanban-board"
+                        initialFilters={filterState.filters || [{ id: "0", type: filterOptions[0]?.label || "", operator: operatorOptions[0]?.label || "", value: "" }]}
                         buttonText="Filter"
                     />
                     <div className="flex items-center">
@@ -139,6 +180,7 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
             </div>
             <NewSectionDialog boardId={boardId} isOpen={isDialogOpen} onClose={closeNewSectionDialog} />
             <CreateViewDialog boardId={boardId} isOpen={isCreateViewDialogOpen} onClose={closeCreateViewDialog} />
+            <UpdateViewDialog boardViewId={activeView?.id || ""} isOpen={isUpdateViewDialogOpen} onClose={closeUpdateViewDialog} initialViewName={activeView?.name || ""} initialFilters={filterState.filters || []} />
         </div>
     );
 }
