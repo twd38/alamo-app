@@ -541,7 +541,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                         renderSelected={(tag) => (
                                             <Badge 
                                                 key={tag.id}
-                                                className={`flex items-center gap-1`}
+                                                className={`flex items-center gap-1 bg-${tag.color}-600 hover:bg-gray-300 text-white`}
                                             >
                                                 {tag.name}
                                             </Badge>
@@ -550,6 +550,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                             <div className="flex items-center gap-2 flex-1">
                                                 <Badge 
                                                     key={tag.id}
+                                                    className={`flex items-center gap-1 bg-${tag.color}-600 hover:bg-gray-300 text-white`}
                                                 >
                                                     {tag.name}
                                                 </Badge>

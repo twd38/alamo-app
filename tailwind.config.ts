@@ -8,6 +8,20 @@ export default {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}'
   ],
+  safelist: [
+    // Background colors
+    {
+      pattern: /^bg-(red|green|blue|yellow|gray|slate|zinc|neutral|stone|orange|amber|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)$/,
+    },
+    // Text colors
+    {
+      pattern: /^text-(red|green|blue|yellow|gray|slate|zinc|neutral|stone|orange|amber|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)$/,
+    },
+    // Border colors
+    {
+      pattern: /^border-(red|green|blue|yellow|gray|slate|zinc|neutral|stone|orange|amber|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)$/,
+    },
+  ],
   prefix: '',
   theme: {
   	container: {

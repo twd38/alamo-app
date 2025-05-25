@@ -64,16 +64,16 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
-              {
+              {/* {
                 task.tags.map((tag) => (
                   <Badge key={tag.id}>{tag.name}</Badge>
                 ))
-              }
-              {/* {
-                task.tags.map((tag) => (
-                  <Badge key={tag.id} className={`bg-${tag.color}-500`}>{tag.name}</Badge>
-                ))
               } */}
+              {
+                task.tags.map((tag) => (
+                  <Badge key={tag.id} className={`bg-${tag.color}-600 hover:bg-gray-300 text-white`}>{tag.name}</Badge>
+                ))
+              }
             </div>
         
             <div className="flex items-center gap-2">
