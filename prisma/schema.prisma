@@ -81,6 +81,7 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+  CRITICAL
 }
 
 model File {
@@ -138,9 +139,11 @@ model Task {
   taskNumber      String
   status          Status
   tags            TaskTag[]
-  priority        Priority?      @default(LOW)
+  priority        Priority       @default(LOW)
   projectId       String?
   project         Project?       @relation(fields: [projectId], references: [id])
+  epicId          String?
+  epic            Epic?          @relation(fields: [epicId], references: [id])
   dueDate         DateTime
   description     String
   dependencies    Task[]         @relation("TaskDependencies")
@@ -158,10 +161,35 @@ model Task {
   private         Boolean        @default(false)
 }
 
+enum Color {
+  slate
+  gray
+  zinc
+  neutral
+  stone
+  red
+  orange
+  amber
+  yellow
+  lime
+  green
+  emerald
+  teal
+  cyan
+  sky
+  blue
+  indigo
+  violet
+  purple
+  fuchsia
+  pink
+  rose
+}
+
 model TaskTag {
   id      String  @id @default(cuid())
   name    String
-  color   String? @default("bg-gray-500")
+  color   Color   @default(slate)
   tasks   Task[]
   boardId String?
   board   Board?  @relation(fields: [boardId], references: [id], onDelete: SetNull)
@@ -199,6 +227,7 @@ model Board {
   sections      KanbanSection[]
   tasks         Task[]
   tags          TaskTag[]
+  epics         Epic[]
   views         BoardView[]
   collaborators User[]          @relation("BoardCollaborators")
   createdAt     DateTime        @default(now())
@@ -466,4 +495,17 @@ model Zoning {
   parcels     Parcel[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Epic {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?  @default("bg-gray-500")
+  tasks     Task[]
+  boardId   String?
+  board     Board?   @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, boardId])
 }

@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { Status, PartType } from "@prisma/client"
+import { Status, PartType, Color } from "@prisma/client"
 import { prisma } from '@/lib/db';
 import { floor } from "lodash";
 export function cn(...inputs: ClassValue[]) {
@@ -194,5 +194,5 @@ export function generateRandomColor() {
     "pink", "rose"
   ]
   const color = colors[Math.floor(Math.random() * colors.length)] 
-  return color
+  return color as Color
 }

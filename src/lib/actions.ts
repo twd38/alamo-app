@@ -1,7 +1,7 @@
 'use server'
 import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
-import { Status } from '@prisma/client';
+import { Priority, Status, Color } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType, TaskTag } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
@@ -123,6 +123,7 @@ export async function createTask(data: {
     name: string;
     taskNumber: string;
     status: Status;
+    priority: Priority;
     dueDate: Date;
     description: string;
     createdById: string;
@@ -133,6 +134,7 @@ export async function createTask(data: {
     files?: File[];
     tags?: string[];
     private?: boolean;
+    epicId?: string;
 }) {
     try {
         const session = await auth()
@@ -157,6 +159,7 @@ export async function createTask(data: {
                 name: data.name,
                 taskNumber: data.taskNumber,
                 status: data.status,
+                priority: data.priority,
                 dueDate: data.dueDate,
                 description: data.description,
                 createdById: userId,
@@ -171,7 +174,8 @@ export async function createTask(data: {
                 tags: {
                     connect: data.tags?.map(tag => ({ id: tag })) || []
                 },
-                private: data.private || false
+                private: data.private || false,
+                epicId: data.epicId
             },
             include: {
                 assignees: true,
@@ -296,11 +300,13 @@ export async function duplicateTask(taskId: string) {
                 name: `${originalTask.name} (Copy)`,
                 taskNumber: `${originalTask.taskNumber}`,
                 status: originalTask.status,
+                priority: originalTask.priority,
                 dueDate: originalTask.dueDate,
                 description: originalTask.description,
                 createdById: originalTask.createdById,
                 kanbanSectionId: originalTask.kanbanSectionId,
                 taskOrder: originalTask.taskOrder + 1,
+                epicId: originalTask.epicId,
                 assignees: {
                     connect: originalTask.assignees.map(assignee => ({ id: assignee.id }))
                 },
@@ -333,6 +339,7 @@ export async function updateTask(taskId: string, data: {
     name: string;
     taskNumber: string;
     status: Status;
+    priority: Priority;
     dueDate: Date | undefined;
     description: string;
     assignees: string[];
@@ -342,6 +349,7 @@ export async function updateTask(taskId: string, data: {
     files?: (File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
     tags?: string[];
     private?: boolean;
+    epicId?: string;
 }) {
     console.log("Updating task", taskId, data)
     try {
@@ -416,6 +424,8 @@ export async function updateTask(taskId: string, data: {
                 name: data.name,
                 taskNumber: data.taskNumber,
                 status: data.status,
+                priority: data.priority,
+                epicId: data.epicId,
                 dueDate: data.dueDate,
                 description: data.description,
                 assignees: {
@@ -459,7 +469,7 @@ export async function createTag({
     boardId
 }: {
     name: string;
-    color: string;
+    color: Color;
     boardId: string;
 }) {
     const result = await prisma.taskTag.create({

@@ -28,7 +28,7 @@ import {
 } from '@/lib/queries';
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Status, User, Task, TaskTag } from "@prisma/client";
+import { Status, User, Task, TaskTag, Priority, Epic } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
 import { 
     createTask, 
@@ -55,6 +55,8 @@ import { getStatusConfig, formatFileSize } from "@/lib/utils"
 import { toast } from "react-hot-toast";
 import STLViewer from "@/components/stl-viewer";
 import { generateRandomColor } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PRIORITY_CONFIG } from "@/lib/constants/priority";
 
 interface TaskWithRelations extends Task {
     assignees: User[];
@@ -69,6 +71,8 @@ const formSchema = z.object({
     name: z.string().min(1, { message: "Task name is required" }),
     taskNumber: z.string(),
     status: z.nativeEnum(Status),
+    priority: z.nativeEnum(Priority),
+    epicId: z.string().optional(),
     dueDate: z.date().optional(),
     description: z.string(),
     createdById: z.string(),
@@ -120,6 +124,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
       name: task?.name,
       taskNumber: task?.taskNumber || "",
       status: task?.status || "todo",
+      priority: task?.priority || "LOW",
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
       description: task?.description || "{}",
       createdById: task?.createdById || "",
@@ -136,11 +141,14 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
       let result;
       
       if (task) {
+        console.log(data.priority)
         // Update existing task
         result = await updateTask(task.id, {
           name: data.name,
           taskNumber: data.taskNumber,
           status: data.status,
+          priority: data.priority,
+          epicId: data.epicId,
           dueDate: data.dueDate,
           description: data.description,
           assignees: data.assignees,
@@ -155,6 +163,8 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
           name: data.name,
           taskNumber: data.taskNumber,
           status: data.status,
+          priority: data.priority,
+          epicId: data.epicId,
           dueDate: data.dueDate || new Date(),
           description: data.description,
           createdById: data.createdById,
@@ -427,6 +437,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                             <FormControl>
                                                 <Button
                                                     variant="outline"
+                                                    size="sm"
                                                     className={cn(
                                                         "w-[240px] pl-3 text-left font-normal",
                                                         !field.value && "text-muted-foreground"
@@ -470,55 +481,39 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             )}
                         />
 
-                        {/* tags */}
-                        {/* <FormField
+                        {/* priority */}
+                        <FormField
                             control={form.control}
-                            name="tags"
+                            name="priority"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Tags</FormLabel>
-                                    <ComboBox 
-                                        field={field} 
-                                        defaultValues={tags || []} 
-                                        onCreateValue={async (value) => {
-                                            const color = generateRandomColor()
-                                            const result = await createTag({
-                                                name: value,
-                                                color: color,
-                                                boardId: boardId
-                                            })
-                                            const newTag = result.data
-                                            return newTag
-                                        }}
-                                        renderSelected={(tag) => (
-                                            <Badge 
-                                                key={tag.id}
-                                                className={`flex items-center gap-1 bg-${tag.color}-500`}
-                                            >
-                                                {tag.name}
-                                            </Badge>
-                                        )}
-                                        renderOption={(tag, isSelected) => (
-                                            <div className="flex items-center gap-2 flex-1">
-                                                <Badge 
-                                                    key={tag.id}
-                                                    className={`bg-${tag.color}-500 hover:bg-${tag.color}-500/80`}
-                                                >
-                                                    {tag.name}
-                                                </Badge>
-                                                <Check
-                                                    className={cn(
-                                                        "ml-auto",
-                                                        isSelected ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                            </div>
-                                        )}
-                                        multiSelect
-                                    />
+                                    <FormLabel className="w-24">Priority</FormLabel>
+                                    {/* priority select */}
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        value={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-[240px]">
+                                                <SelectValue>
+                                                    <Badge color={PRIORITY_CONFIG[field.value].color}>{PRIORITY_CONFIG[field.value].label}</Badge>
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Object.values(PRIORITY_CONFIG).map((priority) => (
+                                                <SelectItem key={priority.name} value={priority.name}>
+                                                    <Badge color={priority.color}>{priority.label}</Badge>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </FormItem>
                             )}
-                        /> */}
+                        />
+
+                        {/* tags */}
                         <FormField
                             control={form.control}
                             name="tags"
@@ -541,7 +536,8 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                         renderSelected={(tag) => (
                                             <Badge 
                                                 key={tag.id}
-                                                className={`flex items-center gap-1 bg-${tag.color}-600 hover:bg-gray-300 text-white`}
+                                                className={`flex items-center gap-1`}
+                                                color={tag.color}
                                             >
                                                 {tag.name}
                                             </Badge>
@@ -550,7 +546,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                             <div className="flex items-center gap-2 flex-1">
                                                 <Badge 
                                                     key={tag.id}
-                                                    className={`flex items-center gap-1 bg-${tag.color}-600 hover:bg-gray-300 text-white`}
+                                                    className={`flex items-center gap-1 bg-${tag.color}-200 text-${tag.color}-900`}
                                                 >
                                                     {tag.name}
                                                 </Badge>

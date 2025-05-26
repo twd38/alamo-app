@@ -143,9 +143,10 @@ export function ComboBox<
                         <Button
                             variant="outline"
                             role="combobox"
+                            size="sm"
                             aria-expanded={open}
                             className={cn(
-                                "min-w-[240px] justify-between",
+                                "min-w-[240px] justify-between", "px-2",
                                 !field.value && "text-muted-foreground"
                             )}
                         >

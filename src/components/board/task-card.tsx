@@ -3,11 +3,12 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent, CardHeader } from "src/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "src/components/ui/avatar"
-import { Calendar, User2,Tag } from "lucide-react"
+import { Calendar, User2, Tag, Flag } from "lucide-react"
 import { Badge } from "src/components/ui/badge"
 import { Prisma } from "@prisma/client"
 import { useAtom } from "jotai"
 import { taskModal } from "@/components/board/utils"
+import { PRIORITY_CONFIG } from "@/lib/constants/priority"
 
 type TaskWithRelations = Prisma.TaskGetPayload<{
   include: {
@@ -61,27 +62,27 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0">
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              {/* {
-                task.tags.map((tag) => (
-                  <Badge key={tag.id}>{tag.name}</Badge>
-                ))
-              } */}
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-1">
+              <Flag className="h-4 w-4 mr-1"/>
+              <Badge color={PRIORITY_CONFIG[task.priority].color}>{PRIORITY_CONFIG[task.priority].label}</Badge>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Tag className="h-4 w-4 mr-1"/>
               {
                 task.tags.map((tag) => (
-                  <Badge key={tag.id} className={`bg-${tag.color}-600 hover:bg-gray-300 text-white`}>{tag.name}</Badge>
+                  <Badge key={tag.id} color={tag.color}>{tag.name}</Badge>
                 ))
               }
             </div>
         
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 mr-2" />
               <span>{task.dueDate.toLocaleDateString()}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <User2 className="h-4 w-4" />
+            <div className="flex items-center gap-1">
+              <User2 className="h-4 w-4 mr-1" />
               {task.assignees.length > 0 ? (
                 <>
                   <div className="flex -space-x-2">
