@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react';
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
 
 type EmojiPickerComponentProps = {
     icon?: string;
@@ -23,6 +23,7 @@ export default function EmojiPickerComponent({ icon, onEmojiClick, className }: 
         <div className="absolute z-50 mt-2">
             <EmojiPicker 
                 onEmojiClick={onEmojiClick} 
+                emojiStyle={EmojiStyle.APPLE}
                 open={showEmojiPicker} 
                 width={300} 
                 height={400}
