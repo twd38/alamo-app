@@ -16,11 +16,13 @@ import { Label } from '@/components/ui/label';
 import { UserSelect } from '@/components/user-select';
 import { User } from '@prisma/client';
 import { useSession } from 'next-auth/react';
+import EmojiPicker from '@/components/emoji-picker';
 
 const boardSchema = z.object({
   boardName: z.string().min(1, 'Board name is required'),
   isPrivate: z.boolean().default(false),
   collaboratorIds: z.array(z.string()).optional().default([]),
+  icon: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof boardSchema>;
@@ -34,6 +36,8 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const { data: session } = useSession();
   
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(boardSchema),
@@ -41,11 +45,13 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
       boardName: '',
       isPrivate: false,
       collaboratorIds: [],
+      icon: undefined,
     }
   });
 
   const isPrivate = watch('isPrivate');
   const collaboratorIds = watch('collaboratorIds');
+  const icon = watch('icon');
 
   useEffect(() => {
     async function fetchUsers() {
@@ -68,8 +74,9 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
     
     if (isOpen) {
       fetchUsers();
+      reset();
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
   // Need to manually handle checkbox since it's not directly supported by react-hook-form
   const handleCheckboxChange = (checked: boolean) => {
@@ -82,10 +89,20 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
     setValue('collaboratorIds', ids);
   };
 
+  const handleEmojiClick = (emojiData: any) => {
+    setValue('icon', emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
   const onSubmit = async (data: FormValues) => {
     console.log(data);
     try {
-      const result = await createBoard({name: data.boardName, isPrivate: data.isPrivate, collaboratorIds: data.collaboratorIds});
+      const result = await createBoard({
+        name: data.boardName,
+        isPrivate: data.isPrivate,
+        collaboratorIds: data.collaboratorIds,
+        icon: data.icon,
+      });
       
       if (result.success && result.data) {
         toast.success('Board created successfully');
@@ -112,11 +129,17 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
           <div className="space-y-4 pb-4">
             <div className="space-y-2">
               <Label htmlFor="boardName">Board Name</Label>
-              <Input
-                id="boardName"
-                placeholder="My New Board"
-                {...register('boardName')}
-              />
+              <div className="flex gap-2">
+                <div className="relative">
+                  <EmojiPicker icon={icon} onEmojiClick={handleEmojiClick} />
+                </div>
+                <Input
+                  id="boardName"
+                  className='h-10'
+                  placeholder="My New Board"
+                  {...register('boardName')}
+                />
+              </div>
               {errors.boardName && (
                 <p className="text-sm text-red-500">{errors.boardName.message}</p>
               )}

@@ -77,12 +77,13 @@ const updatedImage = UpdatedImage.configure({
 
 const taskList = TaskList.configure({
   HTMLAttributes: {
-    class: cx("not-prose pl-2 my-2"),
+    class: cx("not-prose pl-4 my-2 space-y-1"),
   },
 });
+
 const taskItem = TaskItem.configure({
   HTMLAttributes: {
-    class: cx("flex gap-2 items-start my-4"),
+    class: cx("flex gap-3 items-center"),
   },
   nested: true,
 });
@@ -171,8 +172,8 @@ const markdownExtension = Markdown.configure({
   bulletListMarker: "-",
   linkify: false,
   breaks: false,
-  transformPastedText: false,
-  transformCopiedText: false,
+  transformPastedText: true,
+  transformCopiedText: true,
 });
 
 export const defaultExtensions = [

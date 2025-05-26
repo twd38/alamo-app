@@ -23,12 +23,10 @@ import { deleteBoard } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { UserAccessList } from '@/components/user-access-list';
 
-type BoardWithRelations = Prisma.BoardGetPayload<{
-  include: {
-    createdBy: true;
-    collaborators: true;
-  };
-}>;
+type BoardWithRelations = Board & {
+  createdBy: User;
+  collaborators: User[];
+};
 
 type TopBarProps = {
   activeBoard: BoardWithRelations;
@@ -72,6 +70,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
               variant="ghost"
               className="gap-2 focus-visible:ring-0 px-2 max-h-8"
             >
+              {activeBoard.icon && <span className='text-lg'>{activeBoard.icon}</span>}
               {activeBoard.name} <ChevronDownIcon className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -82,13 +81,32 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
             className="w-56"
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Public
+            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              {publicBoards.map((board) => (
+                <DropdownMenuItem key={board.id} asChild>
+                  <Link href={`/board/${board.id}`}>
+                    {board.icon && <span className="mr-2">{board.icon}</span>}
+                    {board.name}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
               Private
             </DropdownMenuLabel>
             <DropdownMenuGroup>
               {privateBoards.length > 0 ? (
                 privateBoards.map((board) => (
                   <DropdownMenuItem key={board.id} asChild>
-                    <Link href={`/board/${board.id}`}>{board.name}</Link>
+                    <Link href={`/board/${board.id}`}>
+                      {board.icon && <span className="mr-1">{board.icon}</span>}
+                      {board.name}
+                    </Link>
                   </DropdownMenuItem>
                 ))
               ) : (
@@ -97,18 +115,9 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Public
-            </DropdownMenuLabel>
-            <DropdownMenuGroup>
-              {publicBoards.map((board) => (
-                <DropdownMenuItem key={board.id} asChild>
-                  <Link href={`/board/${board.id}`}>{board.name}</Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            
             <DropdownMenuItem
               className="text-muted-foreground"
               onClick={() => setIsOpen(true)}

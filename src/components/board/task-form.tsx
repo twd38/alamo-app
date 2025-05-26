@@ -24,7 +24,8 @@ import useSWR from 'swr';
 import { 
     getAllUsers, 
     getKanbanSections,
-    getAllTags
+    getAllTags,
+    getBoards
 } from '@/lib/queries';
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -57,6 +58,7 @@ import STLViewer from "@/components/stl-viewer";
 import { generateRandomColor } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PRIORITY_CONFIG } from "@/lib/constants/priority";
+import { MoveTaskDialog } from "./move-task-dialog"
 
 interface TaskWithRelations extends Task {
     assignees: User[];
@@ -110,11 +112,13 @@ const formSchema = z.object({
 const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: string }) => {
   const [activeTask, setActiveTask] = useAtom(taskModal)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isMoveTaskDialogOpen, setIsMoveTaskDialogOpen] = useState(false);
   const router = useRouter()
 
   const { data: users } = useSWR('allUsers', getAllUsers);
   const { data: kanbanSections } = useSWR('allKanbanSections', () => getKanbanSections(boardId));
   const { data: tags } = useSWR('allTags', () => getAllTags(boardId));
+  const { data: boards } = useSWR('allBoards', getBoards);
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -306,6 +310,9 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={handleDuplicateTask}>
                                         Duplicate task
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setIsMoveTaskDialogOpen(true)}>
+                                        Move task
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
                                         onClick={() => setIsDeleteAlertOpen(true)}
@@ -674,6 +681,17 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
         onConfirm={handleDeleteTask}
         resourceName="task"
       />
+
+      {task && boards && (
+        <MoveTaskDialog
+          isOpen={isMoveTaskDialogOpen}
+          onClose={() => setIsMoveTaskDialogOpen(false)}
+          taskId={task.id}
+          task={task}
+          currentBoardId={boardId}
+          boards={boards}
+        />
+      )}
     </Form>
   )
 }

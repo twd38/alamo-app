@@ -58,6 +58,7 @@
     "drizzle-kit": "^0.22.8",
     "drizzle-orm": "^0.31.4",
     "drizzle-zod": "^0.5.1",
+    "emoji-picker-react": "^4.12.2",
     "form-data": "^4.0.2",
     "framer-motion": "^12.7.4",
     "googleapis": "^148.0.0",

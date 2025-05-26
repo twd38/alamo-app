@@ -336,16 +336,16 @@ export async function duplicateTask(taskId: string) {
 }
 
 export async function updateTask(taskId: string, data: {
-    name: string;
-    taskNumber: string;
-    status: Status;
-    priority: Priority;
-    dueDate: Date | undefined;
-    description: string;
-    assignees: string[];
+    name?: string;
+    taskNumber?: string;
+    status?: Status;
+    priority?: Priority;
+    dueDate?: Date | undefined;
+    description?: string;
+    assignees?: string[];
     kanbanSectionId?: string;
     boardId?: string;
-    taskOrder: number;
+    taskOrder?: number;
     files?: (File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string })[];
     tags?: string[];
     private?: boolean;
@@ -353,7 +353,7 @@ export async function updateTask(taskId: string, data: {
 }) {
     console.log("Updating task", taskId, data)
     try {
-        // Get existing files
+        // Get existing task with its relationships
         const existingTask = await prisma.task.findUnique({
             where: { id: taskId },
             include: { files: true }
@@ -363,93 +363,109 @@ export async function updateTask(taskId: string, data: {
             throw new Error('Task not found');
         }
 
-        // Handle file updates
-        const existingFiles = existingTask.files;
-        const newFiles = data.files || [];
-        
-        // Identify files to delete (files that exist but are not in the new list)
-        const filesToDelete = existingFiles.filter(
-            existingFile => !newFiles.some(
-                newFile => !isFileInstance(newFile) && newFile.id === existingFile.id
-            )
-        );
+        // Prepare update data object
+        const updateData: Prisma.TaskUpdateInput = {};
 
-        // Delete removed files from R2 and database
-        for (const file of filesToDelete) {
-            const key = file.url.split('/').pop(); // Extract key from URL
-            if (key) {
-                await deleteFileFromR2(key);
-            }
+        // Only update fields that are provided
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.taskNumber !== undefined) updateData.taskNumber = data.taskNumber;
+        if (data.status !== undefined) updateData.status = data.status;
+        if (data.priority !== undefined) updateData.priority = data.priority;
+        if (data.epicId !== undefined) updateData.epic = { connect: { id: data.epicId } };
+        if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.kanbanSectionId !== undefined) updateData.kanbanSection = { connect: { id: data.kanbanSectionId } };
+        if (data.boardId !== undefined) updateData.board = { connect: { id: data.boardId } };
+        if (data.private !== undefined) updateData.private = data.private;
+        if (data.taskOrder !== undefined) updateData.taskOrder = data.taskOrder;
+
+        // Handle assignees if provided
+        if (data.assignees !== undefined) {
+            updateData.assignees = {
+                set: data.assignees.map(userId => ({ id: userId }))
+            };
         }
 
-        // Upload new files
-        const fileData = [];
-        for (const file of newFiles) {
-            if (isFileInstance(file)) {
-                console.log(file)
-                // Handle new file upload
-                const { url, key } = await getUploadUrl(file.name, file.type, "tasks");
-                console.log({
-                    url,
-                    key,
-                });
+        // Handle tags if provided
+        if (data.tags !== undefined) {
+            updateData.tags = {
+                set: data.tags.map(tag => ({ id: tag }))
+            };
+        }
 
-                // Upload file to R2 with fetch
-                const upload = await fetch(url, {
-                    method: "PUT",
-                    body: file,
-                    headers: {
-                        "Content-Type": file.type
+        // Handle file updates if provided
+        if (data.files !== undefined) {
+            const existingFiles = existingTask.files;
+            const newFiles = data.files;
+            
+            // Identify files to delete (files that exist but are not in the new list)
+            const filesToDelete = existingFiles.filter(
+                existingFile => !newFiles.some(
+                    newFile => !isFileInstance(newFile) && newFile.id === existingFile.id
+                )
+            );
+
+            // Delete removed files from R2 and database
+            for (const file of filesToDelete) {
+                const key = file.url.split('/').pop(); // Extract key from URL
+                if (key) {
+                    await deleteFileFromR2(key);
+                }
+            }
+
+            // Upload new files
+            const fileData = [];
+            for (const file of newFiles) {
+                if (isFileInstance(file)) {
+                    console.log(file)
+                    // Handle new file upload
+                    const { url, key } = await getUploadUrl(file.name, file.type, "tasks");
+                    console.log({
+                        url,
+                        key,
+                    });
+
+                    // Upload file to R2 with fetch
+                    const upload = await fetch(url, {
+                        method: "PUT",
+                        body: file,
+                        headers: {
+                            "Content-Type": file.type
+                        }
+                    });
+
+                    console.log({
+                        upload,
+                    });
+
+                    fileData.push({
+                        url,
+                        key,
+                        name: file.name,
+                        type: file.type,
+                        size: file.size
+                    });
+                }
+            }
+
+            updateData.files = {
+                deleteMany: {
+                    id: {
+                        in: filesToDelete.map(f => f.id)
                     }
-                });
-
-                console.log({
-                    upload,
-                });
-
-                fileData.push({
-                    url,
-                    key,
-                    name: file.name,
-                    type: file.type,
-                    size: file.size
-                });
-            }
+                },
+                create: fileData,
+                // Keep existing files that weren't deleted
+                connect: newFiles
+                    .filter(f => !isFileInstance(f) && 'id' in f)
+                    .map(f => ({ id: (f as any).id }))
+            };
         }
 
-        // Update task with new file data
+        // Update task with provided data
         const result = await prisma.task.update({
             where: { id: taskId },
-            data: {
-                name: data.name,
-                taskNumber: data.taskNumber,
-                status: data.status,
-                priority: data.priority,
-                epicId: data.epicId,
-                dueDate: data.dueDate,
-                description: data.description,
-                assignees: {
-                    set: data.assignees.map(userId => ({ id: userId }))
-                },
-                tags: {
-                    set: data.tags?.map(tag => ({ id: tag })) || []
-                },
-                kanbanSectionId: data.kanbanSectionId,
-                boardId: data.boardId,
-                private: data.private,
-                files: {
-                    deleteMany: {
-                        id: {
-                            in: filesToDelete.map(f => f.id)
-                        }
-                    },
-                    create: fileData,
-                    // Keep existing files that weren't deleted
-                    connect: newFiles
-                        .filter(f => !isFileInstance(f) && 'id' in f)
-                        .map(f => ({ id: (f as any).id }))
-                }
-            },
+            data: updateData,
             include: {
                 assignees: true,
                 files: true
@@ -953,9 +969,10 @@ type Board = {
   name: string;
   isPrivate: boolean;
   collaboratorIds: string[];
+  icon?: string;
 }
 
-export async function createBoard({name, isPrivate, collaboratorIds}: Board) {
+export async function createBoard({name, isPrivate, collaboratorIds, icon}: Board) {
   try {
     // Get user from auth
     const session = await auth();
@@ -970,6 +987,7 @@ export async function createBoard({name, isPrivate, collaboratorIds}: Board) {
       data: {
         name,
         private: isPrivate,
+        icon,
         createdById: userId,
         collaborators: {
           connect: collaboratorIds.map(id => ({ id }))
@@ -989,11 +1007,7 @@ export async function createBoard({name, isPrivate, collaboratorIds}: Board) {
   }
 }
 
-export async function updateBoard(boardId: string, data: {
-  name?: string;
-  private?: boolean;
-  collaboratorIds?: string[];
-}) {
+export async function updateBoard(boardId: string, {name, private: isPrivate, collaboratorIds, icon}: { name?: string; private?: boolean; collaboratorIds?: string[]; icon?: string }) {
   try {
     // Get user from auth
     const session = await auth();
@@ -1003,11 +1017,14 @@ export async function updateBoard(boardId: string, data: {
       return { success: false, error: 'User not authenticated' };
     }
 
-    // Verify the user has permission to update this board
+    // Check if user has permission to update the board
     const board = await prisma.board.findFirst({
       where: {
         id: boardId,
-        createdById: userId
+        OR: [
+          { createdById: userId },
+          { collaborators: { some: { id: userId } } }
+        ]
       }
     });
 
@@ -1015,13 +1032,15 @@ export async function updateBoard(boardId: string, data: {
       return { success: false, error: 'Board not found or you do not have permission to update it' };
     }
 
-    const result = await prisma.board.update({
+    // Update the board
+    const updatedBoard = await prisma.board.update({
       where: { id: boardId },
       data: {
-        name: data.name,
-        private: data.private,
-        collaborators: data.collaboratorIds ? {
-          set: data.collaboratorIds.map(id => ({ id }))
+        name,
+        private: isPrivate,
+        icon,
+        collaborators: collaboratorIds ? {
+          set: collaboratorIds.map(id => ({ id }))
         } : undefined
       },
       include: {
@@ -1029,9 +1048,9 @@ export async function updateBoard(boardId: string, data: {
         collaborators: true
       }
     });
-
+    
     revalidatePath('/board');
-    return { success: true, data: result };
+    return { success: true, data: updatedBoard };
   } catch (error) {
     console.error('Error updating board:', error);
     return { success: false, error: 'Failed to update board' };
