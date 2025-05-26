@@ -15,7 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { UserSelect } from '@/components/user-select';
 import { User } from '@prisma/client';
-import { useSession } from 'next-auth/react';
 import EmojiPicker from '@/components/emoji-picker';
 
 const boardSchema = z.object({
@@ -36,8 +35,6 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const { data: session } = useSession();
   
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(boardSchema),
@@ -89,9 +86,8 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
     setValue('collaboratorIds', ids);
   };
 
-  const handleEmojiClick = (emojiData: any) => {
-    setValue('icon', emojiData.emoji);
-    setShowEmojiPicker(false);
+  const handleEmojiClick = (emoji: string) => {
+    setValue('icon', emoji);
   };
 
   const onSubmit = async (data: FormValues) => {

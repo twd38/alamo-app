@@ -22,6 +22,8 @@ import { ConfirmDeleteAlert } from '@/components/confirm-delete-alert';
 import { deleteBoard } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { UserAccessList } from '@/components/user-access-list';
+import data from '@emoji-mart/data'
+import Picker from '@emoji-mart/react'
 
 type BoardWithRelations = Board & {
   createdBy: User;
@@ -163,6 +165,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
         boardName={activeBoard.name}
         isPrivate={activeBoard.private}
         collaboratorIds={activeBoard.collaborators.map(c => c.id)}
+        icon={activeBoard.icon || undefined}
       />
       <ConfirmDeleteAlert
         isOpen={isDeleteOpen}

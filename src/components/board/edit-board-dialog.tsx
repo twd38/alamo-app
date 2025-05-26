@@ -52,7 +52,6 @@ export default function EditBoardDialog({
 }: EditBoardDialogProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(boardSchema),
@@ -67,8 +66,6 @@ export default function EditBoardDialog({
   const isPrivate = watch('isPrivate');
   const collaboratorIds = watch('collaboratorIds');
   const icon = watch('icon');
-
-  console.log(icon);
 
   useEffect(() => {
     async function fetchUsers() {
@@ -109,10 +106,8 @@ export default function EditBoardDialog({
     setValue('collaboratorIds', ids);
   };
 
-  const handleEmojiClick = (emojiData: any) => {
-    setValue('icon', emojiData.emoji);
-    console.log(emojiData.emoji);
-    setShowEmojiPicker(false);
+  const handleEmojiClick = (emoji: string) => {
+    setValue('icon', emoji);
   };
 
   const onSubmit = async (data: FormValues) => {
