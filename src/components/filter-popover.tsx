@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import { UserSelect } from '@/components/user-select';
-import { User } from "@prisma/client"
 import { Switch } from "@/components/ui/switch"
 
 
@@ -44,7 +43,7 @@ export type FilterPopoverProps = {
   /**
    * Function to call when filters are applied
    */
-  onApplyFilters: (filters: FilterItem[]) => void
+  onSaveFilters?: (filters: FilterItem[]) => void
   /**
    * Optional storage key for persisting filters in localStorage
    */
@@ -106,7 +105,7 @@ const ValueInput = ({ filter, filterOptions, updateFilter }: { filter: FilterIte
       type="text"
       value={filter.value}
       onChange={(e) => updateFilter(filter.id, "value", e.target.value)}
-      className="w-full px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none"
+      className="w-full px-3 border border-gray-200 rounded-md focus:outline-none h-10"
       placeholder="Enter value..."
     />
   )
@@ -126,7 +125,7 @@ export function useFilterAtom(storageKey: string) {
 export function FilterPopover({
   filterOptions,
   operatorOptions,
-  onApplyFilters,
+  onSaveFilters,
   storageKey,
   initialFilters = [], 
   buttonText = "Filter"
@@ -156,20 +155,19 @@ export function FilterPopover({
   const clearFilters = () => {
     setFilters([]);
     setFilterState({ filters: [] });
-    onApplyFilters([]);
   }
 
   const updateFilter = (id: string, field: keyof FilterItem, value: string) => {
-    setFilters(filters.map((filter) => (filter.id === id ? { ...filter, [field]: value } : filter)));
+    const updatedFilters = filters.map((filter) => (filter.id === id ? { ...filter, [field]: value } : filter));
+    console.log("filtersMap", updatedFilters)
+    setFilters(updatedFilters);
+    setFilterState({ filters: updatedFilters });
   }
 
   const removeFilter = (id: string) => {
-    if (filters.length > 1) {
-      setFilters(filters.filter((filter) => filter.id !== id));
-    } else {
-      // If it's the last filter, just clear its value
-      updateFilter(id, "value", "");
-    }
+      const updatedFilters = filters.filter((filter) => filter.id !== id);
+      setFilters(updatedFilters);
+      setFilterState({ filters: updatedFilters });
   }
 
   const getIconForType = (type: string) => {
@@ -177,13 +175,12 @@ export function FilterPopover({
     return option?.icon || filterOptions[0]?.icon || <Filter className="h-4 w-4 mr-2" />;
   }
 
-  const applyFilters = () => {
-    // Only keep filters that have values
-    const validFilters = filters.filter((filter) => filter.value.trim() !== "");
-    setFilterState({ filters: validFilters });
-    onApplyFilters(validFilters);
-    setOpen(false);
-  }
+  // const applyFilters = () => {
+  //   // Only keep filters that have values
+  //   const validFilters = filters.filter((filter) => filter.value.trim() !== "");
+  //   setFilterState({ filters: validFilters });
+  //   setOpen(false);
+  // }
 
   const getActiveFilterCount = () => {
     if(filterState?.filters) {
@@ -206,16 +203,14 @@ export function FilterPopover({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[600px] p-4" align="end">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-semibold">Filters</h2>
           <Button variant="ghost" onClick={clearFilters} className="text-gray-500 hover:text-gray-700 h-8 px-2">
             Clear
           </Button>
         </div>
 
-        <div className="space-y-4">
-          <div className="text-sm text-gray-500 font-medium">All filters</div>
-
+        <div className="">
           <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
             {filters.map((filter) => (
               <div key={filter.id} className="flex items-center gap-2">
@@ -296,7 +291,8 @@ export function FilterPopover({
           {/* Add Filter Button */}
           <Button
             variant="ghost" 
-            className="text-sm"
+            className="text-sm mt-2"
+            size="sm"
             onClick={() => {
               const newId = filters.length.toString()
               setFilters([...filters, { 
@@ -311,12 +307,11 @@ export function FilterPopover({
           </Button>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={applyFilters}>Apply Filters</Button>
-        </div>
+        {onSaveFilters && (
+          <div className="flex justify-end gap-2 pt-4 border-t mt-2">
+            <Button variant="outline" onClick={() => onSaveFilters(filters)}>Save Filters</Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   )

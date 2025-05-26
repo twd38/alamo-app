@@ -1,22 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from "@/components/ui/input"
-import { ChevronDown, Filter, Search, Tag, User, Calendar, CheckCircle, Plus, Lock, MoreVertical, Save, FilePlus } from "lucide-react"
+import { ChevronDown, Tag, User, Calendar, CheckCircle, Plus, Lock } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import NewSectionDialog from './new-section-dialog';
 import CreateViewDialog from './create-view';
-import { useRouter } from 'next/navigation'
 import { useAtom } from 'jotai';
 import { taskModal } from './utils';
 import { FilterPopover, FilterOption, FilterItem } from '@/components/filter-popover';
-import { getAllUsers, getAllViews } from '@/lib/queries';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { getAllUsers } from '@/lib/queries';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFilterAtom } from '@/components/filter-popover';
 import useSWR from 'swr';
-import { updateBoardView } from '@/lib/actions';
 import { BoardView } from '@prisma/client';
-import { toast } from 'react-hot-toast';
 import UpdateViewDialog from './update-view-dialog';
 
 const operatorOptions = [
@@ -76,7 +72,7 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
     }
 
     const handleApplyFilters = (filters: FilterItem[]) => {
-        console.log(filters)
+        setIsUpdateViewDialogOpen(true)
     };
 
     const handleViewChange = (viewId: string) => {
@@ -86,16 +82,6 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
             filters: viewFilter || [],
         })
         setActiveView(views?.find((view) => view.id === viewId) || null)
-    }
-
-    const handleUpdateView = () => {
-        console.log("filterState", filterState)
-        if(activeView?.id) {
-            updateBoardView(activeView.id, {
-                filters: filterState.filters,
-            })
-            toast.success("View updated")
-        }
     }
 
     const filterOptions: FilterOption[] = [
@@ -129,33 +115,14 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
                         }
                     </TabsList>
                 </Tabs>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="mx-1"
-                            title="View options"
-                        >
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem disabled={!activeView} onClick={openUpdateViewDialog}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Update view
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={openCreateViewDialog}>
-                            <FilePlus className="h-4 w-4 mr-2" />
-                            Create view
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="ghost" size="sm" className="mx-1" title="Create new view" onClick={openCreateViewDialog}>
+                    <Plus className="h-4 w-4" />
+                </Button>
                 <div className="flex items-center gap-2 ml-auto">
                     <FilterPopover
                         filterOptions={filterOptions}
                         operatorOptions={operatorOptions}
-                        onApplyFilters={handleApplyFilters}
+                        onSaveFilters={activeView?.id ? handleApplyFilters : undefined}
                         storageKey="kanban-board"
                         initialFilters={filterState.filters || [{ id: "0", type: filterOptions[0]?.label || "", operator: operatorOptions[0]?.label || "", value: "" }]}
                         buttonText="Filter"

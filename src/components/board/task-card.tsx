@@ -56,10 +56,7 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
         onClick={handleClick}
       >
         <CardHeader className="p-4 flex flex-row justify-between items-start">
-          <div>
-            <p className="text-sm text-muted-foreground">{task.taskNumber}</p>
-            <h3 className="font-semibold">{task.name}</h3>
-          </div>
+          <h3 className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{task.name}</h3>
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <div className="space-y-2 text-sm">

@@ -692,6 +692,9 @@ export async function getAllViews(boardId?: string) {
         },
         include: {
             createdBy: true
+        },
+        orderBy: {
+            createdAt: 'asc'
         }
     })
 }
