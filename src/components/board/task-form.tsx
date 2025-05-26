@@ -141,7 +141,6 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
       let result;
       
       if (task) {
-        console.log(data.priority)
         // Update existing task
         result = await updateTask(task.id, {
           name: data.name,
@@ -281,9 +280,10 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submitForm)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(submitForm)}>
         <div className="h-full overflow-y-auto">
             <div className="space-y-2">
+                {/* header */}
                 <div className="flex items-center justify-between px-6 border-b h-12">
                     <Button 
                         type="submit"
@@ -349,7 +349,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             name="assignees"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Assignee</FormLabel>
+                                    <FormLabel className="w-28">Assignee</FormLabel>
                                     <ComboBox 
                                             field={field} 
                                             defaultValues={users} 
@@ -431,7 +431,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             name="dueDate"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Due date</FormLabel>
+                                    <FormLabel className="w-28">Due date</FormLabel>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
@@ -472,7 +472,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             name="kanbanSectionId"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Section</FormLabel>
+                                    <FormLabel className="w-28">Section</FormLabel>
                                     <ComboBox 
                                         field={field} 
                                         defaultValues={kanbanSections || []} 
@@ -487,7 +487,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             name="priority"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Priority</FormLabel>
+                                    <FormLabel className="w-28">Priority</FormLabel>
                                     {/* priority select */}
                                     <Select
                                         onValueChange={field.onChange}
@@ -519,7 +519,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             name="tags"
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Tags</FormLabel>
+                                    <FormLabel className="w-28">Tags</FormLabel>
                                     <ComboBox 
                                         field={field} 
                                         defaultValues={tags || []} 
@@ -564,13 +564,14 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                             )}
                         />
 
+                        {/* attachments */}
                         <FormField
                             control={form.control}
                             name="files"
                             render={({ field: { value, onChange, ...fieldProps } }) => (
-                                <FormItem>
-                                    <FormLabel className="w-24">Attachments</FormLabel>
-                                    <div className="flex flex-col items-start gap-2">
+                                <FormItem className="mt-2 gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <FormLabel className="w-28">Attachments</FormLabel>
                                         <Input 
                                             {...fieldProps} 
                                             type="file" 
@@ -583,54 +584,55 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                         <Button 
                                             type="button"
                                             variant="outline" 
+                                            size="sm"
                                             onClick={() => fileInputRef.current?.click()} 
                                             className="gap-2"
                                         >
                                             <Paperclip className="h-4 w-4" />
                                             Attach Files
                                         </Button>
-                                        <div className="flex-1 w-full gap-2">
-                                            {value && value.length > 0 && (
-                                                <div className="mt-2 space-y-2">
-                                                    {value.map((file, index) => (
-                                                        <div key={`${index}-parent`}>
-                                                        <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
-                                                            <div className="flex items-center gap-2">
-                                                                <File className="h-4 w-4" />
-                                                                {('url' in file) ? (
-                                                                    <Button
-                                                                        variant="link"
-                                                                        className="p-0 h-auto"
-                                                                        onClick={() => handleFileDownload(file.key, file.name)}
-                                                                    >
-                                                                        <span className="text-sm hover:underline">{file.name}</span>
-                                                                    </Button>
-                                                                ) : (
-                                                                    <span className="text-sm">{file.name}</span>
-                                                                )}
-                                                                <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
-                                                            </div>
-                                                            <Button 
-                                                                type="button"
-                                                                variant="ghost" 
-                                                                size="sm" 
-                                                                onClick={() => handleRemoveFile(index)} 
-                                                                className="h-8 w-8 p-0"
-                                                            >
-                                                                <X className="h-4 w-4" />
-                                                            </Button>
+                                    </div>
+                                    <div className="flex-1 w-full gap-2">
+                                        {value && value.length > 0 && (
+                                            <div className="mt-2 space-y-2">
+                                                {value.map((file, index) => (
+                                                    <div key={`${index}-parent`}>
+                                                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
+                                                        <div className="flex items-center gap-2">
+                                                            <File className="h-4 w-4" />
+                                                            {('url' in file) ? (
+                                                                <Button
+                                                                    variant="link"
+                                                                    className="p-0 h-auto"
+                                                                    onClick={() => handleFileDownload(file.key, file.name)}
+                                                                >
+                                                                    <span className="text-sm hover:underline">{file.name}</span>
+                                                                </Button>
+                                                            ) : (
+                                                                <span className="text-sm">{file.name}</span>
+                                                            )}
+                                                            <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
                                                         </div>
-                                                        {('url' in file) ? (
-                                                            <STLViewer 
-                                                                fileType={"pdf"}
-                                                                filePath={file.url}
-                                                                key={`${index}-viewer`}
-                                                            />):(<div key={`${index}-viewer`}></div>)}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                                        <Button 
+                                                            type="button"
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            onClick={() => handleRemoveFile(index)} 
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    {('url' in file) ? (
+                                                        <STLViewer 
+                                                            fileType={"pdf"}
+                                                            filePath={file.url}
+                                                            key={`${index}-viewer`}
+                                                        />):(<div key={`${index}-viewer`}></div>)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </FormItem>
                             )}
