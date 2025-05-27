@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
 import { deleteKanbanSection } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
+import EditColumnDialog from './edit-column-dialog';
 // export const dynamic = 'force-dynamic';
 
 interface KanbanColumnProps {
@@ -41,6 +42,7 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
     }
   });
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -69,6 +71,14 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
       toast.error('Error deleting column');
       setDeleteAlertOpen(false);
     }
+  };
+
+  const openEditDialog = () => {
+    setEditDialogOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setEditDialogOpen(false);
   };
 
   // console.log("tasks", tasks)
@@ -112,7 +122,7 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem disabled onSelect={() => console.log('Rename column')}>
+                    <DropdownMenuItem onSelect={openEditDialog}>
                       <Edit className="mr-2 h-4 w-4" />
                       Rename column
                     </DropdownMenuItem>
@@ -142,6 +152,12 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
           onCloseAction={closeDeleteAlert}
           onConfirm={handleDeleteColumn}
           resourceName="column"
+        />
+        <EditColumnDialog
+          columnId={id}
+          columnName={name}
+          isOpen={isEditDialogOpen}
+          onClose={closeEditDialog}
         />
       </div>
     </div>
