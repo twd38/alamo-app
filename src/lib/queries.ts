@@ -123,6 +123,9 @@ export async function getKanbanSections(boardId: string) {
                     tags: true
                 }
             }
+        },
+        orderBy: {
+            kanbanOrder: 'asc'
         }
     })
 }

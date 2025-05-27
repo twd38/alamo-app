@@ -115,6 +115,7 @@ export function KanbanBoard({
       tasks: column.tasks.filter(task => applyFilters(task, filterState.filters))
     }));
   }, [sortableColumns, filterState]);
+  
 
   
   const handleDragEnd = (event: DragEndEvent) => {
@@ -286,6 +287,8 @@ export function KanbanBoard({
       options: {},
     },
   ];
+
+  console.log(filteredColumns)
 
   return (
     <div className="">
