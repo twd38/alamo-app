@@ -21,7 +21,7 @@ export default async function ProductionPage({params}: BoardPageProps) {
     getBoards(),
   ]);
 
-  const activeBoard = boards.find((board) => board.id === boardId)
+  const activeBoard = boardId === "my-tasks" ? "my-tasks" : boards.find((board) => board.id === boardId)
 
   if(!activeBoard) {
     return <div>Board not found</div>

@@ -31,7 +31,7 @@ type BoardWithRelations = Board & {
 };
 
 type TopBarProps = {
-  activeBoard: BoardWithRelations;
+  activeBoard: BoardWithRelations | "my-tasks";
   boards: BoardWithRelations[];
 };
 
@@ -40,9 +40,15 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const creator = activeBoard.createdBy;
-  const collaborators = activeBoard.collaborators;
-  const isPublic = !activeBoard.private;
+  const isMyTasks = activeBoard === "my-tasks";
+
+  const boardId = isMyTasks ? "my-tasks" : activeBoard.id;
+  const creator = isMyTasks ? null : activeBoard.createdBy;
+  const collaborators = isMyTasks ? [] : activeBoard.collaborators;
+  const isPrivate = isMyTasks ? true : activeBoard.private;
+  const icon = isMyTasks ? null : activeBoard.icon;
+  const name = isMyTasks ? "My Tasks" : activeBoard.name;
+
   const privateBoards = boards
     .filter((board) => board.private)
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -55,7 +61,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
   };
 
   const handleDeleteBoard = async () => {
-    const result = await deleteBoard(activeBoard.id);
+    const result = await deleteBoard(boardId);
     if (result.success) {
       router.push('/');
     }
@@ -72,8 +78,8 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
               variant="ghost"
               className="gap-2 focus-visible:ring-0 px-2 max-h-8"
             >
-              {activeBoard.icon && <span className='text-lg'>{activeBoard.icon}</span>}
-              {activeBoard.name} <ChevronDownIcon className="h-4 w-4" />
+              {icon && <span className='text-lg'>{icon}</span>}
+              {name} <ChevronDownIcon className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -134,7 +140,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
         {creator && collaborators && (
           <UserAccessList
             users={[creator, ...(collaborators || [])]}
-            isPublic={isPublic}
+            isPublic={!isPrivate}
           />
         )}
         <DropdownMenu>
@@ -161,18 +167,18 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
       <EditBoardDialog
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        boardId={activeBoard.id}
-        boardName={activeBoard.name}
-        isPrivate={activeBoard.private}
-        collaboratorIds={activeBoard.collaborators.map(c => c.id)}
-        icon={activeBoard.icon || undefined}
+        boardId={boardId}
+        boardName={name}
+        isPrivate={isPrivate}
+        collaboratorIds={collaborators.map(c => c.id)}
+        icon={icon || undefined}
       />
       <ConfirmDeleteAlert
         isOpen={isDeleteOpen}
         onCloseAction={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteBoard}
         resourceName="board"
-        confirmName={activeBoard.name}
+        confirmName={name}
       />
     </div>
   );

@@ -96,6 +96,45 @@ export async function getKanbanSections(boardId: string) {
     const session = await auth()
     const userId = session?.user?.id
     
+    // If boardId = 'my-tasks', return all kanban sections for the user
+    if (boardId === 'my-tasks') {
+        return await prisma.kanbanSection.findMany({
+            where: {
+                deletedOn: null,
+            },
+            include: {
+                tasks: {
+                    where: {
+                        deletedOn: null,
+                        OR: [
+                            { private: false },
+                            { 
+                                private: true,
+                                assignees: {
+                                    some: {
+                                        id: userId
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    orderBy: {
+                        taskOrder: 'asc'
+                    },
+                    include: {
+                        assignees: true,
+                        createdBy: true,
+                        files: true,
+                        tags: true
+                    }
+                }
+            },
+            orderBy: {
+                kanbanOrder: 'asc'
+            }
+        })
+    }
+    
     return await prisma.kanbanSection.findMany({
         where: {
             deletedOn: null,
