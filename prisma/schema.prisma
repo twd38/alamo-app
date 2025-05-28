@@ -413,6 +413,7 @@ model Notification {
   actorId     String?
   type        NotificationType
   link        String?
+  linkText    String?
   message     String
   readAt      DateTime?
   createdAt   DateTime          @default(now())
