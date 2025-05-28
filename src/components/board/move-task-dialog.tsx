@@ -22,7 +22,7 @@ import { useAtom } from "jotai"
 import { taskModal } from "./utils"
 import { getKanbanSections } from "@/lib/queries"
 import useSWR from "swr"
-import { Status, Priority, Task } from "@prisma/client"
+import { Task } from "@prisma/client"
 
 const formSchema = z.object({
   boardId: z.string(),
