@@ -17,4 +17,4 @@ jobs:
       - name: Apply all pending migrations to the database
         run:  npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ vars.DATABASE_URL }}
+          DATABASE_URL: postgresql://alamo-db_owner:npg_RS7Jp8QTDUBN@ep-winter-sun-a5qxoteg-pooler.us-east-2.aws.neon.tech/alamo-db?sslmode=require
