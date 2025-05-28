@@ -1,7 +1,7 @@
 'use server'
 import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
-import { Priority, Status, Color } from '@prisma/client';
+import { Status, Color } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType, TaskTag } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
