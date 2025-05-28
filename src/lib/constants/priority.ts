@@ -1,5 +1,4 @@
-import type { Priority } from "@prisma/client";
-
+type Priority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
 /**
  * Configuration for task priorities
  */
