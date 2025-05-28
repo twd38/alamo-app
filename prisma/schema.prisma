@@ -1,33 +1,33 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 model User {
   id                   String            @id @default(cuid())
-  name                 String
   email                String            @unique
+  name                 String
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
   emailVerified        DateTime?
   image                String?
   accounts             Account[]
-  sessions             Session[]
-  createdJobs          Job[]             @relation(name: "CreatedByRelation")
-  ownedJobs            Job[]             @relation(name: "OwnerRelation")
-  assignedJobs         JobAssignee[]
-  createdTasks         Task[]            @relation(name: "CreatedByRelation")
-  assignedTasks        Task[]
-  createdInstructions  WorkInstruction[]
-  approvedInstructions WorkInstruction[] @relation("ApprovedInstructions")
-  boardViews           BoardView[]
   createdBoards        Board[]           @relation("CreatedBoards")
+  boardViews           BoardView[]
+  createdJobs          Job[]             @relation("CreatedByRelation")
+  ownedJobs            Job[]             @relation("OwnerRelation")
+  assignedJobs         JobAssignee[]
+  sessions             Session[]
+  createdTasks         Task[]            @relation("CreatedByRelation")
+  approvedInstructions WorkInstruction[] @relation("ApprovedInstructions")
+  createdInstructions  WorkInstruction[]
   collaboratingBoards  Board[]           @relation("BoardCollaborators")
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  assignedTasks        Task[]            @relation("TaskToUser")
 }
 
 model Account {
@@ -42,11 +42,9 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -55,10 +53,9 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -69,41 +66,26 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-enum Status {
-  paused
-  todo
-  in_progress
-  completed
-  scrapped
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
 model File {
   id            String                     @id @default(cuid())
   url           String
-  key           String                     @default("")
-  name          String
-  type          String
-  size          Int
   jobId         String?
-  job           Job?                       @relation(fields: [jobId], references: [id])
   taskId        String?
-  task          Task?                      @relation(fields: [taskId], references: [id])
-  partId        String?
-  part          Part?                      @relation("PartFiles", fields: [partId], references: [id])
-  partImagePart Part?                      @relation("PartImage")
-  instructionId String?
-  instruction   WorkInstruction?           @relation("InstructionFiles", fields: [instructionId], references: [id])
-  stepId        String?
-  step          WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
-  action        WorkInstructionStepAction? @relation("ActionUpload")
   deletedOn     DateTime?
+  name          String
+  size          Int
+  type          String
+  partId        String?
+  instructionId String?
+  stepId        String?
+  key           String                     @default("")
+  instruction   WorkInstruction?           @relation("InstructionFiles", fields: [instructionId], references: [id])
+  job           Job?                       @relation(fields: [jobId], references: [id])
+  part          Part?                      @relation("PartFiles", fields: [partId], references: [id])
+  step          WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
+  task          Task?                      @relation(fields: [taskId], references: [id])
+  partImagePart Part?                      @relation("PartImage")
+  action        WorkInstructionStepAction? @relation("ActionUpload")
 }
 
 model Job {
@@ -116,21 +98,21 @@ model Job {
   dueDate      String
   imageUrl     String
   createdById  String
-  createdBy    User          @relation(fields: [createdById], references: [id], name: "CreatedByRelation")
   ownerId      String
-  owner        User          @relation(fields: [ownerId], references: [id], name: "OwnerRelation")
-  assignees    JobAssignee[]
-  files        File[]
   deletedOn    DateTime?
+  files        File[]
+  createdBy    User          @relation("CreatedByRelation", fields: [createdById], references: [id])
+  owner        User          @relation("OwnerRelation", fields: [ownerId], references: [id])
+  assignees    JobAssignee[]
 }
 
 model JobAssignee {
   jobId  String
-  job    Job    @relation(fields: [jobId], references: [id])
   userId String
+  job    Job    @relation(fields: [jobId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
 
-  @@id([jobId, userId]) // Composite primary key
+  @@id([jobId, userId])
 }
 
 model Task {
@@ -138,27 +120,297 @@ model Task {
   name            String
   taskNumber      String
   status          Status
-  tags            TaskTag[]
-  priority        Priority       @default(LOW)
-  projectId       String?
-  project         Project?       @relation(fields: [projectId], references: [id])
-  epicId          String?
-  epic            Epic?          @relation(fields: [epicId], references: [id])
-  dueDate         DateTime
   description     String
-  dependencies    Task[]         @relation("TaskDependencies")
-  dependentTasks  Task[]         @relation("TaskDependencies")
   createdById     String
-  createdBy       User           @relation(fields: [createdById], references: [id], name: "CreatedByRelation")
-  assignees       User[]
-  kanbanSectionId String?
-  kanbanSection   KanbanSection? @relation(fields: [kanbanSectionId], references: [id])
-  boardId         String?
-  board           Board?         @relation(fields: [boardId], references: [id], onDelete: SetNull)
-  files           File[]
+  dueDate         DateTime
   deletedOn       DateTime?
   taskOrder       Int            @default(0)
+  kanbanSectionId String?
+  projectId       String?
   private         Boolean        @default(false)
+  boardId         String?
+  epicId          String?
+  priority        Int            @default(0)
+  files           File[]
+  board           Board?         @relation(fields: [boardId], references: [id])
+  createdBy       User           @relation("CreatedByRelation", fields: [createdById], references: [id])
+  epic            Epic?          @relation(fields: [epicId], references: [id])
+  kanbanSection   KanbanSection? @relation(fields: [kanbanSectionId], references: [id])
+  project         Project?       @relation(fields: [projectId], references: [id])
+  Task_A          Task[]         @relation("TaskDependencies")
+  Task_B          Task[]         @relation("TaskDependencies")
+  tags            TaskTag[]      @relation("TaskToTaskTag")
+  assignees       User[]         @relation("TaskToUser")
+}
+
+model TaskTag {
+  id      String  @id @default(cuid())
+  name    String
+  boardId String?
+  color   Color   @default(slate)
+  board   Board?  @relation(fields: [boardId], references: [id])
+  tasks   Task[]  @relation("TaskToTaskTag")
+
+  @@unique([name, boardId])
+}
+
+model Project {
+  id    String  @id @default(cuid())
+  name  String
+  color String? @default("bg-gray-500")
+  tasks Task[]
+}
+
+model KanbanSection {
+  id          String    @id @default(cuid())
+  name        String
+  kanbanOrder Int
+  deletedOn   DateTime?
+  boardId     String?
+  board       Board?    @relation(fields: [boardId], references: [id])
+  tasks       Task[]
+
+  @@unique([name, boardId])
+}
+
+model Board {
+  id            String          @id @default(cuid())
+  name          String
+  createdById   String
+  private       Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  icon          String?
+  createdBy     User            @relation("CreatedBoards", fields: [createdById], references: [id])
+  views         BoardView[]
+  epics         Epic[]
+  sections      KanbanSection[]
+  tasks         Task[]
+  tags          TaskTag[]
+  collaborators User[]          @relation("BoardCollaborators")
+}
+
+model BoardView {
+  id          String   @id @default(cuid())
+  name        String
+  filters     Json
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  boardId     String
+  board       Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id])
+}
+
+model MissionMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Part {
+  id               String                 @id @default(uuid())
+  partNumber       String                 @unique
+  description      String
+  partImageId      String?                @unique
+  trackingType     TrackingType
+  unit             String
+  basePartNumber   String?                @unique
+  parentVersionId  String?                @unique
+  versionNumber    String                 @default("1")
+  partType         PartType               @default(RAW_000)
+  partTypeNumber   String                 @default("000")
+  nxFilePath       String?
+  partRevision     String                 @default("A")
+  bomParts         BOMPart[]              @relation("BOMParts")
+  basePartTo       BOMPart[]              @relation("BOMBasePart")
+  files            File[]                 @relation("PartFiles")
+  inventory        Inventory[]
+  transactions     InventoryTransaction[]
+  parentVersion    Part?                  @relation("PartVersions", fields: [parentVersionId], references: [id])
+  childVersions    Part?                  @relation("PartVersions")
+  partImage        File?                  @relation("PartImage", fields: [partImageId], references: [id])
+  workInstructions WorkInstruction[]
+}
+
+model BOMPart {
+  id           String  @id @default(uuid())
+  qty          Int
+  bomType      BOMType
+  parentPartId String?
+  partId       String?
+  parentPart   Part?   @relation("BOMParts", fields: [parentPartId], references: [id])
+  part         Part?   @relation("BOMBasePart", fields: [partId], references: [id])
+}
+
+model Inventory {
+  id           String   @id @default(uuid())
+  locationId   String
+  serialNumber String?  @unique
+  qty          Int
+  partId       String
+  location     Location @relation(fields: [locationId], references: [id])
+  part         Part     @relation(fields: [partId], references: [id])
+}
+
+model InventoryTransaction {
+  id              String          @id @default(uuid())
+  timestamp       DateTime        @default(now())
+  fromLocationId  String?
+  toLocationId    String?
+  transactionType TransactionType
+  referenceId     String?
+  qty             Int
+  partId          String
+  fromLocation    Location?       @relation("FromLocation", fields: [fromLocationId], references: [id])
+  part            Part            @relation(fields: [partId], references: [id])
+  toLocation      Location?       @relation("ToLocation", fields: [toLocationId], references: [id])
+}
+
+model Location {
+  id               String                 @id @default(uuid())
+  name             String
+  type             LocationType
+  parentLocationId String?                @unique
+  inventoryParts   Inventory[]
+  fromTransactions InventoryTransaction[] @relation("FromLocation")
+  toTransactions   InventoryTransaction[] @relation("ToLocation")
+  parentLocation   Location?              @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  subLocations     Location?              @relation("LocationHierarchy")
+}
+
+model WorkInstruction {
+  id                    String                @id @default(uuid())
+  partId                String
+  title                 String
+  description           String?
+  baseInstructionNumber String?               @unique
+  versionNumber         String                @default("1")
+  instructionNumber     String                @unique
+  status                InstructionStatus     @default(DRAFT)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  createdById           String?
+  approvedAt            DateTime?
+  approvedById          String?
+  parentVersionId       String?               @unique
+  files                 File[]                @relation("InstructionFiles")
+  approvedBy            User?                 @relation("ApprovedInstructions", fields: [approvedById], references: [id])
+  createdBy             User?                 @relation(fields: [createdById], references: [id])
+  parentVersion         WorkInstruction?      @relation("WorkInstructionVersions", fields: [parentVersionId], references: [id])
+  childVersions         WorkInstruction?      @relation("WorkInstructionVersions")
+  part                  Part                  @relation(fields: [partId], references: [id])
+  steps                 WorkInstructionStep[]
+}
+
+model WorkInstructionStep {
+  id                  String                      @id @default(uuid())
+  workInstructionId   String
+  stepNumber          Int
+  title               String
+  instructions        String
+  estimatedLabourTime Int
+  requiredTools       String[]
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  images              File[]                      @relation("StepImages")
+  workInstruction     WorkInstruction             @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+  actions             WorkInstructionStepAction[]
+
+  @@unique([workInstructionId, stepNumber])
+}
+
+model WorkInstructionStepAction {
+  id             String              @id @default(uuid())
+  stepId         String
+  description    String
+  notes          String?
+  completedAt    DateTime?
+  completedBy    String?
+  completedValue Float?
+  isRequired     Boolean             @default(true)
+  signoffRoles   String[]
+  targetValue    Float?
+  tolerance      Float?
+  unit           String?
+  uploadedFileId String?             @unique
+  actionType     ActionType
+  step           WorkInstructionStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  uploadedFile   File?               @relation("ActionUpload", fields: [uploadedFileId], references: [id])
+}
+
+model Order {
+  id               String    @id @default(cuid())
+  orderNumber      String    @unique
+  supplier         String?
+  dateOrdered      DateTime?
+  estimatedArrival DateTime?
+  deliveredAt      DateTime?
+  status           String
+  emailThreadIds   String[]
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model DevelopmentPlan {
+  id                 String   @id @default(cuid())
+  name               String
+  imageUrl           String
+  minimumLotArea     Float
+  minimumLotWidth    Float
+  minimumLotDepth    Float
+  height             Float
+  grossUnits         Float
+  grossUnitsPerAcre  Float
+  floorAreaRatio     Float
+  buildingArea       Float
+  imperviousCoverage Float
+  alleyRequired      Boolean
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Parcel {
+  id           String   @id @default(cuid())
+  parcelNumber String   @unique
+  address      String
+  area         Float
+  zoningId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  zoning       Zoning   @relation(fields: [zoningId], references: [id])
+}
+
+model Zoning {
+  id          String   @id @default(cuid())
+  zoningType  String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  parcels     Parcel[]
+}
+
+model Epic {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?  @default("bg-gray-500")
+  boardId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  board     Board?   @relation(fields: [boardId], references: [id])
+  tasks     Task[]
+
+  @@unique([name, boardId])
+}
+
+enum Status {
+  paused
+  todo
+  in_progress
+  completed
+  scrapped
 }
 
 enum Color {
@@ -186,102 +438,6 @@ enum Color {
   rose
 }
 
-model TaskTag {
-  id      String  @id @default(cuid())
-  name    String
-  color   Color   @default(slate)
-  tasks   Task[]
-  boardId String?
-  board   Board?  @relation(fields: [boardId], references: [id], onDelete: SetNull)
-
-  // We'll apply this constraint after migration when all tags have a board assigned
-  @@unique([name, boardId])
-}
-
-model Project {
-  id    String  @id @default(cuid())
-  name  String
-  color String? @default("bg-gray-500")
-  tasks Task[]
-}
-
-model KanbanSection {
-  id          String    @id @default(cuid())
-  name        String
-  kanbanOrder Int
-  tasks       Task[]
-  boardId     String?
-  board       Board?    @relation(fields: [boardId], references: [id], onDelete: SetNull)
-  deletedOn   DateTime?
-
-  // We'll apply this constraint after migration when all sections have a board assigned
-  @@unique([name, boardId])
-}
-
-model Board {
-  id            String          @id @default(cuid())
-  name          String
-  icon          String?         // Optional emoji icon
-  createdById   String
-  createdBy     User            @relation("CreatedBoards", fields: [createdById], references: [id])
-  private       Boolean         @default(false)
-  sections      KanbanSection[]
-  tasks         Task[]
-  tags          TaskTag[]
-  epics         Epic[]
-  views         BoardView[]
-  collaborators User[]          @relation("BoardCollaborators")
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-}
-
-model BoardView {
-  id          String   @id @default(cuid())
-  name        String
-  filters     Json
-  createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  boardId     String
-  board       Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model MissionMessage {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Parts and Inventory
-
-model Part {
-  id               String                 @id @default(uuid())
-  basePartNumber   String?                @unique
-  versionNumber    String                 @default("1")
-  partTypeNumber   String                 @default("000")
-  partNumber       String                 @unique // basePartNumber-[partTypeNumber+versionNumber]
-  partRevision     String                 @default("A")
-  description      String
-  unit             String
-  trackingType     TrackingType
-  partType         PartType               @default(RAW_000)
-  // Relations
-  parentVersionId  String?                @unique
-  parentVersion    Part?                  @relation("PartVersions", fields: [parentVersionId], references: [id])
-  childVersions    Part[]                 @relation("PartVersions")
-  partImageId      String?                @unique
-  partImage        File?                  @relation("PartImage", fields: [partImageId], references: [id])
-  files            File[]                 @relation("PartFiles")
-  bomParts         BOMPart[]              @relation("BOMParts")
-  basePartTo       BOMPart[]              @relation("BOMBasePart")
-  inventory        Inventory[]
-  transactions     InventoryTransaction[]
-  workInstructions WorkInstruction[]
-  nxFilePath       String?
-}
-
 enum PartType {
   ASSEMBLY_400
   MODULE_300
@@ -298,55 +454,9 @@ enum TrackingType {
   LOT
 }
 
-model BOMPart {
-  id           String  @id @default(uuid())
-  parentPartId String?
-  parentPart   Part?   @relation("BOMParts", fields: [parentPartId], references: [id])
-  partId       String?
-  part         Part?   @relation("BOMBasePart", fields: [partId], references: [id])
-  qty          Int
-  bomType      BOMType
-}
-
 enum BOMType {
   ENGINEERING
   MANUFACTURING
-}
-
-model Inventory {
-  id           String   @id @default(uuid())
-  partId       String
-  part         Part     @relation(fields: [partId], references: [id])
-  locationId   String
-  location     Location @relation(fields: [locationId], references: [id])
-  qty          Int // Bulk parts tracked by quantity
-  serialNumber String?  @unique // Serialized parts track unique numbers
-}
-
-model InventoryTransaction {
-  id              String          @id @default(uuid())
-  timestamp       DateTime        @default(now())
-  partId          String
-  part            Part            @relation(fields: [partId], references: [id])
-  fromLocationId  String?
-  fromLocation    Location?       @relation("FromLocation", fields: [fromLocationId], references: [id])
-  toLocationId    String?
-  toLocation      Location?       @relation("ToLocation", fields: [toLocationId], references: [id])
-  qty             Int
-  transactionType TransactionType
-  referenceId     String? // Link to WorkOrder, PurchaseOrder, etc.
-}
-
-model Location {
-  id               String                 @id @default(uuid())
-  name             String
-  type             LocationType
-  parentLocationId String?                @unique
-  parentLocation   Location?              @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
-  subLocations     Location[]             @relation("LocationHierarchy")
-  fromTransactions InventoryTransaction[] @relation("FromLocation")
-  toTransactions   InventoryTransaction[] @relation("ToLocation")
-  inventoryParts   Inventory[]
 }
 
 enum LocationType {
@@ -368,51 +478,6 @@ enum TransactionType {
   SHIPMENT
 }
 
-// Manufacturing Models
-
-model WorkInstruction {
-  id                    String                @id @default(uuid())
-  partId                String
-  part                  Part                  @relation(fields: [partId], references: [id])
-  title                 String
-  description           String?
-  baseInstructionNumber String?               @unique
-  versionNumber         String                @default("1")
-  instructionNumber     String                @unique // baseInstructionNumber-versionNumber
-  status                InstructionStatus     @default(DRAFT)
-  steps                 WorkInstructionStep[]
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  createdById           String?
-  createdBy             User?                 @relation(fields: [createdById], references: [id])
-  approvedAt            DateTime?
-  approvedById          String?
-  approvedBy            User?                 @relation("ApprovedInstructions", fields: [approvedById], references: [id])
-  files                 File[]                @relation("InstructionFiles")
-
-  // Version relationships
-  parentVersionId String?           @unique
-  parentVersion   WorkInstruction?  @relation("WorkInstructionVersions", fields: [parentVersionId], references: [id])
-  childVersions   WorkInstruction[] @relation("WorkInstructionVersions")
-}
-
-model WorkInstructionStep {
-  id                  String                      @id @default(uuid())
-  workInstructionId   String
-  workInstruction     WorkInstruction             @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
-  stepNumber          Int
-  title               String
-  instructions        String // Notion-style document content
-  estimatedLabourTime Int // In minutes
-  requiredTools       String[]
-  actions             WorkInstructionStepAction[]
-  images              File[]                      @relation("StepImages")
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-
-  @@unique([workInstructionId, stepNumber])
-}
-
 enum ActionType {
   VALUE_INPUT
   UPLOAD_IMAGE
@@ -420,93 +485,9 @@ enum ActionType {
   CHECKBOX
 }
 
-model WorkInstructionStepAction {
-  id             String              @id @default(uuid())
-  stepId         String
-  step           WorkInstructionStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  actionType     ActionType
-  description    String
-  targetValue    Float? // For VALUE_INPUT type - the expected value
-  unit           String? // For VALUE_INPUT type - the unit of measurement
-  tolerance      Float? // For VALUE_INPUT type - acceptable deviation from target
-  signoffRoles   String[] // For SIGNOFF type - roles that can sign off
-  isRequired     Boolean             @default(true)
-  completedAt    DateTime? // When the action was completed
-  completedBy    String? // User ID who completed the action
-  completedValue Float? // For VALUE_INPUT type - the actual value entered
-  uploadedFileId String?             @unique // For UPLOAD_IMAGE type - reference to uploaded file
-  uploadedFile   File?               @relation("ActionUpload", fields: [uploadedFileId], references: [id])
-  notes          String?
-}
-
 enum InstructionStatus {
   DRAFT
   REVIEW
   APPROVED
   DEPRECATED
-}
-
-model Order {
-  id               String    @id @default(cuid())
-  orderNumber      String    @unique
-  supplier         String?
-  dateOrdered      DateTime?
-  estimatedArrival DateTime?
-  deliveredAt      DateTime?
-  status           String
-  emailThreadIds   String[]
-  metadata         Json?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-}
-
-model DevelopmentPlan {
-  id                 String   @id @default(cuid())
-  name               String
-  imageUrl           String
-  minimumLotArea     Float
-  minimumLotWidth    Float // may change to "width". shouldn't require knowing setbacks
-  minimumLotDepth    Float // may change to "depth". shouldn't require knowing setbacks
-  height             Float
-  grossUnits         Float
-  grossUnitsPerAcre  Float
-  floorAreaRatio     Float // may not be necessary. or we could change it to "minFloorAreaRatio"
-  buildingArea       Float
-  imperviousCoverage Float
-  alleyRequired      Boolean
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-}
-
-model Parcel {
-  id           String   @id @default(cuid())
-  parcelNumber String   @unique
-  address      String
-  area         Float
-  zoningId     String
-  zoning       Zoning   @relation(fields: [zoningId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model Zoning {
-  id          String   @id @default(cuid())
-  zoningType  String
-  description String
-  parcels     Parcel[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Epic {
-  id        String   @id @default(cuid())
-  name      String
-  color     String?  @default("bg-gray-500")
-  tasks     Task[]
-  boardId   String?
-  board     Board?   @relation(fields: [boardId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([name, boardId])
 }

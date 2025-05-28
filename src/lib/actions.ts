@@ -138,7 +138,7 @@ export async function createTask(data: {
     name: string;
     taskNumber: string;
     status: Status;
-    priority: Priority;
+    priority: number;
     dueDate: Date;
     description: string;
     createdById: string;
@@ -354,7 +354,7 @@ export async function updateTask(taskId: string, data: {
     name?: string;
     taskNumber?: string;
     status?: Status;
-    priority?: Priority;
+    priority?: number;
     dueDate?: Date | undefined;
     description?: string;
     assignees?: string[];

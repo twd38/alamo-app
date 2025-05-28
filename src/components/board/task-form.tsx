@@ -29,7 +29,7 @@ import {
 } from '@/lib/queries';
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Status, User, Task, TaskTag, Priority, Epic } from "@prisma/client";
+import { Status, User, Task, TaskTag, Epic } from "@prisma/client";
 import { ComboBox } from "@/components/combo-box";
 import { 
     createTask, 
@@ -57,7 +57,7 @@ import { toast } from "react-hot-toast";
 import STLViewer from "@/components/stl-viewer";
 import { generateRandomColor } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PRIORITY_CONFIG } from "@/lib/constants/priority";
+import { PRIORITY_CONFIG, PRIORITY_VALUE_TO_ENUM } from "@/lib/constants/priority";
 import { MoveTaskDialog } from "./move-task-dialog"
 
 interface TaskWithRelations extends Task {
@@ -73,7 +73,7 @@ const formSchema = z.object({
     name: z.string().min(1, { message: "Task name is required" }),
     taskNumber: z.string(),
     status: z.nativeEnum(Status),
-    priority: z.nativeEnum(Priority),
+    priority: z.number().int().min(0).max(3),
     epicId: z.string().optional(),
     dueDate: z.date().optional(),
     description: z.string(),
@@ -128,7 +128,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
       name: task?.name,
       taskNumber: task?.taskNumber || "",
       status: task?.status || "todo",
-      priority: task?.priority || "LOW",
+      priority: typeof task?.priority === "number" ? task.priority : 0,
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
       description: task?.description || "{}",
       createdById: task?.createdById || "",
@@ -497,9 +497,9 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                     <FormLabel className="w-28">Priority</FormLabel>
                                     {/* priority select */}
                                     <Select
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        value={field.value}
+                                        onValueChange={(val) => field.onChange(parseInt(val))}
+                                        defaultValue={field.value.toString()}
+                                        value={field.value.toString()}
                                     >
                                         <FormControl>
                                             <SelectTrigger className="w-[240px]">
@@ -509,8 +509,8 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {Object.values(PRIORITY_CONFIG).map((priority) => (
-                                                <SelectItem key={priority.name} value={priority.name}>
+                                            {Object.entries(PRIORITY_CONFIG).map(([value, priority]) => (
+                                                <SelectItem key={value} value={value}>
                                                     <Badge color={priority.color}>{priority.label}</Badge>
                                                 </SelectItem>
                                             ))}

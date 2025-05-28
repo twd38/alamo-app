@@ -1,35 +1,46 @@
-import { Priority } from "@prisma/client";
+import type { Priority } from "@prisma/client";
 
 /**
  * Configuration for task priorities
  */
-type PriorityConfig = {
-  name: Priority;
-  color: "blue" | "amber" | "orange" | "red";
-  label: string;
+export type PriorityConfig = {
+  /**
+   * The textual name of the priority. Kept for display purposes and
+   * for any legacy logic that still expects the enum value.
+   */
+  readonly name: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  /** The Tailwind colour used for the priority badge. */
+  readonly color: "blue" | "amber" | "orange" | "red";
+  /** A human-friendly label shown in the UI. */
+  readonly label: string;
 };
 
 /**
- * Priority configuration mapping
- * Colors are using Tailwind CSS classes
+ * Mapping between the numeric priority value stored in the database
+ * and the configuration required by the UI.
+ *
+ * 0 → Low
+ * 1 → Medium
+ * 2 → High
+ * 3 → Critical
  */
-export const PRIORITY_CONFIG: Record<Priority, PriorityConfig> = {
-  LOW: {
+export const PRIORITY_CONFIG: Record<number, PriorityConfig> = {
+  0: {
     name: "LOW",
     color: "blue",
     label: "Low",
   },
-  MEDIUM: {
+  1: {
     name: "MEDIUM",
     color: "amber",
     label: "Medium",
   },
-  HIGH: {
+  2: {
     name: "HIGH",
     color: "orange",
     label: "High",
   },
-  CRITICAL: {
+  3: {
     name: "CRITICAL",
     color: "red",
     label: "Critical",
@@ -37,18 +48,36 @@ export const PRIORITY_CONFIG: Record<Priority, PriorityConfig> = {
 } as const;
 
 /**
- * Get priority configuration by priority name
- * @param priority - The priority name
- * @returns The priority configuration
+ * Get priority configuration by numeric value.
+ * @param priority – 0-based integer value of the priority.
  */
-export const getPriorityConfig = (priority: Priority): PriorityConfig => {
+export const getPriorityConfig = (priority: number): PriorityConfig => {
   return PRIORITY_CONFIG[priority];
 };
 
 /**
- * Get all priority configurations
- * @returns Array of priority configurations
+ * Get all priority configurations.
  */
 export const getAllPriorityConfigs = (): PriorityConfig[] => {
   return Object.values(PRIORITY_CONFIG);
-}; 
+};
+
+/**
+ * Map numeric priority value to enum string (used by backend helper types).
+ */
+export const PRIORITY_VALUE_TO_ENUM: Record<number, Priority> = {
+  0: "LOW",
+  1: "MEDIUM",
+  2: "HIGH",
+  3: "CRITICAL",
+} as const;
+
+/**
+ * Map enum string to numeric priority value.
+ */
+export const PRIORITY_ENUM_TO_VALUE: Record<Priority, number> = {
+  LOW: 0,
+  MEDIUM: 1,
+  HIGH: 2,
+  CRITICAL: 3,
+} as const; 

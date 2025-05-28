@@ -18,7 +18,7 @@ import { usePathname } from "next/navigation";
 const items = [
     {
       title: "Board",
-      url: "/board/cmar9m3zo00046dreia8r9hei", // Main board
+      url: "/board/my-tasks", // Main board
       icon: SquareKanban,      
     },
     {

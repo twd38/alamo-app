@@ -14,6 +14,7 @@ import { useFilterAtom } from '@/components/filter-popover';
 import useSWR from 'swr';
 import { BoardView } from '@prisma/client';
 import UpdateViewDialog from './update-view-dialog';
+import SortDropdown from './sort-dropdown';
 
 const operatorOptions = [
     { label: "is", value: "is"},
@@ -119,6 +120,7 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
                     <Plus className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-2 ml-auto">
+                    <SortDropdown />
                     <FilterPopover
                         filterOptions={filterOptions}
                         operatorOptions={operatorOptions}

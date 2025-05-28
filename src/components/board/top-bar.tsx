@@ -46,7 +46,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
   const creator = isMyTasks ? null : activeBoard.createdBy;
   const collaborators = isMyTasks ? [] : activeBoard.collaborators;
   const isPrivate = isMyTasks ? true : activeBoard.private;
-  const icon = isMyTasks ? null : activeBoard.icon;
+  const icon = isMyTasks ? "📚" : activeBoard.icon;
   const name = isMyTasks ? "My Tasks" : activeBoard.name;
 
   const privateBoards = boards
@@ -88,6 +88,14 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
             sideOffset={4}
             className="w-56"
           >
+            <DropdownMenuItem>
+              <Link href="/board/my-tasks">
+                <span className="mr-2">📚</span>
+                My Tasks
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Public
             </DropdownMenuLabel>
@@ -143,25 +151,27 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
             isPublic={!isPrivate}
           />
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
-              Edit board
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => setIsDeleteOpen(true)}
-              className="text-red-600"
-            >
-              Archive board
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        { !isMyTasks && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
+                Edit board
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => setIsDeleteOpen(true)}
+                className="text-red-600"
+              >
+                Archive board
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <CreateBoardDialog isOpen={isOpen} onClose={onClose} />
       <EditBoardDialog

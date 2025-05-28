@@ -15,9 +15,9 @@ import TaskDetail from '@/components/board/task-detail';
 import { useAtom } from 'jotai';
 import { taskModal, filterStateAtom, FilterType } from '@/components/board/utils';
 import { useFilterAtom, isValidUser, isValidString, isValidDate } from "@/components/filter-popover"
-import { Plus } from "lucide-react"
 import NewSectionDialog from "./new-section-dialog"
 import { KanbanColumnNew } from "./kanban-column-add"
+import { useQueryStates, parseAsString } from 'nuqs'
 
 export const dynamic = 'force-dynamic';
 
@@ -41,10 +41,15 @@ export function KanbanBoard({
 }) {
   // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [sortableColumns, setSortableColumns] = useOptimistic(columns);
+  const [sortableColumns, setSortableColumns] = useOptimistic(columns)
   const [activeTask, setActiveTask] = useAtom(taskModal)
   const [filterState, setFilterState] = useFilterAtom("kanban-board")
-  const [isNewSectionDialogOpen, setIsNewSectionDialogOpen] = useState(false);
+  const [isNewSectionDialogOpen, setIsNewSectionDialogOpen] = useState(false)
+   // Sort state (key & direction) comes from URL query params handled by nuqs
+   const [{ sort: sortKey, dir: sortDir }] = useQueryStates({
+    sort: parseAsString.withDefault(''),
+    dir: parseAsString.withDefault('desc'),
+  })
 
   const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null
   const cleanActiveTaskData = activeTaskData ? {
@@ -108,13 +113,44 @@ export function KanbanBoard({
     });
   };
 
-  // Filter columns based on the filterState
+  /**
+   * Apply filters and sorting to the tasks of each column.
+   * Sorting rules:
+   *   – "priority": higher priority first (desc).
+   *   – "due_date": earliest date first (asc). Tasks without a due date are
+   *                  pushed to the end.
+   *   – default/unknown: keep the existing taskOrder sequence.
+   */
   const filteredColumns = useMemo(() => {
-    return sortableColumns.map(column => ({
-      ...column,
-      tasks: column.tasks.filter(task => applyFilters(task, filterState.filters))
-    }));
-  }, [sortableColumns, filterState]);
+    return sortableColumns.map(column => {
+      // First, filter tasks according to the active filters.
+      let tasksAfterFilter = column.tasks.filter(task => applyFilters(task, filterState.filters))
+
+      // Then, apply sorting depending on the selected option and direction.
+      switch (sortKey) {
+        case 'priority':
+          tasksAfterFilter = [...tasksAfterFilter].sort((a, b) =>
+            sortDir === 'asc' ? a.priority - b.priority : b.priority - a.priority
+          )
+          break;
+        case 'due_date':
+          tasksAfterFilter = [...tasksAfterFilter].sort((a, b) => {
+            const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+            const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+            return sortDir === 'asc' ? aTime - bTime : bTime - aTime
+          })
+          break;
+        default:
+          // Keep original order based on taskOrder (lower value first).
+          tasksAfterFilter = [...tasksAfterFilter].sort((a, b) => a.taskOrder - b.taskOrder)
+      }
+
+      return {
+        ...column,
+        tasks: tasksAfterFilter,
+      }
+    })
+  }, [sortableColumns, filterState, sortKey, sortDir]);
   
 
   
@@ -259,9 +295,7 @@ export function KanbanBoard({
   };
 
   const handleDragStart = (event: any) => {
-    console.log("drag start")
     const { active } = event;
-    console.log(active.id)
     setActiveId(active.id);
   };
 
