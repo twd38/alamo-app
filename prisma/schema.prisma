@@ -126,11 +126,12 @@ model Task {
   deletedOn       DateTime?
   taskOrder       Int            @default(0)
   kanbanSectionId String?
+  priority        Int            @default(0)
   projectId       String?
   private         Boolean        @default(false)
   boardId         String?
   epicId          String?
-  priority        Int            @default(0)
+  priorityOld     Priority       @default(LOW)
   files           File[]
   board           Board?         @relation(fields: [boardId], references: [id])
   createdBy       User           @relation("CreatedByRelation", fields: [createdById], references: [id])
