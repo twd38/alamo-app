@@ -491,10 +491,3 @@ enum InstructionStatus {
   APPROVED
   DEPRECATED
 }
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
