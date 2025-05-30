@@ -45,6 +45,7 @@ export function KanbanBoard({
   const [activeTask, setActiveTask] = useAtom(taskModal)
   const [filterState, setFilterState] = useFilterAtom("kanban-board")
   const [isNewSectionDialogOpen, setIsNewSectionDialogOpen] = useState(false)
+  const [creatingColumnId, setCreatingColumnId] = useState<string | null>(null)
    // Sort state (key & direction) comes from URL query params handled by nuqs
    const [{ sort: sortKey, dir: sortDir }] = useQueryStates({
     sort: parseAsString.withDefault(''),
@@ -300,11 +301,7 @@ export function KanbanBoard({
   };
 
   const handleAddTask = (kanbanSectionId: string) => {
-    setActiveTask({
-      type: "new",
-      taskId: null,
-      kanbanSectionId: kanbanSectionId,
-    });
+    setCreatingColumnId(kanbanSectionId)
   }
 
   const sensors = [
@@ -337,7 +334,16 @@ export function KanbanBoard({
                 <SortableContext items={filteredColumns.map(column => column.name)} strategy={horizontalListSortingStrategy}>
                 
                   {filteredColumns.map((column, index) => (
-                    <KanbanColumn key={index} id={column.id} name={column.name} tasks={column.tasks} handleAddTask={() => handleAddTask(column.id)} />
+                    <KanbanColumn
+                      key={index}
+                      id={column.id}
+                      name={column.name}
+                      tasks={column.tasks}
+                      boardId={boardId}
+                      showCreateCard={creatingColumnId === column.id}
+                      onCancelCreate={() => setCreatingColumnId(null)}
+                      handleAddTask={() => handleAddTask(column.id)}
+                    />
                   ))}
 
                   {/* Add new section button */}

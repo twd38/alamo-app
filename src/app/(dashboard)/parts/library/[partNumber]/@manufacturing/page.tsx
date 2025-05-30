@@ -53,7 +53,7 @@ const WorkInstructionStepList = ({
     onAddStep: () => void
 }) => {
     const { mutate } = useSWR<PartWorkInstructions>(
-        `/api/parts/${partNumber}/work-instructions`, 
+        `/parts/${partNumber}/work-instructions`, 
         () => getPartWorkInstructions(partNumber)
     );
 

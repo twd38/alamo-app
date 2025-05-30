@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check, MoreHorizontal } from "lucide-react"
@@ -59,6 +59,7 @@ import { generateRandomColor } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PRIORITY_CONFIG, PRIORITY_VALUE_TO_ENUM } from "@/lib/constants/priority";
 import { MoveTaskDialog } from "./move-task-dialog"
+import { useDebouncedCallback } from 'use-debounce';
 
 interface TaskWithRelations extends Task {
     assignees: User[];
@@ -140,7 +141,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
   })
 
   // Handle form submission
-  const submitForm = async (data: z.infer<typeof formSchema>) => {
+  const submitForm = useCallback(async (data: z.infer<typeof formSchema>) => {
     try {
       let result;
       
@@ -186,19 +187,16 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
         return;
       }
 
-      toast.success('Task saved successfully');
-      setActiveTask({
-        type: null,
-        taskId: null,
-        kanbanSectionId: null,
-      })
-      updateDataAndRevalidate("/production")
-      router.refresh();
+      updateDataAndRevalidate(`/board/${boardId}`)
+
+      // Reset the form so that formState.isDirty becomes false and
+      // subsequent auto-saves only trigger on new changes.
+      form.reset(data);
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('Error saving task');
     }
-  }
+  }, [boardId, form, router, setActiveTask, task]);
 
   const handleDuplicateTask = async () => {
     if (!task) return;
@@ -282,23 +280,46 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
 
   const isLoading = form.formState.isSubmitting
 
+  /*
+   * ---------------------------------------------------------------------
+   * Auto-save (debounced) implementation
+   * ---------------------------------------------------------------------
+   * When the component is editing an existing task, we automatically
+   * persist any changes after the user stops interacting for a short
+   * period (1 second). This mimics the behaviour of modern editors and
+   * avoids the need for the user to press the save button manually.
+   */
+
+  const debouncedSubmit = useDebouncedCallback((values: z.infer<typeof formSchema>) => {
+    // Guard clauses – only auto-save when editing (task exists) and the
+    // form has unsaved changes.
+    // if (!task) return;
+    // if (!form.formState.isDirty) return;
+
+    submitForm(values);
+  }, 1000); // 1000 ms debounce
+
+  useEffect(() => {
+    if (!task) return;
+
+    // Subscribe to all form value changes.
+    const subscription = form.watch((values) => {
+      debouncedSubmit(values as z.infer<typeof formSchema>);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      debouncedSubmit.cancel();
+    };
+  }, [debouncedSubmit, form, task]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(submitForm)}>
         <div className="h-full overflow-y-auto">
             <div className="space-y-2">
                 {/* header */}
-                <div className="flex items-center justify-between px-6 border-b h-12">
-                    <Button 
-                        type="submit"
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-1"
-                        isLoading={isLoading}
-                    >
-                        <Check className="h-4 w-4" />
-                        {task ? 'Save changes' : 'Create task'}
-                    </Button>
+                <div className="flex items-center justify-end pr-8 border-b h-12">
                     <div className="flex gap-2">
                         {task && (
                             <DropdownMenu>

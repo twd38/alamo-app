@@ -30,10 +30,10 @@ const items = [
           title: "Library",
           url: "/parts/library",
         },
-        {
-          title: "Inventory",
-          url: "/parts/inventory",
-        },
+        // {
+        //   title: "Inventory",
+        //   url: "/parts/inventory",
+        // },
       ],
     },
     {
@@ -45,17 +45,7 @@ const items = [
       title: "Site Explorer",
       url: "/explorer",
       icon: Globe,
-    },
-    // {
-    //   title: "Documentation",
-    //   url: "#",
-    //   icon: BookOpen,
-    // },
-    // {
-    //   title: "Settings",
-    //   url: "#",
-    //   icon: Settings2,
-    // },
+    }
   ]
 
 export function NavMain() {

@@ -161,6 +161,17 @@ export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount
 
   const debouncedUpdateQuery = useCallback(debounce(updateSearchQuery, 500), [updateSearchQuery])
 
+  const navigateToPart = useCallback((e: React.MouseEvent<HTMLTableCellElement>) => {
+    const partNumber = e.currentTarget.getAttribute("data-part-number")
+
+    // if the child of the cell is a button, then do nothing
+    if (e.currentTarget.children[0].tagName === "BUTTON") {
+      return
+    }
+
+    router.push(`/parts/library/${partNumber}`)
+  }, [router])
+
   // Handle search input changes
   // This approach directly triggers the debounced URL update from the onChange handler
   // instead of using a separate useEffect, which is cleaner and more efficient
@@ -258,7 +269,7 @@ export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id} data-part-number={row.original.partNumber} onClick={navigateToPart} >{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))

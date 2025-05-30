@@ -156,7 +156,7 @@ export async function createTask(data: {
         const userId = session?.user?.id || "cm78gevrb0004kxxg43qs0mqv"
         
         // Handle file uploads if present
-        const fileData = [];
+        const fileData: Prisma.FileCreateInput[] = [];
         if (data.files && data.files.length > 0) {
             for (const file of data.files) {
                 const { url } = await uploadFileToR2(file, "tasks");
@@ -169,34 +169,54 @@ export async function createTask(data: {
             }
         }
         
-        const result = await prisma.task.create({
-            data: {
-                name: data.name,
-                taskNumber: data.taskNumber,
-                status: data.status,
-                priority: data.priority,
-                dueDate: data.dueDate,
-                description: data.description,
-                createdById: userId,
-                assignees: {
-                    connect: data.assignees.map(userId => ({ id: userId }))
+        const result = await prisma.$transaction(async (tx) => {
+            // Move all existing tasks in the same Kanban section down by one position
+            await tx.task.updateMany({
+                where: {
+                    kanbanSectionId: data.kanbanSectionId,
+                    deletedOn: null,
                 },
-                kanbanSectionId: data.kanbanSectionId,
-                boardId: data.boardId,
-                files: {
-                    create: fileData
+                data: {
+                    taskOrder: {
+                        increment: 1,
+                    },
                 },
-                tags: {
-                    connect: data.tags?.map(tag => ({ id: tag })) || []
+            });
+
+            // Insert the new task at the beginning (taskOrder = 0)
+            return tx.task.create({
+                data: {
+                    name: data.name,
+                    taskNumber: data.taskNumber,
+                    status: data.status,
+                    priority: data.priority,
+                    dueDate: data.dueDate,
+                    description: data.description,
+                    createdById: userId,
+                    assignees: {
+                        connect: data.assignees.map((assigneeId) => ({ id: assigneeId })),
+                    },
+                    kanbanSectionId: data.kanbanSectionId,
+                    boardId: data.boardId,
+                    taskOrder: 0,
+                    files: {
+                        create: fileData,
+                    },
+                    tags: {
+                        connect: data.tags?.map((tag) => ({ id: tag })) || [],
+                    },
+                    private: data.private ?? false,
+                    epicId: data.epicId,
                 },
-                private: data.private || false,
-                epicId: data.epicId
-            },
-            include: {
-                assignees: true,
-                files: true
-            }
+                include: {
+                    assignees: true,
+                    files: true,
+                },
+            });
         });
+
+        // Revalidate production board so UI reflects the new task order immediately
+        revalidatePath('/production');
 
         return { success: true, data: result };
     } catch (error) {

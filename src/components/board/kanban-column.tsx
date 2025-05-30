@@ -18,6 +18,7 @@ import { DeleteAlert } from '@/components/delete-alert';
 import { deleteKanbanSection } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 import EditColumnDialog from './edit-column-dialog';
+import { TaskCardCreate } from './task-card-create';
 // export const dynamic = 'force-dynamic';
 
 interface KanbanColumnProps {
@@ -30,9 +31,12 @@ interface KanbanColumnProps {
     tags: TaskTag[];
   })[]
   handleAddTask?: () => void
+  boardId?: string
+  showCreateCard?: boolean
+  onCancelCreate?: () => void
 }
 
-export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnProps) {
+export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCreateCard, onCancelCreate }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: name });
   const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isDragging } = useSortable({ 
     id: name,
@@ -136,6 +140,11 @@ export function KanbanColumn({ id, name, tasks, handleAddTask }: KanbanColumnPro
             </div>
           </div>
           <div className="p-2 flex-1 overflow-hidden">
+            {showCreateCard && boardId && (
+              <div className="space-y-2 mb-2">
+                <TaskCardCreate columnId={id} boardId={boardId} onCancel={onCancelCreate || (() => {})} />
+              </div>
+            )}
             <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-2 h-full overflow-y-auto">
                 {tasks.map((task) => (
