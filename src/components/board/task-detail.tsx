@@ -24,7 +24,7 @@ export default function TaskDetail({task, boardId}: {task: TaskWithRelations | n
     })
   }
 
-  const isOpen = activeTask.type !== null;
+  const isOpen = activeTask.type === "edit";
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange} modal={false} >

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, startTransition, useMemo } from "react"
+import { useState, startTransition, useMemo, useEffect } from "react"
 import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core"
 import { SortableContext, horizontalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { KanbanColumn } from "./kanban-column"
@@ -52,6 +52,14 @@ export function KanbanBoard({
     dir: parseAsString.withDefault('desc'),
   })
 
+  // Check if the active task is a new task
+  useEffect(() => {
+    if (activeTask?.type === "new") {
+      setCreatingColumnId(sortableColumns[0]?.id)
+    }
+  }, [activeTask, sortableColumns])
+
+  // Get the task data for the active task
   const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null
   const cleanActiveTaskData = activeTaskData ? {
     ...activeTaskData,
