@@ -29,9 +29,7 @@ export function SavingBadge({
                 "h-6 transition-colors flex items-center gap-1",
                 status === "error" 
                     ? "bg-red-100 text-red-700 hover:bg-red-100" 
-                    : status === "saving"
-                        ? "bg-muted" 
-                        : "bg-muted/50",
+                    : "bg-muted",
                 className
             )}
         >
@@ -43,7 +41,7 @@ export function SavingBadge({
             ) : status === "saving" ? (
                 <>
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving...
+                    Saving
                 </>
             ) : (
                 <>

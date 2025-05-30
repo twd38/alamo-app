@@ -58,7 +58,8 @@ import STLViewer from "@/components/stl-viewer";
 import { generateRandomColor } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PRIORITY_CONFIG, PRIORITY_VALUE_TO_ENUM } from "@/lib/constants/priority";
-import { MoveTaskDialog } from "./move-task-dialog"
+import { MoveTaskDialog } from "./move-task-dialog";
+import { SavingBadge } from "@/components/ui/saving-badge";
 import { useDebouncedCallback } from 'use-debounce';
 
 interface TaskWithRelations extends Task {
@@ -278,7 +279,7 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
     }
   };
 
-  const isLoading = form.formState.isSubmitting
+  const isLoading = form.formState.isSubmitting || form.formState.isDirty
 
   /*
    * ---------------------------------------------------------------------
@@ -319,7 +320,8 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
         <div className="h-full overflow-y-auto">
             <div className="space-y-2">
                 {/* header */}
-                <div className="flex items-center justify-end pr-8 border-b h-12">
+                <div className="flex items-center justify-end pr-10 border-b h-12">
+                    <SavingBadge status={isLoading ? "saving" : "saved"} />
                     <div className="flex gap-2">
                         {task && (
                             <DropdownMenu>

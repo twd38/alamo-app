@@ -35,8 +35,7 @@ export function ActionPanel({views, boardId}: ActionPanelProps) {
     const [activeTask, setActiveTask] = useAtom(taskModal)
     const [filterState, setFilterState] = useFilterAtom("kanban-board")
     const [activeView, setActiveView] = useState<BoardView | null>(null)
-    console.log("activeView", activeView)
-    console.log("filterState", filterState)
+
     // use swr to get all users
     const { data: allUsers, isLoading } = useSWR('all-users', getAllUsers);
 

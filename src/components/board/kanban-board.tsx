@@ -327,8 +327,6 @@ export function KanbanBoard({
     },
   ];
 
-  console.log(filteredColumns)
-
   return (
     <div className="">
       <ScrollArea className="whitespace-nowrap">

@@ -13,8 +13,6 @@ import {
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
   ArrowUpDown,
-  ArrowDown,
-  Check,
 } from 'lucide-react'
 
 /**
@@ -50,8 +48,6 @@ export default function SortDropdown(): JSX.Element {
     dir: parseAsString.withDefault("desc"),
   })
 
-  console.log(sort, dir)
-
   const sortKey = sort as SortKey
   const sortDir = dir as SortDirection
 
@@ -60,7 +56,6 @@ export default function SortDropdown(): JSX.Element {
    * toggle the direction. Otherwise set the new key with ascending order.
    */
   const onSelectKey = (key: Exclude<SortKey, "">): void => {
-    console.log(key)
     if (key === sortKey) {
       setQuery({ sort: key, dir: toggleDirection(sortDir) })
     } else {
