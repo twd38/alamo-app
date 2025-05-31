@@ -18,6 +18,7 @@ import { useFilterAtom, isValidUser, isValidString, isValidDate } from "@/compon
 import NewSectionDialog from "./new-section-dialog"
 import { KanbanColumnNew } from "./kanban-column-add"
 import { useQueryStates, parseAsString } from 'nuqs'
+import { useSearchParams } from "next/navigation"
 
 export const dynamic = 'force-dynamic';
 
@@ -51,12 +52,44 @@ export function KanbanBoard({
     dir: parseAsString.withDefault('desc'),
   })
 
+  // Read `taskId` from the current URL (e.g. /board?taskId=abc123)
+  const searchParams = useSearchParams()
+  const urlTaskId = searchParams.get("taskId")
+
   // Check if the active task is a new task
   useEffect(() => {
     if (activeTask?.type === "new") {
       setCreatingColumnId(sortableColumns[0]?.id)
     }
   }, [activeTask, sortableColumns])
+
+  // ---------------------------------------------------------------------------
+  // URL → Atom synchronisation
+  // ---------------------------------------------------------------------------
+  // When the URL contains a ?taskId=<id> query parameter, automatically open the
+  // corresponding task in the detail view by synchronising the `taskModal` Jotai
+  // atom. This runs whenever the `taskId` query parameter changes or the set of
+  // columns/tasks is updated.
+  useEffect(() => {
+    if (!urlTaskId) return
+
+    // If the task requested in the URL is already active, do nothing.
+    if (activeTask?.taskId === urlTaskId) return
+
+    // Try to locate the kanban section that contains the task so we can include
+    // the `kanbanSectionId` in the atom state. If for some reason the task is
+    // not found (e.g. stale URL), we still set the taskId so the detail view
+    // can handle the missing data gracefully.
+    const containingColumn = sortableColumns.find((column) =>
+      column.tasks.some((task) => task.id === urlTaskId)
+    )
+
+    setActiveTask({
+      type: "edit",
+      taskId: urlTaskId,
+      kanbanSectionId: containingColumn?.id ?? null,
+    })
+  }, [urlTaskId, sortableColumns, activeTask, setActiveTask])
 
   // Get the task data for the active task
   const activeTaskData = activeTask ? sortableColumns.flatMap(column => column.tasks).find(task => task.id === activeTask.taskId) : null

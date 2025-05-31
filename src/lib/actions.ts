@@ -529,7 +529,7 @@ export async function updateTask(taskId: string, data: {
                     actorName = actor?.name ?? undefined;
                 }
 
-                const message = `${actorName ?? 'Someone'} assigned you to task <https://alamo.americanhousing.co/board/${taskId}|${result.name}>.`
+                const message = `${actorName ?? 'Someone'} assigned you to task <https://alamo.americanhousing.co/board/${result.boardId}?taskId=${result.id}|${result.name}>.`
                 await notify({
                     recipientIds: addedIds,
                     message: message,
