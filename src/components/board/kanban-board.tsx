@@ -39,7 +39,6 @@ export function KanbanBoard({
   tasks: Task[]
   boardId: string
 }) {
-  // const [columns, setColumns] = useState<WorkstationWithJobs[]>(initialColumns)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sortableColumns, setSortableColumns] = useOptimistic(columns)
   const [activeTask, setActiveTask] = useAtom(taskModal)

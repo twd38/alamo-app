@@ -355,7 +355,6 @@ export async function duplicateTask(taskId: string) {
                         type: file.type,
                         size: file.size,
                         taskId: taskId,
-                        jobId: file.jobId
                     }))
                 }
             },
