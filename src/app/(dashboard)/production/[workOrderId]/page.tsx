@@ -6,3 +6,5 @@ const WorkOrderProductionPage = () => {
         </div>
     )
 }
+
+export default WorkOrderProductionPage;
