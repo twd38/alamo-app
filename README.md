@@ -48,7 +48,23 @@ You should now be able to access the application at http://localhost:3000.
 
 ```
 npx prisma migrate dev
-``````
+```
 npx prisma generate
 ```
 ## Deployment
+
+## Slack Notifications
+
+To enable Slack notifications, add the following environment variable to your `.env` file (or the platform-specific configuration):
+
+```
+SLACK_BOT_TOKEN=xoxb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+The token must belong to a bot user that has the following scopes:
+
+- `users:read` – to look up a Slack user by email address.
+- `conversations:write` – to open direct message channels.
+- `chat:write` – to post messages.
+
+If `SLACK_BOT_TOKEN` is **not** set, the application will skip Slack delivery gracefully while continuing to operate normally.

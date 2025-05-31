@@ -19,9 +19,9 @@ model User {
   accounts             Account[]
   createdBoards        Board[]           @relation("CreatedBoards")
   boardViews           BoardView[]
-  createdJobs          Job[]             @relation("CreatedByRelation")
-  ownedJobs            Job[]             @relation("OwnerRelation")
-  assignedJobs         JobAssignee[]
+  createdWorkOrders    WorkOrder[]       @relation("CreatedByRelation")
+  ownedWorkOrders      WorkOrder[]       @relation("OwnerRelation")
+  assignedWorkOrders   WorkOrderAssignee[]
   sessions             Session[]
   createdTasks         Task[]            @relation("CreatedByRelation")
   approvedInstructions WorkInstruction[] @relation("ApprovedInstructions")
@@ -71,7 +71,7 @@ model VerificationToken {
 model File {
   id            String                     @id @default(cuid())
   url           String
-  jobId         String?
+  workOrderId   String?
   taskId        String?
   deletedOn     DateTime?
   name          String
@@ -82,7 +82,7 @@ model File {
   stepId        String?
   key           String                     @default("")
   instruction   WorkInstruction?           @relation("InstructionFiles", fields: [instructionId], references: [id])
-  job           Job?                       @relation(fields: [jobId], references: [id])
+  workOrder     WorkOrder?                 @relation(fields: [workOrderId], references: [id])
   part          Part?                      @relation("PartFiles", fields: [partId], references: [id])
   step          WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
   task          Task?                      @relation(fields: [taskId], references: [id])
@@ -90,31 +90,31 @@ model File {
   action        WorkInstructionStepAction? @relation("ActionUpload")
 }
 
-model Job {
-  id           String        @id @default(cuid())
-  jobNumber    String
-  partName     String
-  operation    String
-  status       Status
-  timeEstimate String
-  dueDate      String
-  imageUrl     String
-  createdById  String
-  ownerId      String
-  deletedOn    DateTime?
-  files        File[]
-  createdBy    User          @relation("CreatedByRelation", fields: [createdById], references: [id])
-  owner        User          @relation("OwnerRelation", fields: [ownerId], references: [id])
-  assignees    JobAssignee[]
+model WorkOrder {
+  id                 String              @id @default(cuid())
+  workOrderNumber    String
+  partName           String
+  operation          String
+  status             Status
+  timeEstimate       String
+  dueDate            String
+  imageUrl           String
+  createdById        String
+  ownerId            String
+  deletedOn          DateTime?
+  files              File[]
+  createdBy          User                @relation("CreatedByRelation", fields: [createdById], references: [id])
+  owner              User                @relation("OwnerRelation", fields: [ownerId], references: [id])
+  assignees          WorkOrderAssignee[]
 }
 
-model JobAssignee {
-  jobId  String
-  userId String
-  job    Job    @relation(fields: [jobId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+model WorkOrderAssignee {
+  workOrderId  String
+  userId       String
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
 
-  @@id([jobId, userId])
+  @@id([workOrderId, userId])
 }
 
 model Task {

@@ -12,6 +12,7 @@ import { runFinance } from "@/lib/site-engine/finance";
 import { SCHEMES } from "@/lib/site-engine/templates";
 import type { Lot } from "@/lib/site-engine/types";
 import { assumptions } from "@/lib/config"; // centralised assumptions
+import { notify } from "./notification-service";
 
 
 export async function updateDataAndRevalidate(path: string) {
@@ -184,7 +185,7 @@ export async function createTask(data: {
             });
 
             // Insert the new task at the beginning (taskOrder = 0)
-            return tx.task.create({
+            const newTask = await tx.task.create({
                 data: {
                     name: data.name,
                     taskNumber: data.taskNumber,
@@ -213,6 +214,8 @@ export async function createTask(data: {
                     files: true,
                 },
             });
+
+            return newTask;
         });
 
         // Revalidate production board so UI reflects the new task order immediately
@@ -388,10 +391,13 @@ export async function updateTask(taskId: string, data: {
 }) {
     console.log("Updating task", taskId, data)
     try {
+        const session = await auth();
+        const actorUserId = session?.user?.id;
+
         // Get existing task with its relationships
         const existingTask = await prisma.task.findUnique({
             where: { id: taskId },
-            include: { files: true }
+            include: { files: true, assignees: true }
         });
 
         if (!existingTask) {
@@ -506,6 +512,31 @@ export async function updateTask(taskId: string, data: {
                 files: true
             },
         });
+
+        // --------------------------------------------------
+        // Notify users who have been newly assigned
+        // --------------------------------------------------
+        if (data.assignees !== undefined) {
+            const previousIds = existingTask.assignees.map(a => a.id);
+            const addedIds = data.assignees.filter(id => !previousIds.includes(id));
+
+            // console.log("addedIds", addedIds)
+            // console.log("previousIds", previousIds)
+
+            if (addedIds.length > 0) {
+                let actorName: string | undefined;
+                if (actorUserId) {
+                    const actor = await prisma.user.findUnique({ where: { id: actorUserId }, select: { name: true } });
+                    actorName = actor?.name ?? undefined;
+                }
+
+                const message = `${actorName ?? 'Someone'} assigned you to task <https://alamo.americanhousing.co/board/${taskId}|${result.name}>.`
+                await notify({
+                    recipientIds: addedIds,
+                    message: message,
+                });
+            }
+        }
 
         return { success: true, data: result };
     } catch (error: any) {
