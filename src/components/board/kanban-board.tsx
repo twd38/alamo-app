@@ -5,7 +5,7 @@ import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core"
 import { SortableContext, horizontalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { KanbanColumn } from "./kanban-column"
 import { TaskCard } from "./task-card"
-import type { KanbanSection, Job, Task, User, TaskTag } from "@prisma/client"
+import type { KanbanSection, Task, User, TaskTag } from "@prisma/client"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { updateKanbanSectionKanbanOrder, moveTask, reorderTasks } from '@/lib/actions'
 import { useOptimistic } from 'react'
@@ -21,7 +21,7 @@ import { useQueryStates, parseAsString } from 'nuqs'
 
 export const dynamic = 'force-dynamic';
 
-type KanbanSectionWithJobsAndTasks = KanbanSection & {
+type KanbanSectionWithTasks = KanbanSection & {
     tasks: (Task & {
       assignees: User[];
       createdBy: User;
@@ -35,7 +35,7 @@ export function KanbanBoard({
   tasks,
   boardId,
 }: {
-  columns: KanbanSectionWithJobsAndTasks[]
+  columns: KanbanSectionWithTasks[]
   tasks: Task[]
   boardId: string
 }) {
@@ -169,8 +169,8 @@ export function KanbanBoard({
     if(active.id === over?.id) return;
     if (!over) return;
 
-    const activeColumnIndex = sortableColumns.findIndex((column: KanbanSectionWithJobsAndTasks) => column.name === active.id);
-    const overColumnIndex = sortableColumns.findIndex((column: KanbanSectionWithJobsAndTasks) => column.name === over.id);
+    const activeColumnIndex = sortableColumns.findIndex((column: KanbanSectionWithTasks) => column.name === active.id);
+    const overColumnIndex = sortableColumns.findIndex((column: KanbanSectionWithTasks) => column.name === over.id);
 
     if (activeColumnIndex !== -1 && overColumnIndex !== -1) {
       // Handle column reordering

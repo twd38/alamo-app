@@ -6,7 +6,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { TaskCard } from "./task-card"
 import { Button } from "src/components/ui/button"
 import { MoreHorizontal, Edit, Trash, Plus } from "lucide-react"
-import { Job, Task, User, TaskTag } from "@prisma/client"
+import { Task, User, TaskTag } from "@prisma/client"
 import {
   DropdownMenu,
   DropdownMenuContent,

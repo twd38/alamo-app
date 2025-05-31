@@ -17,10 +17,6 @@ export async function getAllUsers() {
     return await prisma.user.findMany()
 }
 
-export async function getJobs() {
-    return await prisma.job.findMany()
-}
-
 export async function getAllTasks() {
     return await prisma.task.findMany({
         where: {
@@ -186,14 +182,6 @@ export async function getKanbanSection(kanbanSectionId: string) {
     return await prisma.kanbanSection.findUnique({
         where: {
             id: kanbanSectionId
-        }
-    })
-}
-
-export async function getJob(jobId: string) {
-    return await prisma.job.findUnique({
-        where: {
-            id: jobId
         }
     })
 }
