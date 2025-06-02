@@ -324,6 +324,120 @@ export async function getOrders() {
 
 export type Order = Prisma.PromiseReturnType<typeof getOrders>[0]
 
+export async function getWorkOrder(workOrderId: string) {
+    return await prisma.workOrder.findUnique({
+        where: {
+            id: workOrderId
+        }
+    })
+}
+
+export async function getWorkOrders() {
+    return await prisma.workOrder.findMany({
+        where: {
+            deletedOn: null
+        },
+        orderBy: {
+            dueDate: 'desc'
+        },
+        include: {
+            part: true,
+            createdBy: true,
+            assignees: true,
+        }
+    })
+}
+
+export async function getWorkOrdersPaginated({
+    query,
+    page,
+    limit,
+    sortBy,
+    sortOrder
+}: {
+    query: string;
+    page: number;
+    limit: number;
+    sortBy: string;
+    sortOrder: Prisma.SortOrder;
+}) {
+    return await prisma.workOrder.findMany({
+        where: {
+            deletedOn: null,
+            OR: [
+                {
+                    workOrderNumber: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    part: {
+                        OR: [
+                            {
+                                description: {
+                                    contains: query,
+                                    mode: 'insensitive'
+                                }
+                            },
+                            {
+                                partNumber: {
+                                    contains: query,
+                                    mode: 'insensitive'
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        include: {
+            part: true,
+            createdBy: true,
+            assignees: true,
+        },
+        orderBy: {
+            [sortBy]: sortOrder
+        },
+        skip: (page - 1) * limit,
+        take: limit
+    })
+}
+
+export async function getWorkOrdersCount({ query }: { query: string }) {
+    return await prisma.workOrder.count({
+        where: {
+            deletedOn: null,
+            OR: [
+                {
+                    workOrderNumber: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    part: {
+                        OR: [
+                            {
+                                description: {
+                                    contains: query,
+                                    mode: 'insensitive'
+                                }
+                            },
+                            {
+                                partNumber: {
+                                    contains: query,
+                                    mode: 'insensitive'
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    })
+}
+
 /**
  * Core parcel‑detail structure returned from the Lightbox API after translation.
  */

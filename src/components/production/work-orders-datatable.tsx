@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import Image from "next/image"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import debounce from "lodash/debounce"
 import {
@@ -16,7 +15,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Plus } from "lucide-react"
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
+import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,79 +29,99 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import Link from "next/link"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Part } from "@prisma/client"
-import { NewPartDialog } from "./new-part-dialog"
-import { formatPartType } from "@/lib/utils"
-// Define the Part type based on the schema
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import Link from "next/link"
+import type { Part, WorkOrder, User } from "@prisma/client"
 
-// Define the columns for the table
-const columns: ColumnDef<Part>[] = [
+/**
+ * Extended WorkOrder type including eagerly loaded relations necessary for the data-table.
+ */
+export interface WorkOrderData extends WorkOrder {
+  part: Part | null
+  createdBy: User | null
+}
+
+// ----------------------------- Table columns -----------------------------
+const columns: ColumnDef<WorkOrderData>[] = [
   {
     id: "select",
     header: ({ table }) => (
       <Checkbox
         checked={table.getIsAllPageRowsSelected()}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
         onClick={(e) => e.stopPropagation()}
+        aria-label="Select all"
       />
     ),
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
         onClick={(e) => e.stopPropagation()}
+        aria-label="Select row"
       />
     ),
     enableSorting: false,
     enableHiding: false,
   },
   {
-    accessorKey: "description",
-    header: ({ column }) => {
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Part
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    accessorKey: "workOrderNumber",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}> 
+        WO #
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <div>{row.getValue("workOrderNumber")}</div>,
+  },
+  {
+    id: "partInfo",
+    header: "Part",
     cell: ({ row }) => (
-      <div className="flex items-center space-x-2">
-        <Image
-          src="/placeholder.svg"
-          alt={row.getValue("description")}
-          width={32}
-          height={32}
-          className="rounded-sm"
-        />
-        <div className="flex flex-col">
-          <span>{row.getValue("description")}</span>
-          <span className="text-xs text-muted-foreground">{row.original.partNumber}</span>
-        </div>
+      <div className="flex flex-col">
+        <span>{row.original.part?.description ?? "—"}</span>
+        <span className="text-xs text-muted-foreground">{row.original.part?.partNumber ?? ""}</span>
       </div>
     ),
+    enableSorting: false,
   },
   {
-    accessorKey: "partType",
-    header: "Type",
-    cell: ({ row }) => <div>{formatPartType(row.getValue("partType"))}</div>,
+    accessorKey: "operation",
+    header: "Operation",
+    cell: ({ row }) => <div>{row.getValue("operation")}</div>,
   },
   {
-    accessorKey: "trackingType",
-    header: "Tracking Type",
-    cell: ({ row }) => <div>{row.getValue("trackingType")}</div>,
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <div>{row.getValue("status")}</div>,
+  },
+  {
+    accessorKey: "partQty",
+    header: "Qty",
+    cell: ({ row }) => <div>{row.getValue("partQty")}</div>,
+  },
+  {
+    accessorKey: "dueDate",
+    header: "Due",
+    cell: ({ row }) => {
+      const value: Date | null = row.getValue("dueDate") ?? null
+      return <div>{value ? format(new Date(value), "MMM d, yyyy") : "—"}</div>
+    },
+    sortingFn: "datetime",
   },
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const part = row.original
-
+      const wo = row.original
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -112,12 +132,13 @@ const columns: ColumnDef<Part>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(part.id)}>Copy part ID</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(wo.id)}>
+              Copy work order ID
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <Link href={`/parts/library/${part.partNumber}`}>View part details</Link>
+              <Link href={`/production/${wo.id}`}>View details</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Edit part</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )
@@ -125,80 +146,86 @@ const columns: ColumnDef<Part>[] = [
   },
 ]
 
-export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount: number}) {
+// --------------------------- Main component ------------------------------
+export function WorkOrdersDataTable({
+  workOrders,
+  totalCount,
+}: {
+  workOrders: WorkOrderData[]
+  totalCount: number
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // Get param for mode
-  const mode = searchParams.get("mode")
-  
-  // Get the initial search query from URL or empty string
+  // ---------------------------------------------------- URL-state helpers
   const initialQuery = searchParams.get("query") || ""
   const initialPage = Number(searchParams.get("page") || "1")
-  const initialLimit = Number(searchParams.get("limit") || "2")
-  
+  const initialLimit = Number(searchParams.get("limit") || "10")
+
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
   const [searchValue, setSearchValue] = useState<string>(initialQuery)
-  
-  // Create a debounced function to update URL
+
+  // Debounced URL update on search
   const updateSearchQuery = useCallback(
     (value: string) => {
       const params = new URLSearchParams(searchParams.toString())
-      
+
       if (value) {
         params.set("query", value)
         params.set("page", "1")
       } else {
         params.delete("query")
       }
-      
+
       router.push(`${pathname}?${params.toString()}`)
     },
     [router, pathname, searchParams]
   )
 
-  const debouncedUpdateQuery = useCallback(debounce(updateSearchQuery, 500), [updateSearchQuery])
+  const debouncedUpdateQuery = useMemo(
+    () => debounce(updateSearchQuery, 500),
+    [updateSearchQuery]
+  )
 
-  const navigateToPart = (partNumber: string) => {
-    router.push(`/parts/library/${partNumber}`)
-  }
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+      setSearchValue(value)
+      debouncedUpdateQuery(value)
+    },
+    [debouncedUpdateQuery]
+  )
 
-  // Handle search input changes
-  // This approach directly triggers the debounced URL update from the onChange handler
-  // instead of using a separate useEffect, which is cleaner and more efficient
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setSearchValue(value)
-    debouncedUpdateQuery(value)
-  }, [debouncedUpdateQuery])
-  
-  // Cleanup debounced function on component unmount
   useEffect(() => {
     return () => {
       debouncedUpdateQuery.cancel()
     }
   }, [debouncedUpdateQuery])
-  
-  const updatePage = useCallback((page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", page.toString())
-    router.push(`${pathname}?${params.toString()}`)
-  }, [router, pathname, searchParams])
 
-  if (!parts) return null;
+  const updatePage = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("page", page.toString())
+      router.push(`${pathname}?${params.toString()}`)
+    },
+    [router, pathname, searchParams]
+  )
+
+  if (!workOrders) return null
 
   const table = useReactTable({
-    data: parts,
+    data: workOrders,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
@@ -209,11 +236,12 @@ export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount
     },
   })
 
+  // ------------------------------- Render -------------------------------
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter parts..."
+          placeholder="Filter work orders..."
           value={searchValue}
           onChange={handleSearchChange}
           className="max-w-sm"
@@ -228,55 +256,42 @@ export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount
             {table
               .getAllColumns()
               .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
+              .map((column) => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  className="capitalize"
+                  checked={column.getIsVisible()}
+                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                >
+                  {column.id}
+                </DropdownMenuCheckboxItem>
+              ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <NewPartDialog />
       </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement
-                    // Ignore clicks originating from interactive elements
-                    if (target.closest('button') || target.closest('input') || target.closest('label') || target.closest('svg')) {
-                      return
-                    }
-                    navigateToPart(row.original.partNumber)
-                  }}
-                  className="cursor-pointer hover:bg-muted/50"
-                >
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} onClick={() => router.push(`/production/${row.original.id}`)} className="cursor-pointer hover:bg-muted/50">
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
@@ -304,12 +319,16 @@ export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount
           >
             Previous
           </Button>
-          <Button variant="outline" size="sm" onClick={() => updatePage(initialPage + 1)} disabled={initialPage === Math.ceil(totalCount / initialLimit)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => updatePage(initialPage + 1)}
+            disabled={initialPage === Math.ceil(totalCount / initialLimit)}
+          >
             Next
           </Button>
         </div>
       </div>
     </div>
   )
-}
-
+} 

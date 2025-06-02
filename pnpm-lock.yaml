@@ -239,6 +239,9 @@ importers:
       react-markdown:
         specifier: ^9.0.3
         version: 9.0.3(@types/react@19.0.0)(react@19.0.0)
+      react-resizable-panels:
+        specifier: ^3.0.2
+        version: 3.0.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -3942,6 +3945,12 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-resizable-panels@3.0.2:
+    resolution: {integrity: sha512-j4RNII75fnHkLnbsTb5G5YsDvJsSEZrJK2XSF2z0Tc2jIonYlIVir/Yh/5LvcUFCfs1HqrMAoiBFmIrRjC4XnA==}
+    peerDependencies:
+      react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
   react-selecto@1.26.3:
     resolution: {integrity: sha512-Ubik7kWSnZyQEBNro+1k38hZaI1tJarE+5aD/qsqCOA1uUBSjgKVBy3EWRzGIbdmVex7DcxznFZLec/6KZNvwQ==}
@@ -8522,6 +8531,11 @@ snapshots:
       use-sidecar: 1.1.3(@types/react@19.0.0)(react@19.0.0)
     optionalDependencies:
       '@types/react': 19.0.0
+
+  react-resizable-panels@3.0.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
 
   react-selecto@1.26.3:
     dependencies:

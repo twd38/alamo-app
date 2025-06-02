@@ -1,8 +1,13 @@
+import { getWorkOrder } from "@/lib/queries";
 
-const WorkOrderProductionPage = () => {
+const WorkOrderProductionPage = async ({ params }: { params: { workOrderId: string } }) => {
+    const { workOrderId } = params;
+    const workOrder = await getWorkOrder(workOrderId);
+
     return (
         <div>
             <h1>Work Order Production</h1>
+            <pre>{JSON.stringify(workOrder, null, 2)}</pre>
         </div>
     )
 }

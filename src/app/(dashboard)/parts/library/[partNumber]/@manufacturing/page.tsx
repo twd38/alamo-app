@@ -35,6 +35,11 @@ import { useDebouncedCallback } from "use-debounce";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavingBadge } from "@/components/ui/saving-badge";
 import { DynamicActionForm } from "./components/dynamic-action-form";
+import {
+    ResizablePanelGroup,
+    ResizablePanel,
+    ResizableHandle,
+} from "@/components/ui/resizable";
 
 // *** Work Instruction Step List ***
 const WorkInstructionStepList = ({ 
@@ -650,33 +655,57 @@ const WorkInstructionsEditor: React.FC = () => {
     }
 
     return (
-        <div className="flex gap-2 h-full">
-            <div className="w-1/4 h-full bg-white border-r">
-                <WorkInstructionStepList 
+        <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+            {/* Left – Step list */}
+            <ResizablePanel
+                defaultSize={25}
+                minSize={15}
+                maxSize={40}
+                className="h-full bg-white border-r"
+            >
+                <WorkInstructionStepList
                     partNumber={partNumber}
-                    steps={steps} 
+                    steps={steps}
                     selectedStepId={selectedStepId}
                     onSelectStep={setSelectedStepId}
                     onAddStep={handleAddStep}
                 />
-            </div>
-            <div className="w-2/4 h-full my-2 bg-transparent">
-                <WorkInstructionContent 
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Center – Markdown editor */}
+            <ResizablePanel
+                defaultSize={50}
+                minSize={35}
+                maxSize={65}
+                className="h-full my-2 mx-2 bg-transparent"
+            >
+                <WorkInstructionContent
                     step={selectedStep}
                     onUpdateStep={handleUpdateStep}
                 />
-            </div>
-            <div className="w-1/4 h-full bg-white border-l">
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Right – Step details & actions */}
+            <ResizablePanel
+                defaultSize={25}
+                minSize={15}
+                maxSize={40}
+                className="h-full bg-white border-l"
+            >
                 <Tabs defaultValue="details" className="h-full">
                     <div className="border-b">
                         <TabsList className="w-full justify-start h-12 p-0 bg-transparent border-b-0">
-                            <TabsTrigger 
+                            <TabsTrigger
                                 value="details"
                                 className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
                             >
                                 Step Details
                             </TabsTrigger>
-                            <TabsTrigger 
+                            <TabsTrigger
                                 value="actions"
                                 className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
                             >
@@ -685,14 +714,22 @@ const WorkInstructionsEditor: React.FC = () => {
                         </TabsList>
                     </div>
                     <TabsContent value="details" className="mt-0 h-[calc(100%-3rem)]">
-                        <StepDetails step={selectedStep} onUpdateStep={handleUpdateStep} revalidate={() => mutate()} />
+                        <StepDetails
+                            step={selectedStep}
+                            onUpdateStep={handleUpdateStep}
+                            revalidate={() => mutate()}
+                        />
                     </TabsContent>
                     <TabsContent value="actions" className="mt-0 h-[calc(100%-3rem)]">
-                        <WorkInstructionStepActions step={selectedStep} onUpdateStep={handleUpdateStep} revalidate={() => mutate()} />
+                        <WorkInstructionStepActions
+                            step={selectedStep}
+                            onUpdateStep={handleUpdateStep}
+                            revalidate={() => mutate()}
+                        />
                     </TabsContent>
                 </Tabs>
-            </div>
-        </div>
+            </ResizablePanel>
+        </ResizablePanelGroup>
     );
 };
 

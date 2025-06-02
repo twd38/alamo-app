@@ -129,7 +129,6 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
       id: task?.id || "",
       name: task?.name,
       taskNumber: task?.taskNumber || "",
-      status: task?.status || "todo",
       priority: typeof task?.priority === "number" ? task.priority : 0,
       dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
       description: task?.description || "{}",
@@ -151,7 +150,6 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
         result = await updateTask(task.id, {
           name: data.name,
           taskNumber: data.taskNumber,
-          status: data.status,
           priority: data.priority,
           epicId: data.epicId,
           dueDate: data.dueDate,

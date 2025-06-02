@@ -1,7 +1,7 @@
 'use server'
 import { prisma } from 'src/lib/db';
 import { revalidatePath } from 'next/cache'
-import { Status, Color } from '@prisma/client';
+import { WorkOrderStatus, Color } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType, TaskTag } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
@@ -138,7 +138,7 @@ export async function updateMissionMessage(id: string | null, content: string) {
 export async function createTask(data: {
     name: string;
     taskNumber: string;
-    status: Status;
+    status: string;
     priority: number;
     dueDate: Date;
     description: string;
@@ -189,7 +189,6 @@ export async function createTask(data: {
                 data: {
                     name: data.name,
                     taskNumber: data.taskNumber,
-                    status: data.status,
                     priority: data.priority,
                     dueDate: data.dueDate,
                     description: data.description,
@@ -337,7 +336,6 @@ export async function duplicateTask(taskId: string) {
             data: {
                 name: `${originalTask.name} (Copy)`,
                 taskNumber: `${originalTask.taskNumber}`,
-                status: originalTask.status,
                 priority: originalTask.priority,
                 dueDate: originalTask.dueDate,
                 description: originalTask.description,
@@ -375,7 +373,7 @@ export async function duplicateTask(taskId: string) {
 export async function updateTask(taskId: string, data: {
     name?: string;
     taskNumber?: string;
-    status?: Status;
+    status?: string;
     priority?: number;
     dueDate?: Date | undefined;
     description?: string;
@@ -409,7 +407,6 @@ export async function updateTask(taskId: string, data: {
         // Only update fields that are provided
         if (data.name !== undefined) updateData.name = data.name;
         if (data.taskNumber !== undefined) updateData.taskNumber = data.taskNumber;
-        if (data.status !== undefined) updateData.status = data.status;
         if (data.priority !== undefined) updateData.priority = data.priority;
         if (data.epicId !== undefined) updateData.epic = { connect: { id: data.epicId } };
         if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
@@ -1154,5 +1151,85 @@ export async function deleteBoard(boardId: string) {
   } catch (error) {
     console.error('Error deleting board:', error);
     return { success: false, error: 'Failed to delete board' };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Work Order actions
+// -----------------------------------------------------------------------------
+
+export async function createWorkOrder({
+  partId,
+  partQty,
+  operation,
+  status = WorkOrderStatus.TODO,
+  timeEstimate = "",
+  dueDate,
+  assigneeIds = [],
+  notes = "",
+}: {
+  partId: string
+  partQty: number
+  operation: string
+  status?: WorkOrderStatus
+  timeEstimate?: string
+  dueDate?: Date
+  assigneeIds?: string[]
+  notes?: string
+}) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id || "cm78gevrb0004kxxg43qs0mqv"
+
+    // Helper to generate incremental WO number e.g. WO-000123
+    const generateWorkOrderNumber = async () => {
+      const lastWO = await prisma.workOrder.findFirst({
+        orderBy: {
+          workOrderNumber: "desc",
+        },
+        select: {
+          workOrderNumber: true,
+        },
+      })
+
+      const lastSeq = lastWO?.workOrderNumber?.replace(/[^0-9]/g, "") || "0"
+      const nextSeq = String(Number(lastSeq) + 1).padStart(6, "0")
+      return `WO-${nextSeq}`
+    }
+
+    const workOrderNumber = await generateWorkOrderNumber()
+
+    // Build data object using unchecked create input to allow scalar IDs
+    const workOrderData: Prisma.WorkOrderUncheckedCreateInput = {
+      id: undefined, // let Prisma generate cuid
+      workOrderNumber,
+      operation,
+      status,
+      timeEstimate,
+      dueDate: dueDate ?? null,
+      createdById: userId,
+      partId,
+      partQty,
+      notes,
+      deletedOn: null,
+      assignees: {
+        create: assigneeIds.map((uid) => ({ userId: uid })),
+      },
+    }
+
+    const workOrder = await prisma.workOrder.create({
+      data: workOrderData,
+      include: {
+        assignees: true,
+      },
+    })
+
+    // Revalidate production page so new WO shows up
+    revalidatePath('/production')
+
+    return { success: true, data: workOrder }
+  } catch (error) {
+    console.error('Error creating work order:', error)
+    return { success: false, error: 'Failed to create work order' }
   }
 }

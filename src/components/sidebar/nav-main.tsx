@@ -22,6 +22,11 @@ const items = [
       icon: SquareKanban,      
     },
     {
+      title: "Production",
+      url: "/production",
+      icon: Factory,
+    },
+    {
       title: "Parts",
       url: "/parts",
       icon: Library,
@@ -35,11 +40,6 @@ const items = [
         //   url: "/parts/inventory",
         // },
       ],
-    },
-    {
-      title: "Orders",
-      url: "/orders",
-      icon: ShoppingCart,
     },
     {
       title: "Site Explorer",

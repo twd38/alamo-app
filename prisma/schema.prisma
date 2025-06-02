@@ -20,7 +20,6 @@ model User {
   createdBoards        Board[]           @relation("CreatedBoards")
   boardViews           BoardView[]
   createdWorkOrders    WorkOrder[]       @relation("CreatedByRelation")
-  ownedWorkOrders      WorkOrder[]       @relation("OwnerRelation")
   assignedWorkOrders   WorkOrderAssignee[]
   sessions             Session[]
   createdTasks         Task[]            @relation("CreatedByRelation")
@@ -93,19 +92,20 @@ model File {
 model WorkOrder {
   id                 String              @id @default(cuid())
   workOrderNumber    String
-  partName           String
   operation          String
-  status             Status
+  status             WorkOrderStatus
   timeEstimate       String
-  dueDate            String
-  imageUrl           String
+  dueDate            DateTime?
   createdById        String
-  ownerId            String
   deletedOn          DateTime?
   files              File[]
   createdBy          User                @relation("CreatedByRelation", fields: [createdById], references: [id])
-  owner              User                @relation("OwnerRelation", fields: [ownerId], references: [id])
   assignees          WorkOrderAssignee[]
+  partId             String
+  partQty            Int
+  part               Part                @relation(fields: [partId], references: [id])
+  notes              String?
+
 }
 
 model WorkOrderAssignee {
@@ -121,7 +121,6 @@ model Task {
   id              String         @id @default(cuid())
   name            String
   taskNumber      String
-  status          Status
   description     String
   createdById     String
   dueDate         DateTime
@@ -234,6 +233,7 @@ model Part {
   childVersions    Part?                  @relation("PartVersions")
   partImage        File?                  @relation("PartImage", fields: [partImageId], references: [id])
   workInstructions WorkInstruction[]
+  workOrders       WorkOrder[]
 }
 
 model BOMPart {
@@ -465,6 +465,14 @@ enum PartType {
   SHIP
 }
 
+enum WorkOrderStatus {
+  PAUSED
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  SCRAPPED
+}
+
 enum TrackingType {
   SERIAL
   BATCH
@@ -501,6 +509,7 @@ enum ActionType {
   SIGNOFF
   CHECKBOX
 }
+
 
 enum InstructionStatus {
   DRAFT
