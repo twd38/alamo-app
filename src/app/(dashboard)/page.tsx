@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import BasicTopBar from "@/components/layouts/basic-top-bar";
 import PageContainer from '@/components/page-container';
 import { getMissionMessage } from "@/lib/queries";
-
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  
   const launchDate = new Date('2025-09-18');
 
   const missionMessage = await getMissionMessage()
