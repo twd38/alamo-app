@@ -17,6 +17,10 @@ export async function getAllUsers() {
     return await prisma.user.findMany()
 }
 
+export async function getMissionMessage() {
+    return await prisma.missionMessage.findFirst();
+}
+
 export async function getAllTasks() {
     return await prisma.task.findMany({
         where: {

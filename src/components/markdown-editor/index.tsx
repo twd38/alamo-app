@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 const hljs = require("highlight.js");
 
 interface MarkdownEditorProps {
-  initialContent: string;
+  initialContent: string | null | undefined;
   updateContent: (content: string) => void;
   className?: string;
   field?: ControllerRenderProps;

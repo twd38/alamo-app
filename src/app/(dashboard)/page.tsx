@@ -5,27 +5,22 @@ import { updateMissionMessage } from "@/lib/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import BasicTopBar from "@/components/layouts/basic-top-bar";
 import PageContainer from '@/components/page-container';
-
+import { getMissionMessage } from "@/lib/queries";
 
 
 export default async function HomePage() {
   const launchDate = new Date('2025-09-18');
-  
-  const getMissionMessage = async () => {
-    "use server"
-    const missionMessage = await prisma.missionMessage.findFirst();
-    return missionMessage;
-  }
 
-  const missionMessage = await getMissionMessage();
+  const missionMessage = await getMissionMessage()
+  const missionMessageId = missionMessage?.id
+  const initialContent = missionMessage?.content
 
-  
-  const updateMessage = async (content: string) => {
+  const updateMessage = async(content: string) => {
     "use server"
-    console.log("missionMessage", missionMessage);
-    console.log("Updating mission message", content);
-    if (!missionMessage) return;
-    await updateMissionMessage(missionMessage.id, content);
+
+    if (missionMessageId) {
+      await updateMissionMessage(missionMessageId, content);
+    }
   }
 
   return (
@@ -36,7 +31,7 @@ export default async function HomePage() {
         <div className="flex flex-col items-center mt-4">
           <Card className="w-full shadow-sm">
             <CardContent className="p-6">
-              <MarkdownEditor initialContent={missionMessage?.content || ""} updateContent={updateMessage} hideWordCount />
+              <MarkdownEditor initialContent={initialContent} updateContent={updateMessage} hideWordCount />
             </CardContent>
           </Card>
         </div>
