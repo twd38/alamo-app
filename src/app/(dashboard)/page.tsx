@@ -4,14 +4,17 @@ import Countdown from '@/components/home/countdown'
 import { updateMissionMessage } from "@/lib/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import BasicTopBar from "@/components/layouts/basic-top-bar";
+import PageContainer from '@/components/page-container';
+
+
 
 export default async function HomePage(
   props: {
     searchParams: Promise<{ q: string; offset: string }>;
   }
 ) {
-  const searchParams = await props.searchParams;
-
+  const launchDate = new Date('2025-09-18');
+  
   const getMissionMessage = async () => {
     "use server"
     const missionMessage = await prisma.missionMessage.findFirst();
@@ -20,6 +23,7 @@ export default async function HomePage(
 
   const missionMessage = await getMissionMessage();
 
+  
   const updateMessage = async (content: string) => {
     "use server"
     if (!missionMessage) return;
@@ -29,16 +33,18 @@ export default async function HomePage(
   if (!missionMessage) return null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       <BasicTopBar />
-      <Countdown targetDate={new Date('2025-07-11')} />
-      <div className="flex flex-col items-center">
-        <Card className="w-full shadow-sm">
-          <CardContent className="p-6">
-            <MarkdownEditor initialContent={missionMessage.content} updateContent={updateMessage} />
-          </CardContent>
-        </Card>
-      </div>
+      <PageContainer>
+        <Countdown targetDate={launchDate} />
+        <div className="flex flex-col items-center mt-4">
+          <Card className="w-full shadow-sm">
+            <CardContent className="p-6">
+              <MarkdownEditor initialContent={missionMessage.content} updateContent={updateMessage} hideWordCount />
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
     </div>
   );
 }

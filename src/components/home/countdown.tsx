@@ -4,54 +4,65 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 
 interface CountdownProps {
-  targetDate: Date
+  targetDate: string | Date
 }
 
-const useCountdown = (targetDate: Date) => {
-  const calculateTimeLeft = () => {
-    const difference = +targetDate - +new Date()
-    let timeLeft = {}
-
-    if (difference > 0) {
-      timeLeft = {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
-      }
-    }
-
-    return timeLeft
+export default function Countdown({ targetDate }: CountdownProps) {
+  type TimeLeft = {
+    readonly days: number
+    readonly hours: number
+    readonly minutes: number
+    readonly seconds: number
   }
 
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft())
+  const DEFAULT_TIME_LEFT: TimeLeft = {
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  } as const
+
+  const parsedTargetDate: Date =
+    typeof targetDate === "string" ? new Date(targetDate) : targetDate
+
+  const calculateTimeLeft = (): TimeLeft => {
+    const difference: number = +parsedTargetDate - +new Date()
+
+    if (difference <= 0) {
+      return DEFAULT_TIME_LEFT
+    }
+
+    return {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60),
+    }
+  }
+
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(DEFAULT_TIME_LEFT)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    setTimeLeft(calculateTimeLeft())
+
+    const intervalId: NodeJS.Timeout = setInterval(() => {
       setTimeLeft(calculateTimeLeft())
     }, 1000)
 
-    return () => clearTimeout(timer)
-  })
-
-  return timeLeft
-}
-
-
-export default function Countdown({ targetDate }: CountdownProps) {
-  const timeLeft = useCountdown(targetDate)
+    return () => clearInterval(intervalId)
+  }, [])
 
   return (
-    <Card className="bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] shadow-sm">
+    <Card className="">
       <CardContent className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Time Until Launch</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <h2 className="text-2xl font-semibold mb-6 text-center">Launch Countdown</h2>
+        <div className="grid grid-cols-4 gap-8">
           {Object.entries(timeLeft).map(([unit, value]) => (
-            <div key={unit} className="text-center">
-              <div className="bg-[hsl(var(--card))] rounded-lg p-4">
-                <span className="text-3xl font-bold text-[hsl(var(--card-foreground))]">{String(value).padStart(2, "0")}</span>
-                <span className="block text-sm text-[hsl(var(--muted-foreground))] mt-1 uppercase">{unit}</span>
+            <div key={unit} className="flex flex-col items-center w-full">
+              <div className="text-center border-2 bg-muted border-primary/10 rounded-lg py-10 w-full">
+                <span className="text-5xl font-bold">{String(value).padStart(2, "0")}</span>
               </div>
+              <span className="block text-sm font-medium text-primary/80 mt-3 uppercase">{unit}</span>
             </div>
           ))}
         </div>

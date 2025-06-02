@@ -132,7 +132,7 @@ export const MarkdownEditor = ({
       )}
       onClick={handleContainerClick}
     >
-      <div className="flex absolute right-5 top-5 z-10 mb-5 gap-2">
+      <div className="flex absolute right-0 top-0 z-10 mb-5 gap-2">
         {!hideSaveStatus && ( <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">{saveStatus}</div> )}
         {!hideWordCount && ( <div className={charsCount ? "rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground" : "hidden"}>
           {charsCount} Words
