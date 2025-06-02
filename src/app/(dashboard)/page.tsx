@@ -8,11 +8,7 @@ import PageContainer from '@/components/page-container';
 
 
 
-export default async function HomePage(
-  props: {
-    searchParams: Promise<{ q: string; offset: string }>;
-  }
-) {
+export default async function HomePage() {
   const launchDate = new Date('2025-09-18');
   
   const getMissionMessage = async () => {
@@ -26,6 +22,8 @@ export default async function HomePage(
   
   const updateMessage = async (content: string) => {
     "use server"
+    console.log("missionMessage", missionMessage);
+    console.log("Updating mission message", content);
     if (!missionMessage) return;
     await updateMissionMessage(missionMessage.id, content);
   }
