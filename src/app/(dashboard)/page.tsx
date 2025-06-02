@@ -30,8 +30,6 @@ export default async function HomePage(
     await updateMissionMessage(missionMessage.id, content);
   }
 
-  if (!missionMessage) return null;
-
   return (
     <div className="flex flex-col">
       <BasicTopBar />
@@ -40,7 +38,7 @@ export default async function HomePage(
         <div className="flex flex-col items-center mt-4">
           <Card className="w-full shadow-sm">
             <CardContent className="p-6">
-              <MarkdownEditor initialContent={missionMessage.content} updateContent={updateMessage} hideWordCount />
+              <MarkdownEditor initialContent={missionMessage?.content || ""} updateContent={updateMessage} hideWordCount />
             </CardContent>
           </Card>
         </div>
