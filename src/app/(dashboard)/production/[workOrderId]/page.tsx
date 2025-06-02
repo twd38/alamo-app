@@ -1,7 +1,13 @@
 import { getWorkOrder } from "@/lib/queries";
 
-const WorkOrderProductionPage = async ({ params }: { params: { workOrderId: string } }) => {
-    const { workOrderId } = params;
+interface WorkOrderPageProps {
+    params: Promise<{
+        workOrderId: string;
+    }>;
+}
+
+const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
+    const { workOrderId } = await params;
     const workOrder = await getWorkOrder(workOrderId);
 
     return (
