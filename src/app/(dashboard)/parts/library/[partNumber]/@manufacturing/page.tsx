@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Wrench, Plus, Loader2, Check, Trash2 } from "lucide-react";
+import { Clock, Wrench, Plus, Loader2, Check, Trash2, GripVertical } from "lucide-react";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import useSWR, { mutate } from "swr";
 import { useParams } from "next/navigation";
@@ -18,7 +18,9 @@ import {
     updateWorkInstructionStep,
     createWorkInstructionStepAction,
     updateWorkInstructionStepAction,
-    deleteWorkInstructionStepAction
+    deleteWorkInstructionStepAction,
+    deleteWorkInstructionStep,
+    reorderWorkInstructionSteps
 } from "@/lib/actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,8 +42,109 @@ import {
     ResizablePanel,
     ResizableHandle,
 } from "@/components/ui/resizable";
+import { StepDropdown } from "@/components/library/step-dropdown";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // *** Work Instruction Step List ***
+const SortableStep = ({ 
+    step, 
+    selectedStepId, 
+    onSelectStep, 
+    onRemoveStep, 
+    disabled 
+}: { 
+    step: Prisma.WorkInstructionStepGetPayload<{
+        include: { actions: true }
+    }>,
+    selectedStepId: string | null,
+    onSelectStep: (stepId: string) => void,
+    onRemoveStep: (stepId: string) => void,
+    disabled: boolean
+}) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: step.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div 
+            ref={setNodeRef}
+            style={style}
+            className="mb-3"
+        >
+            <div 
+                className={`
+                    flex gap-3 p-3 rounded-lg cursor-pointer transition-all
+                    border shadow-sm items-center
+                    ${selectedStepId === step.id 
+                        ? 'bg-blue-500 text-white border-blue-600' 
+                        : 'hover:bg-accent border-border hover:border-blue-200'}
+                `}
+                onClick={() => onSelectStep(step.id)}
+            >
+                <div 
+                    className="cursor-grab active:cursor-grabbing"
+                    {...attributes}
+                    {...listeners}
+                >
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className={`
+                    flex items-center justify-center rounded-full w-9 h-9 shrink-0
+                    ${selectedStepId === step.id 
+                        ? 'bg-white text-blue-500' 
+                        : 'bg-muted text-muted-foreground'}
+                `}>
+                    {step.stepNumber}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h4 className={`font-medium truncate ${selectedStepId === step.id ? 'text-white' : 'text-foreground'}`}>
+                        {step.title}
+                    </h4>
+                    <p className={`text-sm truncate ${selectedStepId === step.id ? 'text-white/80' : 'text-muted-foreground'}`}>
+                        {step.estimatedLabourTime} min
+                    </p>
+                </div>
+                <div 
+                    className="shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <StepDropdown
+                        onRemove={() => onRemoveStep(step.id)}
+                        disabled={disabled}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const WorkInstructionStepList = ({ 
     partNumber,
     steps, 
@@ -58,8 +161,15 @@ const WorkInstructionStepList = ({
     onAddStep: () => void
 }) => {
     const { mutate } = useSWR<PartWorkInstructions>(
-        `/parts/${partNumber}/work-instructions`, 
+        `/api/parts/${partNumber}/work-instructions`, 
         () => getPartWorkInstructions(partNumber)
+    );
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
     );
 
     const handleCreateWorkInstruction = async () => {
@@ -90,6 +200,45 @@ const WorkInstructionStepList = ({
         }
     }
 
+    const handleRemoveStep = async (stepId: string) => {
+        try {
+            const result = await deleteWorkInstructionStep(stepId);
+            if (result.success) {
+                // Refresh the data
+                const updatedData = await mutate();
+                const firstStep = updatedData?.[0]?.steps?.[0];
+                if (firstStep?.id) {
+                    onSelectStep(firstStep.id);
+                }
+            } else {
+                console.error("Failed to delete step:", result.error);
+            }
+        } catch (error) {
+            console.error("Failed to delete step:", error);
+        }
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        
+        if (over && active.id !== over.id) {
+            const oldIndex = steps.findIndex((step) => step.id === active.id);
+            const newIndex = steps.findIndex((step) => step.id === over.id);
+            
+            const newSteps = arrayMove(steps, oldIndex, newIndex);
+            const stepIds = newSteps.map(step => step.id);
+            
+            try {
+                const result = await reorderWorkInstructionSteps(steps[0].workInstructionId, stepIds);
+                if (result.success) {
+                    mutate();
+                }
+            } catch (error) {
+                console.error('Error reordering steps:', error);
+            }
+        }
+    };
+
     return (
         <div className="h-full flex flex-col">
             <ScrollArea className="flex-1">
@@ -107,40 +256,27 @@ const WorkInstructionStepList = ({
                         </div>
                     ) : (
                         <>
-                            {steps.map((step) => (
-                                <div 
-                                    key={step.id} 
-                                    className="mb-3"
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={steps.map(step => step.id)}
+                                    strategy={verticalListSortingStrategy}
                                 >
-                                    <div 
-                                        className={`
-                                            flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
-                                            border shadow-sm
-                                            ${selectedStepId === step.id 
-                                                ? 'bg-blue-500 text-white border-blue-600' 
-                                                : 'hover:bg-accent border-border hover:border-blue-200'}
-                                        `}
-                                        onClick={() => onSelectStep(step.id || "")}
-                                    >
-                                        <div className={`
-                                            flex items-center justify-center rounded-full w-9 h-9 shrink-0
-                                            ${selectedStepId === step.id 
-                                                ? 'bg-white text-blue-500' 
-                                                : 'bg-muted text-muted-foreground'}
-                                        `}>
-                                            {step.stepNumber}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className={`font-medium truncate ${selectedStepId === step.id ? 'text-white' : 'text-foreground'}`}>
-                                                {step.title}
-                                            </h4>
-                                            <p className={`text-sm truncate ${selectedStepId === step.id ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                                {step.estimatedLabourTime} min
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                    {steps.map((step) => (
+                                        <SortableStep
+                                            key={step.id}
+                                            step={step}
+                                            selectedStepId={selectedStepId}
+                                            onSelectStep={onSelectStep}
+                                            onRemoveStep={handleRemoveStep}
+                                            disabled={steps.length === 1}
+                                        />
+                                    ))}
+                                </SortableContext>
+                            </DndContext>
                             <div className="mt-6 flex justify-center">
                                 <Button 
                                     variant="outline" 
@@ -399,7 +535,11 @@ const StepDetails: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
         setIsSaving(true);
         setSaveError(false);
         try {
-            await onUpdateStep(step.id, data);
+            // Preserve existing step data when updating
+            await onUpdateStep(step.id, {
+                ...step,
+                estimatedLabourTime: data.estimatedLabourTime,
+            });
             previousValues.current = data;
             setIsEditing(false);
         } catch (error) {
@@ -453,7 +593,7 @@ const StepDetails: React.FC<StepDetailsProps> = ({ step, onUpdateStep }) => {
                                             {...field}
                                             id="estimatedTime"
                                             type="number"
-                                            min={0}
+                                            // min={0}
                                             className="w-32"
                                             onChange={(e) => field.onChange(Number(e.target.value))}
                                         />
@@ -712,6 +852,13 @@ const WorkInstructionsEditor: React.FC = () => {
                                 Actions
                             </TabsTrigger>
                         </TabsList>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-6 w-6"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
                     </div>
                     <TabsContent value="details" className="mt-0 h-[calc(100%-3rem)]">
                         <StepDetails

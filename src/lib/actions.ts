@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { WorkOrderStatus, Color } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType, TaskTag } from '@prisma/client';
-import { uploadFileToR2, deleteFileFromR2, getPresignedDownloadUrl, getUploadUrl, getPresignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
+import { uploadFileToR2, deleteFileFromR2, getSignedDownloadUrl, getUploadUrl, getSignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
 import { generateNewPartNumbers, generateRandomColor } from '@/lib/utils';
 import { checkFeasibility } from "@/lib/site-engine/feasibility";
 import { buildYield } from "@/lib/site-engine/yield";
@@ -567,7 +567,7 @@ function isFileInstance(file: File | { id: string; url: string; key: string; nam
 
 export async function getFileUrlFromKey(key: string) {
   try {
-    const presignedUrl = await getPresignedDownloadUrl(key);
+    const presignedUrl = await getSignedDownloadUrl(key);
     
     return { success: true, url: presignedUrl };
   } catch (error) {
@@ -577,7 +577,7 @@ export async function getFileUrlFromKey(key: string) {
 }
 
 export async function getFileUrlFromUnsignedUrl(url: string) {
-    const presignedUrl = await getPresignedDownloadUrlFromUnsignedUrl(url);
+    const presignedUrl = await getSignedDownloadUrlFromUnsignedUrl(url);
     return { success: true, url: presignedUrl };
 }   
 
@@ -696,6 +696,7 @@ export async function createPart({
         
         // Create the part numbers if not provided
         const generatedPartNumbers = await generateNewPartNumbers(componentPartTypes, isRawMaterial);
+        const partNumberValue = partNumber ? partNumber : generatedPartNumbers.partNumber;
 
         // Use a transaction for all database operations to ensure atomicity
         const result = await prisma.$transaction(async (tx) => {
@@ -706,7 +707,7 @@ export async function createPart({
                     basePartNumber: generatedPartNumbers.basePartNumber.toString(),
                     versionNumber: generatedPartNumbers.versionNumber.toString(),
                     partTypeNumber: generatedPartNumbers.partTypeNumber.toString(),
-                    partNumber: generatedPartNumbers.partNumber,
+                    partNumber: partNumberValue,
                     partType: generatedPartNumbers.partType,
                     unit,
                     trackingType,
@@ -1232,4 +1233,41 @@ export async function createWorkOrder({
     console.error('Error creating work order:', error)
     return { success: false, error: 'Failed to create work order' }
   }
+}
+
+export async function deleteWorkInstructionStep(stepId: string) {
+    try {
+        await prisma.workInstructionStep.delete({
+            where: { id: stepId }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting work instruction step:', error);
+        return { success: false, error: 'Failed to delete work instruction step' };
+    }
+}
+
+export async function reorderWorkInstructionSteps(workInstructionId: string, stepIds: string[]) {
+    console.log("Reordering work instruction steps", workInstructionId, stepIds)
+
+    try {
+        // Use a transaction to ensure all updates are atomic
+        const updates = await prisma.$transaction(
+            stepIds.map((stepId, index) => {
+                console.log("Updating step", stepId, index)
+                console.log("Step number", index + 1)
+
+                return prisma.workInstructionStep.update({
+                    where: { id: stepId },
+                    data: { stepNumber: index + 1 }
+                });
+            })
+        );
+        
+        // revalidatePath('/parts/library/[partNumber]/manufacturing');
+        return { success: true, data: updates };
+    } catch (error) {
+        console.error('Error reordering work instruction steps:', error);
+        return { success: false, error: 'Failed to reorder steps' };
+    }
 }

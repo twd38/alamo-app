@@ -71,23 +71,23 @@ export async function deleteFileFromR2(key: string): Promise<void> {
 }
 
 
-export async function getPresignedDownloadUrl(key: string): Promise<string> {
+export async function getSignedDownloadUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
   });
 
   // Get presigned URL for download
-  const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-  return presignedUrl;
+  const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+  return signedUrl;
 } 
 
-export async function getPresignedDownloadUrlFromUnsignedUrl(url: string): Promise<string> {
+export async function getSignedDownloadUrlFromUnsignedUrl(url: string): Promise<string> {
   // remove the public url from the url
   console.log('url', url)
   const key = url.replace(`${PUBLIC_URL}/`, '');
   console.log('key', key)
-  const presignedUrl = await getPresignedDownloadUrl(key);
-  return presignedUrl;
+  const signedUrl = await getSignedDownloadUrl(key);
+  return signedUrl;
 }
 

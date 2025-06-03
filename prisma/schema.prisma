@@ -319,8 +319,6 @@ model WorkInstructionStep {
   images              File[]                      @relation("StepImages")
   workInstruction     WorkInstruction             @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
   actions             WorkInstructionStepAction[]
-
-  @@unique([workInstructionId, stepNumber])
 }
 
 model WorkInstructionStepAction {

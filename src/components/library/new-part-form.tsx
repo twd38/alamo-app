@@ -74,6 +74,7 @@ const NewPartForm = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      partNumber: "",
       description: "",
       unit: "",
       trackingType: TrackingType.SERIAL,
@@ -121,18 +122,18 @@ const NewPartForm = () => {
                       )}
                     />
 
-                    {/* Unit of Measure */}
+                    {/* Part Number */}
                     <FormField
                       control={form.control}
-                      name="unit"
+                      name="partNumber"
                       render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Unit of Measure (UOM)</FormLabel>
+                        <FormItem>
+                          <FormLabel>Part Number</FormLabel>
                           <FormControl>
-                              <Input placeholder="EA, KG, M, etc." {...field} />
+                            <Input placeholder="Enter part number" {...field} />
                           </FormControl>
                           <FormMessage />
-                          </FormItem>
+                        </FormItem>
                       )}
                     />
 
@@ -162,6 +163,23 @@ const NewPartForm = () => {
                           </FormItem>
                       )}
                     />
+
+                    {/* Unit of Measure */}
+                    <FormField
+                      control={form.control}
+                      name="unit"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Unit of Measure (UOM)</FormLabel>
+                          <FormControl>
+                              <Input placeholder="EA, KG, M, etc." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+
+                    
                 </div>
 
                 {/* Is raw material */}
