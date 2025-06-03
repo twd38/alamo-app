@@ -1,14 +1,14 @@
-import { getPresignedDownloadUrl } from "@/lib/r2";
+import { getSignedDownloadUrl } from "@/lib/r2";
 import { NextRequest, NextResponse } from "next/server";
 
-// This route is used to get the presigned URL for the image
+// This route is used to get the presigned URL for the image.
+// This is primarily used for downloading files from the R2 bucket for Novel editor content
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ key: string }> }
 ) {
   const { key } = await params;
-  console.log("KEY: ", key);
   const fullKey = "/content/" + key;
-  const url = await getPresignedDownloadUrl(fullKey);
+  const url = await getSignedDownloadUrl(fullKey);
   return NextResponse.redirect(url);
 }
