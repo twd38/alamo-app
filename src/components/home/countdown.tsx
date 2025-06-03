@@ -55,7 +55,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
   return (
     <Card className="">
       <CardContent className="p-6">
-        <h2 className="text-2xl font-semibold mb-6 text-center">Launch Countdown</h2>
+        <h2 className="text-2xl font-semibold mb-6 text-center">Countdown to Demostration Unit Completion</h2>
         <div className="grid grid-cols-4 gap-8">
           {Object.entries(timeLeft).map(([unit, value]) => (
             <div key={unit} className="flex flex-col items-center w-full">

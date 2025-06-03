@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   
-  const launchDate = new Date('2025-09-18');
+  const launchDate = new Date('2025-09-24');
 
   const missionMessage = await getMissionMessage()
   const missionMessageId = missionMessage?.id

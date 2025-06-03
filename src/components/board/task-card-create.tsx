@@ -44,7 +44,7 @@ export function TaskCardCreate({ columnId, boardId, onCancel }: TaskCardCreatePr
       const result = await createTask({
         name: trimmed,
         taskNumber: "", // generated elsewhere if needed
-        status: Status.todo,
+        status: "TODO",
         priority: 0,
         dueDate: new Date(),
         description: "{}", // empty serialized markdown
