@@ -61,7 +61,7 @@ const columns: ColumnDef<Part>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "description",
+    accessorKey: "name",
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -74,14 +74,14 @@ const columns: ColumnDef<Part>[] = [
       <div className="flex items-center space-x-2">
         <Image
           src="/placeholder.svg"
-          alt={row.getValue("description")}
+          alt={row.getValue("name")}
           width={32}
           height={32}
           className="rounded-sm"
         />
         <div className="flex flex-col">
-          <span>{row.getValue("description")}</span>
-          <span className="text-xs text-muted-foreground">{row.original.partNumber}</span>
+          <span>{row.getValue("name")}</span>
+          <span className="text-xs text-muted-foreground">{`${row.original.partNumber}/${row.original.partRevision}`}</span>
         </div>
       </div>
     ),

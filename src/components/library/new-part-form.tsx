@@ -25,17 +25,21 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { toast } from "react-hot-toast"
 import { formatFileSize } from "@/lib/utils"
-import { TrackingType, BOMType, Part } from "@prisma/client"
+import { TrackingType, BOMType, Part, PartType } from "@prisma/client"
 import { useRouter } from "next/navigation"
 import { BOMPartsManager } from "./bom-parts-manager"
 import { createPart } from "@/lib/actions"
+import { formatPartType } from "@/lib/utils"
 
 // Define the form schema using Zod
 const formSchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
   partNumber: z.string().optional(),
-  description: z.string().min(1, { message: "Description is required" }),
+  partRevision: z.string().regex(/^[A-Za-z]+$/, { message: "Revision must contain only letters" }).optional(),
+  description: z.string().min(0, { message: "Description is required" }),
   unit: z.string().min(1, { message: "Unit of measure is required" }),
   trackingType: z.nativeEnum(TrackingType),
+  partType: z.nativeEnum(PartType),
   partImage: z.custom<File>((data) => {
     return data && 
       typeof data === 'object' && 
@@ -66,7 +70,6 @@ const formSchema = z.object({
 })
 
 
-
 const NewPartForm = () => {
   const router = useRouter();
 
@@ -74,13 +77,15 @@ const NewPartForm = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       partNumber: "",
+      partRevision: "A",
       description: "",
       unit: "",
       trackingType: TrackingType.SERIAL,
+      partType: PartType.RAW_000,
       files: [],
       bomParts: [],
-      isRawMaterial: false
     }
   });
 
@@ -95,7 +100,7 @@ const NewPartForm = () => {
       console.log(result)
       if (result.success && result.data) {
         toast.success("Part created successfully");
-        router.push(`/parts/library/${result.data.partNumber}`);
+        router.push(`/parts/library/${result.data.id}`);
       } else {
         toast.error("Failed to create part");
       }
@@ -108,38 +113,56 @@ const NewPartForm = () => {
 
   return (
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(submitForm)} className="flex flex-col  h-full">
-            <div className="px-4 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Description */}
+        <form onSubmit={form.handleSubmit(submitForm)} className="flex flex-col h-full">
+            <div className="px-4 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Part Name */}
+                    <div className="grid grid-cols-1 gap-2 col-span-2">
                     <FormField
                       control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                              <Input placeholder="Enter description" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
-
-                    {/* Part Number */}
-                    <FormField
-                      control={form.control}
-                      name="partNumber"
+                      name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Part Number</FormLabel>
+                          <FormLabel>Part Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter part number" {...field} />
+                            <Input placeholder="Enter part name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    </div>
+
+                    {/* Part Number */}
+                    <div className="flex gap-2">
+                      <FormField
+                        control={form.control}
+                        name="partNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Part Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter part number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex gap-2 items-end mb-1.5 text-muted-foreground">/</div>
+                      <FormField
+                        control={form.control}
+                        name="partRevision"
+                        render={({ field }) => (
+                          <FormItem className="max-w-20">
+                            <FormLabel>Revision</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter part revision" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     {/* Tracking Type */}
                     <FormField
@@ -183,31 +206,47 @@ const NewPartForm = () => {
                       )}
                     />
 
-                    
+                    {/* Part Type */}
+                    <FormField
+                      control={form.control}
+                      name="partType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Part Type</FormLabel>
+                          <FormControl>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select part type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Object.values(PartType).map((type) => (
+                                  <SelectItem key={type} value={type}>{formatPartType(type)}</SelectItem>
+                                ))}
+                                
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                 </div>
 
-                {/* Is raw material */}
-                <FormField
-                    control={form.control}
-                    name="isRawMaterial"
-                    render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">Is Raw Material?</FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                    )}
-                />  
-                
+                {/* BOM Components Section */}
+                <div className="space-y-2 my-4">
+                  <FormLabel>Bill of Materials (BOM)</FormLabel>
+                  <BOMPartsManager onChange={handleBOMChange} />
+                </div>
 
                 {/* Files Section */}
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Files</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <FormLabel>Files</FormLabel>
                     <FormField
                         control={form.control}
                         name="files"
@@ -255,10 +294,10 @@ const NewPartForm = () => {
                         </FormItem>
                         )}
                     />
-                    </div>
+                  </div>
 
-                    {/* File List */}
-                    {form.watch('files').length > 0 && (
+                  {/* File List */}
+                  {form.watch('files').length > 0 && (
                     <div className="border rounded-md px-2">
                         <div className="space-y-2">
                         {form.watch('files').map((file: File, index: number) => (
@@ -286,22 +325,19 @@ const NewPartForm = () => {
                         ))}
                         </div>
                     </div>
-                    )}
+                  )}
                 </div>
-
-                {/* BOM Components Section */}
-                <div className="space-y-2">
-                  <FormLabel>Bill of Materials (BOM)</FormLabel>
-                  <BOMPartsManager onChange={handleBOMChange} />
-                </div>
-                
             </div>
+
+                
             <div className="flex flex-grow flex-col justify-end">
                 <div className="flex justify-end border-t px-4 pb-1 pt-3 w-full mt-auto">
                     <Button 
                         type="submit"
                         variant="default" 
                         size="sm" 
+                        disabled={form.formState.isSubmitting}
+                        isLoading={form.formState.isSubmitting}
                     >
                         Create new part
                     </Button>

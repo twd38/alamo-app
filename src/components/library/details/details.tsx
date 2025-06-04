@@ -9,6 +9,8 @@ import { Prisma, Part, File as FileType } from "@prisma/client";
 import PartFiles from "@/components/library/details/files";
 import { updatePart } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import { formatPartType } from "@/lib/utils";
+
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
     include: { part: true }
 }>;
@@ -39,11 +41,14 @@ const Details = ({part}: PartDetailsProps) => {
     const columns: Column<BOMPartWithPart>[] = [
         {
             header: "Part Number",
-            accessorKey: "part.partNumber",
+            accessorKey: "part",
+            cell: (row) => {
+                return <span>{row.partNumber}/{row.partRevision}</span>
+            }
         },
         {
-            header: "Description",
-            accessorKey: "part.description",
+            header: "Name",
+            accessorKey: "part.name",
         },
         {
             header: "Quantity",
@@ -53,6 +58,13 @@ const Details = ({part}: PartDetailsProps) => {
             header: "Unit of Measure",
             accessorKey: "part.unit",
         },
+        {
+            header: "Type",
+            accessorKey: "part.partType",
+            cell: (row) => {
+                return <span>{formatPartType(row)}</span>
+            }
+        }
     ];
 
     const handleDeleteBOMPart = async (itemToDelete: BOMPartWithPart) => {
@@ -104,7 +116,7 @@ const Details = ({part}: PartDetailsProps) => {
                         <AddBOMPartsDialog partId={partId} bomParts={bomParts} />
                     </CardHeader>
                     <CardContent>
-                        <PartsTable<BOMPartWithPart> columns={columns} data={bomParts} onDelete={handleDeleteBOMPart} />
+                        <PartsTable columns={columns} data={bomParts} onDelete={handleDeleteBOMPart} />
                     </CardContent>
                 </Card>
                 {/* Files */}

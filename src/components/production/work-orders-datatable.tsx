@@ -87,8 +87,8 @@ const columns: ColumnDef<WorkOrderData>[] = [
     header: "Part",
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <span>{row.original.part?.description ?? "—"}</span>
-        <span className="text-xs text-muted-foreground">{row.original.part?.partNumber ?? ""}</span>
+        <span>{row.original.part?.name ?? "—"}</span>
+        <span className="text-xs text-muted-foreground">{row.original.part?.partNumber ?? ""}/{row.original.part?.partRevision ?? ""}</span>
       </div>
     ),
     enableSorting: false,

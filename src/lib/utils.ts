@@ -66,6 +66,14 @@ export async function generatePartType(componentPartCategories: PartType[], isRa
   return partType;
 }
 
+export function generateNewPartNumberSimpleSix() {
+  // part number is xxxxxx
+  // generate 6 digit number
+  const partNumber = Math.floor(100000 + Math.random() * 900000).toString();
+  return partNumber;
+}
+
+
 export async function generateNewPartNumbers(componentPartCategories: PartType[], isRawMaterial: boolean) {
   // Part number is [xxx]-[yyyyy]
   // xxx is the Type

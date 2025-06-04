@@ -5,7 +5,7 @@ import { WorkOrderStatus, Color } from '@prisma/client';
 import { auth } from 'src/lib/auth';
 import { Task, Part, TrackingType, BOMType, Prisma, PartType, ActionType, TaskTag } from '@prisma/client';
 import { uploadFileToR2, deleteFileFromR2, getSignedDownloadUrl, getUploadUrl, getSignedDownloadUrlFromUnsignedUrl } from '@/lib/r2';
-import { generateNewPartNumbers, generateRandomColor } from '@/lib/utils';
+import { generateRandomColor, generateNewPartNumberSimpleSix } from '@/lib/utils';
 import { checkFeasibility } from "@/lib/site-engine/feasibility";
 import { buildYield } from "@/lib/site-engine/yield";
 import { runFinance } from "@/lib/site-engine/finance";
@@ -610,23 +610,26 @@ export async function uploadFile(file: File, path: string) {
 }
 
 export async function createPart({
+    name,
     partNumber,
+    partRevision = "A",
     description,
     unit,
     trackingType,
+    partType,
     partImage,
     files,
     bomParts = [], // Default to empty array to avoid null
-    isRawMaterial
 }: {
+    name: string;
     partNumber?: string;
-    partRevision?: string;
+    partRevision?: Part["partRevision"];
     description: Part["description"];
     unit: Part["unit"];
     trackingType: Part["trackingType"];
+    partType: PartType;
     partImage?: File;
     files?: File[];
-    isRawMaterial: boolean;
     bomParts: {
         id: string,
         part: Part,
@@ -695,23 +698,18 @@ export async function createPart({
             }
         }
         
-        // Create the part numbers if not provided
-        const generatedPartNumbers = await generateNewPartNumbers(componentPartTypes, isRawMaterial);
-        const partNumberValue = partNumber ? partNumber : generatedPartNumbers.partNumber;
-
         // Use a transaction for all database operations to ensure atomicity
         const result = await prisma.$transaction(async (tx) => {
             // Create the part first
             const newPart = await tx.part.create({
                 data: {
+                    name,
+                    partNumber: partNumber || generateNewPartNumberSimpleSix(),
+                    partRevision,
                     description,
-                    basePartNumber: generatedPartNumbers.basePartNumber.toString(),
-                    versionNumber: generatedPartNumbers.versionNumber.toString(),
-                    partTypeNumber: generatedPartNumbers.partTypeNumber.toString(),
-                    partNumber: partNumberValue,
-                    partType: generatedPartNumbers.partType,
                     unit,
                     trackingType,
+                    partType
                 }
             });
 

@@ -213,27 +213,32 @@ model MissionMessage {
 model Part {
   id               String                 @id @default(uuid())
   partNumber       String                 @unique
-  description      String
+  name             String                 @default("")
+  description      String                 @default("")
   partImageId      String?                @unique
-  trackingType     TrackingType
-  unit             String
-  basePartNumber   String?                @unique
-  parentVersionId  String?                @unique
-  versionNumber    String                 @default("1")
-  partType         PartType               @default(RAW_000)
-  partTypeNumber   String                 @default("000")
-  nxFilePath       String?
   partRevision     String                 @default("A")
+  trackingType     TrackingType           @default(SERIAL)
+  partType         PartType               @default(RAW_000)
+  unit             String                 @default("EA")
+  basePartNumber   String?                @unique
+  versionNumber    String                 @default("1")
+  nxFilePath       String?
   bomParts         BOMPart[]              @relation("BOMParts")
   basePartTo       BOMPart[]              @relation("BOMBasePart")
   files            File[]                 @relation("PartFiles")
   inventory        Inventory[]
   transactions     InventoryTransaction[]
+  revisionParentId String?                
+  revisionParent   Part?                  @relation("PartRevisions", fields: [revisionParentId], references: [id])
+  revisions        Part[]                 @relation("PartRevisions")
+  parentVersionId  String?                
   parentVersion    Part?                  @relation("PartVersions", fields: [parentVersionId], references: [id])
-  childVersions    Part?                  @relation("PartVersions")
+  childVersions    Part[]                 @relation("PartVersions")
   partImage        File?                  @relation("PartImage", fields: [partImageId], references: [id])
   workInstructions WorkInstruction[]
   workOrders       WorkOrder[]
+
+  @@unique([partNumber, partRevision])
 }
 
 model BOMPart {
