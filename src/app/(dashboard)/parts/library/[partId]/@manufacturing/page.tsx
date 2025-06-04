@@ -146,13 +146,13 @@ const SortableStep = ({
 };
 
 const WorkInstructionStepList = ({ 
-    partNumber,
+    partId,
     steps, 
     selectedStepId, 
     onSelectStep,
     onAddStep 
 }: { 
-    partNumber: string,
+    partId: string,
     steps: Prisma.WorkInstructionStepGetPayload<{
         include: { actions: true }
     }>[], 
@@ -161,8 +161,8 @@ const WorkInstructionStepList = ({
     onAddStep: () => void
 }) => {
     const { mutate } = useSWR<PartWorkInstructions>(
-        `/api/parts/${partNumber}/work-instructions`, 
-        () => getPartWorkInstructions(partNumber)
+        `/api/parts/${partId}/work-instructions`, 
+        () => getPartWorkInstructions(partId)
     );
 
     const sensors = useSensors(
@@ -173,14 +173,14 @@ const WorkInstructionStepList = ({
     );
 
     const handleCreateWorkInstruction = async () => {
-        if (!partNumber) return;
+        if (!partId) return;
         
         try {
             await createWorkInstruction({
+                partId: partId,
                 title: "New Work Instruction",
                 description: "",
                 instructionNumber: `WI-${Date.now()}`, // Generate a unique instruction number
-                partNumber: partNumber,
                 steps: [{
                     stepNumber: 1,
                     title: "Step 1",
@@ -707,12 +707,12 @@ const WorkInstructionsEditor: React.FC = () => {
     console.log(selectedStepId)
 
     const params = useParams();
-    const partNumber = params.partNumber as string;
+    const partId = params.partId as string;
     
 
     const { data: workInstructions, isLoading: isWorkInstructionsLoading, mutate } = useSWR<PartWorkInstructions>(
-        `/api/parts/${partNumber}/work-instructions`,
-        () => getPartWorkInstructions(partNumber)
+        `/api/parts/${partId}/work-instructions`,
+        () => getPartWorkInstructions(partId)
     );
 
     console.log(workInstructions)
@@ -786,7 +786,7 @@ const WorkInstructionsEditor: React.FC = () => {
         }
     };
 
-    if (isWorkInstructionsLoading || !partNumber) {
+    if (isWorkInstructionsLoading || !partId) {
         return (
             <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -804,7 +804,7 @@ const WorkInstructionsEditor: React.FC = () => {
                 className="h-full bg-white border-r"
             >
                 <WorkInstructionStepList
-                    partNumber={partNumber}
+                    partId={partId}
                     steps={steps}
                     selectedStepId={selectedStepId}
                     onSelectStep={setSelectedStepId}

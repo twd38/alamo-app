@@ -281,12 +281,12 @@ export async function getPartByPartNumber(partNumber: string) {
     })
 }
 
-export async function getPartWorkInstructions(partNumber: string) {
+export async function getPartWorkInstructions(partId: string) {
     try {
         const result = await prisma.workInstruction.findMany({
             where: {
                 part: {
-                    partNumber: partNumber
+                    id: partId
                 }
             },
             include: {

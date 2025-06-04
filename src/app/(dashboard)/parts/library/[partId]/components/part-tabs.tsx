@@ -10,21 +10,23 @@ export const TabList = () => {
     const searchParams = useSearchParams();
     const activeTab = searchParams.get("tab") || "details";
 
+    console.log("params", params);
+
     const tabs = [
         {
             label: "details",
             icon: <Clipboard />,
-            href: `/parts/library/${params.partNumber}?tab=details`
+            href: `/parts/library/${params.partId}?tab=details`
         },
         {
             label: "manufacturing",
             icon: <Warehouse />,
-            href: `/parts/library/${params.partNumber}?tab=manufacturing`
+            href: `/parts/library/${params.partId}?tab=manufacturing`
         },
         {
             label: "inventory",
             icon: <Box />,
-            href: `/parts/library/${params.partNumber}?tab=inventory`
+            href: `/parts/library/${params.partId}?tab=inventory`
         }
     ]
 

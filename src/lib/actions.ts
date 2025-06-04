@@ -773,17 +773,17 @@ export async function createPart({
 }
 
 export async function createWorkInstruction({
-    partNumber,
+    partId,
     title,
     description,
     steps,
     instructionNumber
-} : Prisma.WorkInstructionCreateWithoutPartInput & { partNumber: string, steps: Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput[] | undefined }) {
+} : Prisma.WorkInstructionCreateWithoutPartInput & { partId: string, steps: Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput[] | undefined }) {
     //Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput[] | undefined,
-    console.log(partNumber, title, description, steps, instructionNumber)
+    console.log(partId, title, description, steps, instructionNumber)
     try {
         const result = await prisma.workInstruction.create({
-            data: {
+            data: { 
                 title,
                 description,
                 instructionNumber: `WI-${Date.now()}`,
@@ -792,7 +792,7 @@ export async function createWorkInstruction({
                 },
                 part: {
                     connect: {
-                        partNumber: partNumber
+                        id: partId
                     }
                 },
             }
