@@ -10,10 +10,15 @@ import {
 } from 'src/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 
-export function Breadcrumbs() {
+export type Breadcrumb = {
+  label: string;
+  href: string;
+}
+
+export function Breadcrumbs({ breadcrumbs }: { breadcrumbs?: Breadcrumb[] }) {
   const pathname = usePathname();
   const pathSegments = pathname.split('/').filter(Boolean);
-  let breadcrumbs = pathSegments.map((segment, index) => {
+  let breadcrumbsList = breadcrumbs || pathSegments.map((segment, index) => {
     const href = '/' + pathSegments.slice(0, index + 1).join('/');
     return {
       href,
@@ -21,7 +26,7 @@ export function Breadcrumbs() {
     };
   });
 
-  if(breadcrumbs.length === 0){
+  if(breadcrumbsList.length === 0){
     breadcrumbs = [{ href: '/', label: 'Dashboard' }];
   } 
 
@@ -30,7 +35,7 @@ export function Breadcrumbs() {
   return (
     <Breadcrumb>
       <BreadcrumbList className="flex items-center gap-2">
-        {breadcrumbs.slice(0, -1).map((item, index) => (
+        {breadcrumbsList.slice(0, -1).map((item, index) => (
           <span key={index} className="flex items-center gap-2">
             <BreadcrumbItem key={index} className="hidden md:flex">
                 <BreadcrumbLink href={item.href}>
@@ -42,7 +47,7 @@ export function Breadcrumbs() {
         ))}
         <BreadcrumbItem>
           <BreadcrumbPage>
-            {breadcrumbs[breadcrumbs.length - 1].label}
+            {breadcrumbsList[breadcrumbsList.length - 1].label}
           </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>

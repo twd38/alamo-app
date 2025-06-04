@@ -1,11 +1,11 @@
-import { getPartByPartNumber } from "@/lib/queries";
+import { getPart } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PageContainer from "@/components/page-container";
 import PartFiles from "@/components/part-details/files";
 
-const PartDetailsPage = async ({ params }: { params: { partNumber: string } }) => {
-    const partNumber = params.partNumber;
-    const part = await getPartByPartNumber(partNumber);
+const PartDetailsPage = async ({ params }: { params: { partId: string } }) => {
+    const partId = params.partId;
+    const part = await getPart(partId);
 
     return (
         <PageContainer> 

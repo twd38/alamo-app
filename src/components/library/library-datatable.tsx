@@ -271,7 +271,7 @@ export function LibraryDataTable({parts, totalCount}: {parts: Part[], totalCount
                     if (target.closest('button') || target.closest('input') || target.closest('label') || target.closest('svg')) {
                       return
                     }
-                    navigateToPart(row.original.partNumber)
+                    navigateToPart(row.original.id)
                   }}
                   className="cursor-pointer hover:bg-muted/50"
                 >
