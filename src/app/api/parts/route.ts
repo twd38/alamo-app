@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPart } from '@/lib/actions';
 import { z } from 'zod';
-import { TrackingType, BOMType, Part } from '@prisma/client';
+import { TrackingType, BOMType, Part, PartType } from '@prisma/client';
 
 /**
  * Zod schema for validating part creation requests.
  */
 const partSchema = z.object({
+  name: z.string().min(1, { message: 'Name is required' }),
   partNumber: z.string().optional(),
   partRevision: z.string().optional(),
   description: z.string().min(1, { message: 'Description is required' }),
   unit: z.string().min(1, { message: 'Unit of measure is required' }),
   trackingType: z.nativeEnum(TrackingType),
+  partType: z.nativeEnum(PartType),
   partImage: z.any().optional(), // File uploads not supported via JSON API
   isRawMaterial: z.boolean().default(false),
   files: z.array(z.any()).default([]), // File uploads not supported via JSON API
