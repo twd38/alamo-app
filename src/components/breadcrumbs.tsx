@@ -47,7 +47,7 @@ export function Breadcrumbs({ breadcrumbs }: { breadcrumbs?: Breadcrumb[] }) {
         ))}
         <BreadcrumbItem>
           <BreadcrumbPage>
-            {breadcrumbsList[breadcrumbsList.length - 1].label}
+            {breadcrumbsList.length > 0 ? breadcrumbsList[breadcrumbsList.length - 1].label : 'Dashboard'}
           </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>

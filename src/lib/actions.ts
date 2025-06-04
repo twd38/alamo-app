@@ -437,8 +437,9 @@ export async function updateTask(taskId: string, data: {
             
             // Identify files to delete (files that exist but are not in the new list)
             const filesToDelete = existingFiles.filter(
-                existingFile => !newFiles.some(
-                    newFile => !isFileInstance(newFile) && newFile.id === existingFile.id
+                (existingFile: { id: string; url: string }) => !newFiles.some(
+                    (newFile: File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string }) => 
+                        !isFileInstance(newFile) && 'id' in newFile && newFile.id === existingFile.id
                 )
             );
 
@@ -771,6 +772,185 @@ export async function createPart({
         return { success: false, error: errorMessage };
     }
 }
+
+export async function updatePart({
+    id,
+    partNumber,
+    description,
+    unit,
+    trackingType,
+    partImage,
+    files,
+    bomParts = [],
+    isRawMaterial
+}: {
+    id: string;
+    partNumber?: string;
+    description?: Part["description"];
+    unit?: Part["unit"];
+    trackingType?: Part["trackingType"];
+    partImage?: File;
+    files?: File[];
+    isRawMaterial?: boolean;
+    bomParts?: {
+        id: string,
+        part: Part,
+        qty: number,
+        bomType: BOMType
+    }[];
+}) {
+    try {
+        // Get existing part with its relationships
+        const existingPart = await prisma.part.findUnique({
+            where: { id },
+            include: {
+                files: true,
+                bomParts: {
+                    include: {
+                        part: true
+                    }
+                }
+            }
+        });
+
+        if (!existingPart) {
+            throw new Error('Part not found');
+        }
+
+        // Prepare update data object
+        const updateData: Prisma.PartUpdateInput = {};
+
+        // Only update fields that are provided
+        if (partNumber !== undefined) updateData.partNumber = partNumber;
+        if (description !== undefined) updateData.description = description;
+        if (unit !== undefined) updateData.unit = unit;
+        if (trackingType !== undefined) updateData.trackingType = trackingType;
+
+        // Handle part image upload if it exists and is a File object
+        if (partImage && partImage instanceof File) {
+            const path = `parts/${Date.now()}-${partImage.name}`;
+            const uploadResult = await uploadFile(partImage, path);
+            if (uploadResult.success) {
+                // Create a new file record for the part image
+                const imageFile = await prisma.file.create({
+                    data: {
+                        url: uploadResult.url,
+                        name: partImage.name,
+                        type: partImage.type,
+                        size: partImage.size
+                    }
+                });
+
+                updateData.partImage = {
+                    connect: { id: imageFile.id }
+                };
+
+                // Delete old part image if it exists
+                if (existingPart.partImageId) {
+                    await prisma.file.delete({
+                        where: { id: existingPart.partImageId }
+                    });
+                }
+            }
+        }
+
+        // Handle file updates if provided
+        if (files !== undefined) {
+            const existingFiles = existingPart.files;
+            const newFiles = files;
+            
+            // Identify files to delete (files that exist but are not in the new list)
+            const filesToDelete = existingFiles.filter(
+                (existingFile: { id: string; url: string }) => !newFiles.some(
+                    (newFile: File | { id: string; url: string; key: string; name: string; type: string; size: number; taskId: string; jobId: string }) => 
+                        !isFileInstance(newFile) && 'id' in newFile && newFile.id === existingFile.id
+                )
+            );
+
+            // Delete removed files from R2 and database
+            for (const file of filesToDelete) {
+                const key = file.url.split('/').pop(); // Extract key from URL
+                if (key) {
+                    await deleteFileFromR2(key);
+                }
+            }
+
+            // Upload new files
+            const fileData = [];
+            for (const file of newFiles) {
+                if (isFileInstance(file)) {
+                    const path = `parts/${Date.now()}-${file.name}`;
+                    const uploadResult = await uploadFile(file, path);
+                    if (uploadResult.success) {
+                        fileData.push({
+                            url: uploadResult.url,
+                            name: file.name,
+                            type: file.type,
+                            size: file.size
+                        });
+                    }
+                }
+            }
+
+            updateData.files = {
+                deleteMany: {
+                    id: {
+                        in: filesToDelete.map((f: { id: string }) => f.id)
+                    }
+                },
+                create: fileData,
+                // Keep existing files that weren't deleted
+                connect: newFiles
+                    .filter(f => !isFileInstance(f) && 'id' in f)
+                    .map(f => ({ id: (f as { id: string }).id }))
+            };
+        }
+
+        // Handle BOM parts updates if provided
+        if (bomParts !== undefined) {
+            // Delete existing BOM parts
+            await prisma.bOMPart.deleteMany({
+                where: { parentPartId: id }
+            });
+
+            // Create new BOM parts
+            updateData.bomParts = {
+                create: bomParts.map(bomPart => ({
+                    partId: bomPart.part.id,
+                    qty: bomPart.qty,
+                    bomType: bomPart.bomType
+                }))
+            };
+        }
+
+        // Update part with provided data
+        const result = await prisma.part.update({
+            where: { id },
+            data: updateData,
+            include: {
+                files: true,
+                bomParts: {
+                    include: {
+                        part: true
+                    }
+                }
+            }
+        });
+
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error('Error updating part:', error.stack);
+        
+        let errorMessage = 'Failed to update part';
+        if (error instanceof Error) {
+            errorMessage = `${errorMessage}: ${error.stack}`;
+        }
+        
+        return { success: false, error: errorMessage };
+    }
+}
+
+
 
 export async function createWorkInstruction({
     partId,

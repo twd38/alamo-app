@@ -19,23 +19,25 @@ import { UseFormReturn } from "react-hook-form"
 
 // Interface for BOM component items
 export interface BOMPartsItem {
-  id: Part["id"];
+  id: string;
   part: Part;
   qty: number;
   bomType: BOMType;
 }
 
 export interface BOMPartsManagerProps {
-  form: UseFormReturn<any>;
+  defaultValues?: BOMPartsItem[];
+  onChange: (bomParts: BOMPartsItem[]) => void;
   defaultBomType?: BOMType;
 }
 
-const BOMPartsManager = ({
-  form,
+export const BOMPartsManager = ({
+  defaultValues,
+  onChange,
   defaultBomType = BOMType.MANUFACTURING
 }: BOMPartsManagerProps) => {
   // Internal state
-  const [bomParts, setBomParts] = useState<BOMPartsItem[]>([]);
+  const [bomParts, setBomParts] = useState<BOMPartsItem[]>(defaultValues || []);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<Part[]>([]);
@@ -45,8 +47,8 @@ const BOMPartsManager = ({
   // Update form value when bomComponents changes
   useEffect(() => {
     // Store the BOM components in the form
-    form.setValue("bomParts", bomParts);
-  }, [bomParts, form]);
+    onChange(bomParts);
+  }, [bomParts, onChange]);
 
   // Debounce search query
   useEffect(() => {
@@ -150,9 +152,6 @@ const BOMPartsManager = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col space-y-2">
-        <div className="flex justify-between items-center">
-          <h3 className="font-medium">Bill of Materials (BOM)</h3>
-        </div>
         
         {/* Search Component */}
         <div className="relative search-container">
@@ -265,9 +264,9 @@ const BOMPartsManager = ({
                   <TableCell>
                     <Input
                       type="number"
-                      min="1"
                       value={bomPart.qty}
-                      onChange={(e) => updateComponentQuantity(index, parseInt(e.target.value) || 1)}
+                      min="1"
+                      onChange={(e) => updateComponentQuantity(index, parseInt(e.target.value))}
                       className="w-20"
                     />
                   </TableCell>
@@ -296,5 +295,3 @@ const BOMPartsManager = ({
     </div>
   );
 };
-
-export default BOMPartsManager; 

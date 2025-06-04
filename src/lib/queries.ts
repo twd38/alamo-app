@@ -262,7 +262,11 @@ export async function getPart(partId: string) {
             partImage: true,
             files: true,
             basePartTo: true,
-            bomParts: true
+            bomParts: {
+                include: {
+                    part: true
+                }
+            }
         }
     })
 }

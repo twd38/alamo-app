@@ -27,7 +27,7 @@ import { toast } from "react-hot-toast"
 import { formatFileSize } from "@/lib/utils"
 import { TrackingType, BOMType, Part } from "@prisma/client"
 import { useRouter } from "next/navigation"
-import BOMPartsManager from "./bom-parts-manager"
+import { BOMPartsManager } from "./bom-parts-manager"
 import { createPart } from "@/lib/actions"
 
 // Define the form schema using Zod
@@ -83,6 +83,10 @@ const NewPartForm = () => {
       isRawMaterial: false
     }
   });
+
+  const handleBOMChange = (bomParts: z.infer<typeof formSchema>['bomParts']) => {
+    form.setValue('bomParts', bomParts);
+  }
 
   // Handle form submission
   const submitForm = async (data: z.infer<typeof formSchema>) => {
@@ -286,7 +290,10 @@ const NewPartForm = () => {
                 </div>
 
                 {/* BOM Components Section */}
-                <BOMPartsManager form={form} />
+                <div className="space-y-2">
+                  <FormLabel>Bill of Materials (BOM)</FormLabel>
+                  <BOMPartsManager onChange={handleBOMChange} />
+                </div>
                 
             </div>
             <div className="flex flex-grow flex-col justify-end">
