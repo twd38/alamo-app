@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { CreateWorkOrderDialog } from "@/components/production/create-work-order-dialog";
 import { Part } from "@prisma/client";
 import { Breadcrumb } from "@/components/breadcrumbs";
+
+type PartDetailLayoutProps = {
+    params: Promise<{ partId: string }>,
+    details: React.ReactNode,
+    manufacturing: React.ReactNode,
+    inventory: React.ReactNode
+}
+
 const TopBarActions = ({ part }: { part: Part | null }) => {
     if (!part) {
         return null;
@@ -16,20 +24,14 @@ const TopBarActions = ({ part }: { part: Part | null }) => {
     )
 }
 
-const PartDetailLayout = async ({ 
-    params,
-    details, 
-    manufacturing, 
-    inventory 
-}: { 
-    params: { partId: string },
-    details: React.ReactNode, 
-    manufacturing: React.ReactNode, 
-    inventory: React.ReactNode 
-}) => {
-    const partId = params?.partId as string;
+const PartDetailLayout = async (props: PartDetailLayoutProps) => {
+    const params = await props.params;
+    const partId = params.partId as string;
+    const { details, manufacturing, inventory } = props;
+
     const part = await getPart(partId || "");
     const partNumber = part?.partNumber;
+    
     const breadcrumbs: Breadcrumb[] = [
         { label: "Parts", href: "/parts/library" },
         { label: "Library", href: `/parts/library` },

@@ -16,7 +16,6 @@ import Link from "next/link"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
-  // if (!user) return null;
 
   return (
     <Sidebar collapsible="icon" {...props}>

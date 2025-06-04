@@ -5,8 +5,8 @@ import PageContainer from "@/components/page-container";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AddBOMPartsDialog } from "@/components/library/details/add-bom-parts-dialog";
 import { PartsTable } from "@/components/parts-table";
-import { Prisma, Part } from "@prisma/client";
-import PartFiles from "@/components/part-details/files";
+import { Prisma, Part, File as FileType } from "@prisma/client";
+import PartFiles from "@/components/library/details/files";
 import { updatePart } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
@@ -72,6 +72,16 @@ const Details = ({part}: PartDetailsProps) => {
         const updatedPart = await updatePart(payload);
         router.refresh();
     }
+    
+    const handleUpdateFiles = async (files: File[]) => {
+        const payload = {
+            id: partId,
+            files: files
+        }
+
+        await updatePart(payload);
+        router.refresh();
+    }
 
     return (
         <PageContainer> 
@@ -103,7 +113,7 @@ const Details = ({part}: PartDetailsProps) => {
                         <CardTitle className="text-lg">Files</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <PartFiles files={files} />
+                        <PartFiles files={files} onChange={handleUpdateFiles} />
                     </CardContent>
                 </Card>
             </div>
