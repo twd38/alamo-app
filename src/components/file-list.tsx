@@ -32,7 +32,7 @@ const FileList = ({ files, onChange }: FileListProps) => {
         <div>
             {/* File List */}
             {files.length > 0 && (
-                <div className="">
+                <>
                     <div className="space-y-2">
                         {files.map((file: FileType, index: number) => (
                             <div key={index} className="flex items-center justify-between p-2 h-12 bg-secondary border rounded-md px-2">
@@ -58,44 +58,44 @@ const FileList = ({ files, onChange }: FileListProps) => {
                             </div>
                         ))}
                     </div>
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                        <Button 
-                            type="button"
-                            variant="ghost" 
-                            className="flex items-center w-full justify-center mt-2 h-12 bg-secondary/20 border-2 border-dashed rounded-md px-2 gap-2"
-                            onClick={() => {
-                                const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-                                fileInput.click();
-                            }}
-                        >
-                            <Paperclip className="h-4 w-4" />
-                            Attach Files
-                        </Button>
-                        <Input
-                            id="file-upload"
-                            type="file"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                                const addedFiles = Array.from(e.target.files || []);
-                                const currentFiles = files;
-                                
-                                // Validate file size (10MB limit)
-                                const invalidFiles = files.filter(file => file.size > 10 * 1024 * 1024);
-                                if (invalidFiles.length > 0) {
-                                    toast.error('Files must be less than 10MB');
-                                    return;
-                                }
-
-                                console.log("currentFiles", currentFiles);
-                                console.log("addedFiles", addedFiles);
-                                
-                                onChange([...currentFiles, ...addedFiles]);
-                            }}
-                        />
-                    </label>
-                </div>
+                </>
             )}
+            <label htmlFor="file-upload" className="cursor-pointer">
+                <Button 
+                    type="button"
+                    variant="ghost" 
+                    className="flex items-center w-full justify-center mt-2 h-12 bg-secondary/20 border-2 border-dashed rounded-md px-2 gap-2"
+                    onClick={() => {
+                        const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+                        fileInput.click();
+                    }}
+                >
+                    <Paperclip className="h-4 w-4" />
+                    Attach Files
+                </Button>
+                <Input
+                    id="file-upload"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                        const addedFiles = Array.from(e.target.files || []);
+                        const currentFiles = files;
+                        
+                        // Validate file size (10MB limit)
+                        const invalidFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+                        if (invalidFiles.length > 0) {
+                            toast.error('Files must be less than 10MB');
+                            return;
+                        }
+
+                        console.log("currentFiles", currentFiles);
+                        console.log("addedFiles", addedFiles);
+                        
+                        onChange([...currentFiles, ...addedFiles]);
+                    }}
+                />
+            </label>
         </div>
     )
 }
