@@ -18,8 +18,9 @@ import {
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, X, Paperclip, File } from "lucide-react";
+import { CalendarIcon, X, Paperclip, File, Link as LinkIcon } from "lucide-react";
 import useSWR from 'swr';
 import { 
     getAllUsers, 
@@ -61,6 +62,8 @@ import { PRIORITY_CONFIG, PRIORITY_VALUE_TO_ENUM } from "@/lib/constants/priorit
 import { MoveTaskDialog } from "./move-task-dialog";
 import { SavingBadge } from "@/components/ui/saving-badge";
 import { useDebouncedCallback } from 'use-debounce';
+import { copyToClipboard } from "@/lib/utils";
+import Link from "next/link";
 
 interface TaskWithRelations extends Task {
     assignees: User[];
@@ -318,13 +321,30 @@ const TaskForm = ({ task, boardId }: { task: TaskWithRelations | null, boardId: 
         <div className="h-full overflow-y-auto">
             <div className="space-y-2">
                 {/* header */}
-                <div className="flex items-center justify-end pr-10 border-b h-12">
+                <div className="flex items-center justify-end pr-10 border-b h-12 gap-1">
                     <SavingBadge status={isLoading ? "saving" : "saved"} />
+                    {/* copy link to task */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0"
+                                type="button"
+                                onClick={() => copyToClipboard(`/board/${boardId}/?taskId=${task?.id}`)}
+                        >
+                            <LinkIcon className="h-4 w-4" />
+                        </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Copy task link
+                        </TooltipContent>
+                    </Tooltip>
                     <div className="flex gap-2">
                         {task && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                         <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>

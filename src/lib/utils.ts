@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge"
 import { Status, PartType, Color } from "@prisma/client"
 import { prisma } from '@/lib/db';
 import { floor } from "lodash";
+import { toast } from "react-hot-toast";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -203,4 +204,11 @@ export function generateRandomColor() {
   ]
   const color = colors[Math.floor(Math.random() * colors.length)] 
   return color as Color
+}
+
+export function copyToClipboard(path: string) {
+  console.log(window.location.origin, path)
+  const url = `${window.location.origin}${path}`
+  navigator.clipboard.writeText(url)
+  toast.success('Copied to clipboard')
 }
