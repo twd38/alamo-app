@@ -41,6 +41,7 @@ interface MarkdownEditorProps {
   hideSaveStatus?: boolean;
   hideWordCount?: boolean;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
 const defaultInitialContent = `{
@@ -74,6 +75,7 @@ export const MarkdownEditor = ({
   hideSaveStatus = false,
   hideWordCount = false,
   placeholder = 'Start writing...',
+  readOnly = false,
 }: MarkdownEditorProps) => {
 //   const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
   const [saveStatus, setSaveStatus] = useState("Saved");
@@ -127,7 +129,8 @@ export const MarkdownEditor = ({
   return (
     <div 
       className={cn(
-        "relative w-full h-full cursor-text",
+        "relative w-full h-full",
+        readOnly ? "cursor-default" : "cursor-text",
         className
       )}
       onClick={handleContainerClick}
@@ -143,7 +146,8 @@ export const MarkdownEditor = ({
           immediatelyRender={false}
           initialContent={initialContentJson}
           extensions={extensions}
-          className="relative min-h-[500px] w-full"
+          className="relative min-h-[500px] w-full pb-10"
+          editable={!readOnly}
           editorProps={{
             handleDOMEvents: {
               keydown: (_view, event) => handleCommandNavigation(event),
@@ -156,49 +160,55 @@ export const MarkdownEditor = ({
             },
           }}
           onUpdate={({ editor }) => {
-            debouncedUpdates(editor);
-            setSaveStatus("Unsaved");
+            if (!readOnly) {
+              debouncedUpdates(editor);
+              setSaveStatus("Unsaved");
+            }
           }}
           onCreate={({ editor }) => {
             setEditorInstance(editor);
           }}
           slotAfter={<ImageResizer />}
         >
-          <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-muted bg-background px-1 py-2 shadow-md transition-all">
-            <EditorCommandEmpty className="px-2 text-muted-foreground">No results</EditorCommandEmpty>
-            <EditorCommandList>
-              {suggestionItems.map((item) => (
-                <EditorCommandItem
-                  value={item.title}
-                  onCommand={(val) => item.command?.(val)}
-                  className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-accent aria-selected:bg-accent"
-                  key={item.title}
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-muted bg-background">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  </div>
-                </EditorCommandItem>
-              ))}
-            </EditorCommandList>
-          </EditorCommand>
+          {!readOnly && (
+            <>
+              <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-muted bg-background px-1 py-2 shadow-md transition-all">
+                <EditorCommandEmpty className="px-2 text-muted-foreground">No results</EditorCommandEmpty>
+                <EditorCommandList>
+                  {suggestionItems.map((item) => (
+                    <EditorCommandItem
+                      value={item.title}
+                      onCommand={(val) => item.command?.(val)}
+                      className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-accent aria-selected:bg-accent"
+                      key={item.title}
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-muted bg-background">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <p className="font-medium">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                    </EditorCommandItem>
+                  ))}
+                </EditorCommandList>
+              </EditorCommand>
 
-          <GenerativeMenuSwitch open={openAI} onOpenChange={setOpenAI}>
-            <Separator orientation="vertical" />
-            <NodeSelector open={openNode} onOpenChange={setOpenNode} />
-            <Separator orientation="vertical" />
+              <GenerativeMenuSwitch open={openAI} onOpenChange={setOpenAI}>
+                <Separator orientation="vertical" />
+                <NodeSelector open={openNode} onOpenChange={setOpenNode} />
+                <Separator orientation="vertical" />
 
-            <LinkSelector open={openLink} onOpenChange={setOpenLink} />
-            <Separator orientation="vertical" />
-            <MathSelector />
-            <Separator orientation="vertical" />
-            <TextButtons />
-            <Separator orientation="vertical" />
-            <ColorSelector open={openColor} onOpenChange={setOpenColor} />
-          </GenerativeMenuSwitch>
+                <LinkSelector open={openLink} onOpenChange={setOpenLink} />
+                <Separator orientation="vertical" />
+                <MathSelector />
+                <Separator orientation="vertical" />
+                <TextButtons />
+                <Separator orientation="vertical" />
+                <ColorSelector open={openColor} onOpenChange={setOpenColor} />
+              </GenerativeMenuSwitch>
+            </>
+          )}
         </EditorContent>
       </EditorRoot>
     </div>

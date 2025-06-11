@@ -704,7 +704,6 @@ const WorkInstructionStepActions: React.FC<StepDetailsProps> = ({ step, revalida
 // *** Work Instructions Editor *** (Main Component)
 const WorkInstructionsEditor: React.FC = () => {
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-    console.log(selectedStepId)
 
     const params = useParams();
     const partId = params.partId as string;

@@ -336,6 +336,26 @@ export async function getWorkOrder(workOrderId: string) {
     return await prisma.workOrder.findUnique({
         where: {
             id: workOrderId
+        },
+        include: {
+            part: {
+                include: {
+                    workInstructions: {
+                        include: {
+                            steps: {
+                                include: {
+                                    actions: true
+                                },
+                                orderBy: {
+                                    stepNumber: 'asc'
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            createdBy: true,
+            assignees: true,
         }
     })
 }

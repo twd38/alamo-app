@@ -1384,7 +1384,6 @@ export async function createWorkOrder({
       workOrderNumber,
       operation,
       status,
-      timeEstimate,
       dueDate: dueDate ?? null,
       createdById: userId,
       partId,
