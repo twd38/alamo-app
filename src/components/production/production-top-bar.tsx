@@ -54,6 +54,9 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
 
     const workOrderStatus = workOrder.status
 
+    // Get clocked-in users from the work order
+    const clockedInUsers = workOrder.clockInEntries?.map(entry => entry.user) || []
+
     // Get the total time estimate for the work order by summing the time estimate for each step
     const timeEstimate = steps.reduce((acc, step) => acc + step.estimatedLabourTime, 0)
     
@@ -106,7 +109,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                     {/* Time Tracking */}
                     <div className="text-center">
                         <div className="text-2xl font-mono font-bold">{formatTime(elapsedTime)}</div>
@@ -117,9 +120,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
                     <StartStopButton status={workOrderStatus} />
 
                     {/* Clocked in Users */}
-                    <div className="flex items-center gap-2"> 
-                        <ClockInModal workOrderId={workOrder.id} clockedInUsers={[]} onClockIn={async () => {console.log("Clocked in")}} />
-                    </div>
+                    <ClockInModal workOrderId={workOrder.id} clockedInUsers={clockedInUsers} />
                 </div>
                 
             </div>

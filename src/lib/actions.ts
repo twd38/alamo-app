@@ -1448,3 +1448,141 @@ export async function reorderWorkInstructionSteps(workInstructionId: string, ste
         return { success: false, error: 'Failed to reorder steps' };
     }
 }
+
+// -----------------------------------------------------------------------------
+// Work Order Production actions
+// -----------------------------------------------------------------------------
+
+export async function clockInUsersToWorkOrder(userIds: string[], workOrderId: string) {
+    // Create clock-in entries for multiple users with the current time
+    const clockInTime = new Date()
+    
+    const clockInEntries = await prisma.clockInEntry.createMany({
+        data: userIds.map(userId => ({
+            userId,
+            workOrderId,
+            clockInTime
+        }))
+    })
+
+    // Revalidate the production page to show updated clocked-in users
+    revalidatePath('/production')
+
+    return { success: true, data: clockInEntries }
+}
+
+export async function clockOutUsersFromWorkOrder(userIds: string[], workOrderId: string) {
+    // Update clock-in entries to set clock-out time
+    const clockOutTime = new Date()
+    
+    const result = await prisma.clockInEntry.updateMany({
+        where: {
+            userId: { in: userIds },
+            workOrderId,
+            clockOutTime: null // Only update entries that haven't been clocked out yet
+        },
+        data: {
+            clockOutTime
+        }
+    })
+
+    // Revalidate the production page to show updated clocked-in users
+    revalidatePath('/production')
+
+    return { success: true, data: result }
+}
+
+export async function startWorkOrderProduction(workOrderId: string) {
+    // Create workOrderTimeEntry for each user currently clocked in to the work order
+    const clockInEntries = await prisma.clockInEntry.findMany({
+        where: {
+            workOrderId
+        }
+    })
+
+    // Create a workOrderTimeEntry for each clockInEntry
+    const workOrderTimeEntries = await prisma.workOrderTimeEntry.createMany({
+        data: clockInEntries.map((clockInEntry) => ({
+            userId: clockInEntry.userId,
+            workOrderId,
+            startTime: clockInEntry.clockInTime
+        }))
+    })
+
+    return { success: true, data: workOrderTimeEntries }
+}
+
+export async function stopWorkOrderProduction(workOrderId: string) {
+    // Get all active workOrderTimeEntries for the work order
+    const activeTimeEntries = await prisma.workOrderTimeEntry.findMany({
+        where: {
+            workOrderId,
+            stopTime: null
+        }
+    })
+
+    // Stop all workOrderTimeEntries for the work order
+    await prisma.workOrderTimeEntry.updateMany({
+        where: {
+            workOrderId,
+            stopTime: null
+        },
+        data: {
+            stopTime: new Date()
+        }
+    })
+
+    // Calculate the longest running time entry duration in seconds
+    const longestDuration = activeTimeEntries.reduce((max, current) => {
+        const duration = (new Date().getTime() - current.startTime.getTime()) / 1000
+        return Math.max(max, duration)
+    }, 0)
+
+    // Update the workOrder timeTaken with the duration
+    await prisma.workOrder.update({
+        where: { id: workOrderId },
+        data: {
+            timeTaken: Math.round(longestDuration)
+        }
+    })
+
+    return { success: true, data: { count: activeTimeEntries.length } }
+}
+
+
+export async function startWorkOrderTimeEntry(userId: string, workOrderId: string) {
+    // Create a new WorkOrderTimeEntry with the current time
+    const workOrderTimeEntry = await prisma.workOrderTimeEntry.create({
+        data: {
+            userId,
+            workOrderId,
+            startTime: new Date()
+        }
+    })
+
+    return { success: true, data: workOrderTimeEntry }
+}
+
+export async function stopWorkOrderTimeEntry(userId: string, workOrderId: string) {
+    // Get the latest WorkOrderTimeEntry for the user and work order that is not clocked out
+    const activeWorkOrder = await prisma.workOrderTimeEntry.findFirst({
+        where: {
+            userId,
+            workOrderId,
+            stopTime: null
+        }
+    })
+    
+    // If no active work order time entry is found, return an error
+    if (!activeWorkOrder) {
+        return { success: false, error: 'No active work order time entry found' }
+    }
+
+    // Update the WorkOrderTimeEntry with the current time
+    const workOrderTimeEntry = await prisma.workOrderTimeEntry.update({
+        where: { id: activeWorkOrder.id },
+        data: { stopTime: new Date() }
+    })
+    
+    return { success: true, data: workOrderTimeEntry }
+}

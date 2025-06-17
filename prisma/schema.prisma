@@ -30,6 +30,9 @@ model User {
   receivedNotifications Notification[]       @relation("NotificationRecipient")
   sentNotifications     Notification[]       @relation("NotificationActor")
   workOrderTimeEntries  WorkOrderTimeEntry[]
+  accessBadge           AccessBadge?
+  createdAccessBadges   AccessBadge[]        @relation("CreatedAccessBadges")
+  clockInEntries        ClockInEntry[]
 }
 
 model Account {
@@ -106,6 +109,8 @@ model WorkOrder {
   partQty         Int
   part            Part                     @relation(fields: [partId], references: [id])
   notes           String?
+  timeTaken       Int?                     @default(0) // Time taken in seconds
+  clockInEntries  ClockInEntry[]
   stepExecutions  WorkOrderStepExecution[]
   timeEntries     WorkOrderTimeEntry[]
 }
@@ -529,12 +534,37 @@ enum NotificationType {
   ADDED
 }
 
+// Clock in entry for a user on a work order
+model ClockInEntry {
+  id            String    @id @default(uuid())
+  userId        String
+  clockInTime   DateTime
+  clockOutTime  DateTime?
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+}
+
+model WorkOrderTimeEntry {
+  id            String    @id @default(uuid())
+  workOrderId   String
+  userId        String
+  startTime     DateTime
+  stopTime      DateTime?
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@unique([workOrderId, userId, startTime]) // Ensures no duplicate clock-ins for the same user
+  @@index([workOrderId])
+  @@index([userId])
+}
+
 model WorkOrderStepExecution {
   id                    String                @id @default(uuid())
   workOrderId           String
   workInstructionStepId String
   completedAt           DateTime?
-  timeTaken             Int? // Time taken in minutes
+  timeTaken             Int? // Time taken in seconds
   status                StepExecutionStatus   @default(PENDING)
   workOrder             WorkOrder             @relation(fields: [workOrderId], references: [id])
   workInstructionStep   WorkInstructionStep   @relation(fields: [workInstructionStepId], references: [id])
@@ -542,21 +572,6 @@ model WorkOrderStepExecution {
   activeWorkers         Int                   @default(0) // Track number of active workers on this step
 
   @@unique([workOrderId, workInstructionStepId])
-}
-
-model WorkOrderTimeEntry {
-  id            String    @id @default(uuid())
-  workOrderId   String
-  userId        String
-  clockInTime   DateTime
-  clockOutTime  DateTime?
-  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id])
-  user          User      @relation(fields: [userId], references: [id])
-  sessionNumber Int       @default(1) // Track which session this is for the user on this work order
-
-  @@unique([workOrderId, userId, clockInTime]) // Ensures no duplicate clock-ins for the same user
-  @@index([workOrderId])
-  @@index([userId])
 }
 
 model StepActionExecution {
@@ -580,4 +595,17 @@ enum StepExecutionStatus {
   IN_PROGRESS
   COMPLETED
   SKIPPED
+}
+
+model AccessBadge {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiredAt DateTime?
+  userId    String   @unique
+  createdById String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("CreatedAccessBadges", fields: [createdById], references: [id])
+
+  @@index([createdById])
 }

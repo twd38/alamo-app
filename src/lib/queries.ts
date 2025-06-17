@@ -356,6 +356,14 @@ export async function getWorkOrder(workOrderId: string) {
             },
             createdBy: true,
             assignees: true,
+            clockInEntries: {
+                where: {
+                    clockOutTime: null // Only get users who are currently clocked in
+                },
+                include: {
+                    user: true
+                }
+            }
         }
     })
 }
@@ -870,3 +878,16 @@ export async function getAllViews(boardId?: string) {
         }
     })
 }
+
+export async function getAccessBadge(badgeId: string) {
+    return await prisma.accessBadge.findUnique({
+        where: {
+            id: badgeId
+        },
+        include: {
+            user: true,
+        }
+    })
+}
+
+export type AccessBadgeWithUser = Prisma.PromiseReturnType<typeof getAccessBadge>
