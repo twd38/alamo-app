@@ -470,9 +470,6 @@ type WorkInstructionStepAction = {
     tolerance: number | null;
     signoffRoles: string[];
     isRequired: boolean;
-    completedAt: Date | null;
-    completedBy: string | null;
-    completedValue: number | null;
     uploadedFileId: string | null;
     notes: string | null;
 };

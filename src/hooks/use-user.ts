@@ -9,8 +9,9 @@ interface CustomUser extends User {
 
 export function useUser() {
   const { data: session, status } = useSession();
-  
+
   return {
+    id: session?.user?.id,
     user: session?.user as CustomUser | undefined,
     isLoading: status === 'loading',
     isAuthenticated: status === 'authenticated'

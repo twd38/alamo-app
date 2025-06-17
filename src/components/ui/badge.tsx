@@ -14,7 +14,7 @@ const badgeVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        outline: "border-border border-muted-foreground/40 text-muted-foreground",
         todo: "border-transparent bg-slate-500 text-slate-50 hover:bg-slate-500/80",
         "in-progress": "border-transparent bg-blue-500 text-blue-50 hover:bg-blue-500/80",
         completed: "border-transparent bg-green-500 text-green-50 hover:bg-green-500/80",
@@ -47,8 +47,7 @@ const badgeVariants = cva(
       },
     },
     defaultVariants: {
-      variant: "default",
-      color: "slate",
+      variant: "default"
     },
   }
 )

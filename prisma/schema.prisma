@@ -339,9 +339,6 @@ model WorkInstructionStepAction {
   stepId           String
   description      String
   notes            String?
-  completedAt      DateTime?
-  completedBy      String?
-  completedValue   Float?
   isRequired       Boolean               @default(true)
   signoffRoles     String[]
   targetValue      Float?

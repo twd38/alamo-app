@@ -98,6 +98,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Default allow sign-in
       return true;
     },
+    session: async ({ session, user }) => {
+      if (session.user) {
+        session.user.id = user.id;
+      }
+      return session;
+    },
   },
   debug: process.env.NODE_ENV === 'development',
 });

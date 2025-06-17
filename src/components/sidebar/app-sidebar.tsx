@@ -10,12 +10,18 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "src/components/ui/sidebar"
+import { useQuery } from "@tanstack/react-query"
 import { useUser } from "src/hooks/use-user"
 import Image from "next/image"
 import Link from "next/link"
-
+import { getUserAccessBadge } from "src/lib/queries"
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
+  const { data: badge } = useQuery({
+    queryKey: ["badge", user?.id],
+    queryFn: () => user?.id ? getUserAccessBadge(user?.id) : null,
+  });
+  const badgeId = badge?.id || "";
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -30,7 +36,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain />
       </SidebarContent>
       <SidebarFooter>
-        { user && <NavUser user={user} /> }
+        { user && <NavUser user={user} badgeId={badgeId} /> }
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

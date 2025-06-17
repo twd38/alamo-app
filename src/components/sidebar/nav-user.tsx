@@ -31,15 +31,18 @@ import {
 } from "src/components/ui/sidebar"
 import { signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
+import { BadgeQRDialog } from './badge-qr-dialog';
 
 export function NavUser({
   user,
+  badgeId,
 }: {
   user: {
     name?: string
     email?: string
     image?: string
   }
+  badgeId: string
 }) {
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
@@ -87,6 +90,12 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <div className="w-full">
+                <BadgeQRDialog badgeId={badgeId} className="w-full justify-start p-0 h-auto font-normal" />
+              </div>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>

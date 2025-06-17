@@ -1,6 +1,6 @@
 import { getWorkOrder } from "@/lib/queries";
 import { ProductionTopBar } from "@/components/production/production-top-bar";
-import { Steps } from "@/components/production/steps";
+import { WorkInstructionsViewer } from "@/components/production/work-instructions-viewer";
 
 interface WorkOrderPageProps {
     params: Promise<{
@@ -11,7 +11,7 @@ interface WorkOrderPageProps {
 const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
     const { workOrderId } = await params;
     const workOrder = await getWorkOrder(workOrderId);
-
+    console.log(workOrder)
     if (!workOrder) {
         return <div>Work order not found</div>;
     }
@@ -20,9 +20,9 @@ const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
     const steps = workInstructions?.steps || [];
 
     return (
-        <div className="h-[calc(100vh-4rem)]">
-            <ProductionTopBar workOrder={workOrder} />
-            <Steps steps={steps} className="h-[calc(100%-4rem)]" />
+        <div className="max-h-[calc(100vh-8rem)]">
+            <ProductionTopBar workOrder={workOrder}  />
+            <WorkInstructionsViewer steps={steps} workOrder={workOrder} />
         </div>
     );
 };

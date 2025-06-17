@@ -3,7 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CircleCheck } from "lucide-react";
+import { Clock } from "lucide-react";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import {
     ResizablePanelGroup,
@@ -12,6 +14,10 @@ import {
 } from "@/components/ui/resizable";
 import { useState } from "react";
 import { WorkInstructionStep, ActionType } from "@prisma/client";
+import { ProductionSidebar } from "./production-sidebar";
+import { getWorkOrder } from "@/lib/queries";
+
+type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
 type WorkInstructionStepAction = {
     id: string;
@@ -23,9 +29,6 @@ type WorkInstructionStepAction = {
     tolerance: number | null;
     signoffRoles: string[];
     isRequired: boolean;
-    completedAt: Date | null;
-    completedBy: string | null;
-    completedValue: number | null;
     uploadedFileId: string | null;
     notes: string | null;
 };
@@ -34,12 +37,13 @@ type WorkInstructionStepWithActions = WorkInstructionStep & {
     actions: WorkInstructionStepAction[];
 };
 
-interface StepsProps {
+interface WorkInstructionsViewerProps {
     steps: WorkInstructionStepWithActions[];
+    workOrder: WorkOrder;
     className?: string;
 }
 
-export function Steps({ steps, className }: StepsProps) {
+export function WorkInstructionsViewer({ steps, workOrder, className }: WorkInstructionsViewerProps) {
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
     // Auto-select first step when component mounts
@@ -58,9 +62,9 @@ export function Steps({ steps, className }: StepsProps) {
             {/* Left – Step list */}
             <ResizablePanel
                 defaultSize={25}
-                minSize={15}
+                minSize={20}
                 maxSize={40}
-                className="h-full bg-white border-r"
+                className="justify-between border-r"
             >
                 <ScrollArea className="h-full w-full">
                     <div className="p-2 space-y-2 w-full">
@@ -68,29 +72,38 @@ export function Steps({ steps, className }: StepsProps) {
                             <div
                                 key={step.id}
                                 className={`
-                                    flex gap-3 p-3 rounded-lg border shadow-sm items-center cursor-pointer w-full
+                                    p-3 space-y-1 rounded-lg border shadow-sm items-center cursor-pointer w-full
                                     ${selectedStepId === step.id 
-                                        ? 'bg-blue-500 text-white border-blue-600' 
+                                        ? 'bg-blue-50 border-blue-500' 
                                         : 'hover:bg-accent border-border hover:border-blue-200'}
                                 `}
                                 onClick={() => setSelectedStepId(step.id)}
                             >
-                                <div className={`
+                                <div className="flex items-center gap-2 w-full">
+                                    <span className="text-xs text-muted-foreground font-medium">Step {step.stepNumber}</span>
+                                    <Badge variant="outline">{step.estimatedLabourTime} min</Badge>
+                                </div>
+                                <h4 className="text-sm font-medium truncate">
+                                    {step.title}
+                                </h4>
+
+
+                                {/* <div className={`
                                     flex items-center justify-center rounded-full w-9 h-9 shrink-0
                                     ${selectedStepId === step.id 
-                                        ? 'bg-white text-blue-500' 
+                                        ? 'bg-white' 
                                         : 'bg-muted text-muted-foreground'}
                                 `}>
                                     {step.stepNumber}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h4 className={`font-medium truncate ${selectedStepId === step.id ? 'text-white' : 'text-foreground'}`}>
+                                    <h4 className="font-medium truncate">
                                         {step.title}
                                     </h4>
-                                    <p className={`text-sm truncate ${selectedStepId === step.id ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                    <p className="text-sm">
                                         {step.estimatedLabourTime} min
                                     </p>
-                                </div>
+                                </div> */}
                             </div>
                         ))}
                     </div>
@@ -101,29 +114,22 @@ export function Steps({ steps, className }: StepsProps) {
 
             {/* Center – Instructions */}
             <ResizablePanel
-                defaultSize={75}
-                minSize={60}
-                className="h-full my-2 mx-2 bg-transparent"
+                defaultSize={55}
+                minSize={40}
+                maxSize={70}
+                className="h-full m-2 mx-2 bg-transparent"
             >
                 <Card className="h-full">
-                    <CardHeader>
-                        <CardTitle>Work Instructions</CardTitle>
+                    <CardHeader className="flex flex-row justify-between items-center">
+                        <CardTitle className="text-2xl">{selectedStep?.title}</CardTitle>
+                        <Badge className="px-2 py-1">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {selectedStep?.estimatedLabourTime} min
+                        </Badge>
                     </CardHeader>
                     <CardContent>
                         {selectedStep ? (
                             <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline">
-                                        Step {selectedStep.stepNumber}
-                                    </Badge>
-                                    <h3 className="text-lg font-semibold">
-                                        {selectedStep.title}
-                                    </h3>
-                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                        <Clock className="h-4 w-4" />
-                                        {selectedStep.estimatedLabourTime} min
-                                    </div>
-                                </div>
                                 <div className="prose max-w-none h-[calc(100vh-16rem)] overflow-y-auto scrollbar-hide">
                                     <MarkdownEditor
                                         key={`${selectedStep.id}-production`}
@@ -134,20 +140,6 @@ export function Steps({ steps, className }: StepsProps) {
                                         readOnly
                                     />
                                 </div>
-                                {selectedStep.actions.length > 0 && (
-                                    <div className="mt-4 space-y-2">
-                                        <h4 className="font-medium">Required Actions</h4>
-                                        {selectedStep.actions.map((action) => (
-                                            <div
-                                                key={action.id}
-                                                className="flex items-center gap-2 p-2 rounded-md bg-muted"
-                                            >
-                                                <Wrench className="h-4 w-4 text-muted-foreground" />
-                                                <span>{action.description}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -156,6 +148,18 @@ export function Steps({ steps, className }: StepsProps) {
                         )}
                     </CardContent>
                 </Card>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Right – Sidebar with Actions, Comments, Files */}
+            <ResizablePanel
+                defaultSize={25}
+                minSize={20}
+                maxSize={40}
+                className="border-l flex flex-col justify-between"
+            >
+                <ProductionSidebar step={selectedStep} workOrder={workOrder} />
             </ResizablePanel>
         </ResizablePanelGroup>
     );

@@ -90,6 +90,7 @@
     "react-hook-form": "^7.54.2",
     "react-hot-toast": "^2.5.1",
     "react-markdown": "^9.0.3",
+    "react-qr-code": "^2.0.16",
     "react-resizable-panels": "^3.0.2",
     "server-only": "^0.0.1",
     "swr": "^2.3.2",

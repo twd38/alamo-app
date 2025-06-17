@@ -1068,9 +1068,6 @@ export async function updateWorkInstructionStepAction({
     signoffRoles,
     isRequired,
     notes,
-    completedAt,
-    completedBy,
-    completedValue,
     uploadedFileId,
 }: {
     actionId: string;
@@ -1082,9 +1079,6 @@ export async function updateWorkInstructionStepAction({
     signoffRoles?: string[];
     isRequired?: boolean;
     notes?: string;
-    completedAt?: Date | null;
-    completedBy?: string | null;
-    completedValue?: number | null;
     uploadedFileId?: string | null;
 }) {
     try {
@@ -1099,9 +1093,6 @@ export async function updateWorkInstructionStepAction({
                 signoffRoles,
                 isRequired,
                 notes,
-                completedAt,
-                completedBy,
-                completedValue,
                 uploadedFileId,
             }
         });

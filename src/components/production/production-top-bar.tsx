@@ -1,17 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { PlayIcon, PauseIcon } from "lucide-react"
-import { TimerWidget } from "./timer-widget"
 import { Timer } from "./timer"
-// import { ActionGates } from "./action-gates"
-// import { NotesModal } from "./notes-modal"
 import { getWorkOrder } from "@/lib/queries"
-import { Prisma, User, WorkOrderStatus } from "@prisma/client"
+import { WorkOrderStatus } from "@prisma/client"
 import { cn } from "@/lib/utils"
 import { ClockInModal } from "./clock-in-modal"
 import { startWorkOrderProduction, pauseWorkOrderProduction } from "@/lib/actions"
@@ -67,7 +62,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     
     const getTimeStatusColor = () => {
         const status = getTimeStatus()
-        if(workOrderStatus !== WorkOrderStatus.IN_PROGRESS) return "bg-gray-400"
+        if(workOrderStatus !== WorkOrderStatus.IN_PROGRESS) return "bg-gray-700"
         switch (status) {
             case "on-time":
             return "bg-green-500"
@@ -166,13 +161,13 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full space-y-2">
+            {/* <div className="w-full space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-sm opacity-90">Step {currentStep} of {totalSteps}</span>
                     <span className="text-sm opacity-90">{progressPercentage}%</span>
                 </div>
                 <Progress value={progressPercentage} className="h-2" />
-            </div>
+            </div> */}
         </div>
     )
 }

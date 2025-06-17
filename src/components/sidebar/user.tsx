@@ -1,5 +1,6 @@
 import { Button } from 'src/components/ui/button';
 import { auth, signOut } from 'src/lib/auth';
+import { getUserAccessBadge } from 'src/lib/queries';
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -10,10 +11,17 @@ import {
   DropdownMenuTrigger
 } from 'src/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { BadgeQRDialog } from './badge-qr-dialog';
 
 export async function User() {
   let session = await auth();
   let user = session?.user;
+
+  // Fetch user's access badge if user exists
+  let badge = null;
+  if (user?.id) {
+    badge = await getUserAccessBadge(user.id);
+  }
 
   return (
     <DropdownMenu>
@@ -35,6 +43,16 @@ export async function User() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {badge && (
+          <>
+            <DropdownMenuItem asChild>
+              <div className="p-0">
+                <BadgeQRDialog badgeId={badge.id} />
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem>Settings</DropdownMenuItem>
         <DropdownMenuItem>Support</DropdownMenuItem>
         <DropdownMenuSeparator />

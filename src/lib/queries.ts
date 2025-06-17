@@ -344,7 +344,11 @@ export async function getWorkOrder(workOrderId: string) {
                         include: {
                             steps: {
                                 include: {
-                                    actions: true
+                                    actions: {
+                                        include: {
+                                            actionExecutions: true
+                                        }
+                                    },
                                 },
                                 orderBy: {
                                     stepNumber: 'asc'
@@ -887,6 +891,14 @@ export async function getAccessBadge(badgeId: string) {
         },
         include: {
             user: true,
+        }
+    })
+}
+
+export async function getUserAccessBadge(userId: string) {
+    return await prisma.accessBadge.findUnique({
+        where: {
+            userId: userId
         }
     })
 }
