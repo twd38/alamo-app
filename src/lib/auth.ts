@@ -2,34 +2,7 @@ import NextAuth from 'next-auth';
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/db"
 import GoogleProvider from "next-auth/providers/google";
-
-/**
- * Detects the current environment and returns the appropriate base URL
- * for OAuth redirects. This handles Vercel preview deployments.
- */
-function getBaseUrl(): string {
-  // In production, use the production domain
-  if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production') {
-    return process.env.NEXTAUTH_URL || 'https://your-production-domain.com';
-  }
-  
-  // For Vercel preview deployments
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  
-  // For local development
-  return process.env.NEXTAUTH_URL || 'http://localhost:3000';
-}
-
-/**
- * Constructs the OAuth redirect URI based on the current environment
- */
-function getOAuthRedirectUri(): string {
-  const baseUrl = getBaseUrl();
-  return `${baseUrl}/api/auth/callback/google`;
-}
-
+ 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -45,8 +18,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Always force a new consent screen to ensure refresh token is issued
           prompt: "consent",
           include_granted_scopes: true,
-          // Dynamic redirect URI based on environment
-          redirect_uri: getOAuthRedirectUri(),
         },
       },
     }),
@@ -60,8 +31,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "database",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Configure trustHost for Vercel deployments
-  trustHost: true,
   callbacks: {
     authorized: async ({ auth }) => {
       // Logged in users are authenticated, otherwise redirect to login page
@@ -129,24 +98,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Default allow sign-in
       return true;
     },
-    // Custom redirect callback to handle preview URL redirects
-    redirect: async ({ url, baseUrl }) => {
-      // Get the current base URL (which handles preview deployments)
-      const currentBaseUrl = getBaseUrl();
-      
-      // If url is relative, prepend the current base URL
-      if (url.startsWith('/')) {
-        return `${currentBaseUrl}${url}`;
-      }
-      
-      // If url is for the same domain, allow it
-      if (url.startsWith(currentBaseUrl)) {
-        return url;
-      }
-      
-      // Default to base URL for safety
-      return currentBaseUrl;
-    },
   },
   debug: process.env.NODE_ENV === 'development',
 });
@@ -161,20 +112,6 @@ declare module "next-auth" {
       image?: string | null;
     }
   }
-}
-
-/**
- * Helper function to get the current environment information
- * Useful for debugging and logging
- */
-export function getEnvironmentInfo() {
-  return {
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
-    vercelUrl: process.env.VERCEL_URL,
-    baseUrl: getBaseUrl(),
-    redirectUri: getOAuthRedirectUri(),
-  };
 }
 
 

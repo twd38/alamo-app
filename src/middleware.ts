@@ -5,7 +5,6 @@ export const config = {
   matcher: [
     // Run middleware on all paths **except** the explicitly excluded ones.
     // We now also exclude /api/parts so it remains publicly accessible.
-    // Also exclude /api/auth/debug for environment debugging.
     '/((?!login|register|api/auth|api/parts|_next/static|_next/image|favicon.ico).*)'
   ]
 };
