@@ -58,7 +58,7 @@ export function WorkInstructionsViewer({ steps, workOrder, className }: WorkInst
         : null;
 
     return (
-        <ResizablePanelGroup direction="horizontal" className={className}>
+        <ResizablePanelGroup direction="horizontal" className="max-h-[calc(100vh-5rem)]">
             {/* Left – Step list */}
             <ResizablePanel
                 defaultSize={25}

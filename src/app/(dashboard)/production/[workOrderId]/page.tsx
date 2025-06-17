@@ -20,7 +20,7 @@ const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
     const steps = workInstructions?.steps || [];
 
     return (
-        <div className="max-h-[calc(100vh-8rem)]">
+        <div className="max-h-screen">
             <ProductionTopBar workOrder={workOrder}  />
             <WorkInstructionsViewer steps={steps} workOrder={workOrder} />
         </div>

@@ -134,7 +134,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     }
 
     return (
-        <div className={cn("p-4 text-white space-y-4", getTimeStatusColor())}>
+        <div className={cn("p-4 text-white space-y-4 h-20", getTimeStatusColor())}>
             <div className="flex justify-between items-center">
                 {/* Part Info */}
                 <div className="">
@@ -155,7 +155,11 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
                     <StartStopButton />
 
                     {/* Clocked in Users */}
-                    <ClockInModal workOrderId={workOrder.id} clockedInUsers={clockedInUsers} />
+                    <ClockInModal 
+                        workOrderId={workOrder.id} 
+                        clockedInUsers={clockedInUsers} 
+                        disabled={workOrderStatus === WorkOrderStatus.IN_PROGRESS}
+                    />
                 </div>
                 
             </div>

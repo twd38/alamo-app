@@ -12,7 +12,8 @@ export interface User {
 interface ActionButton {
   icon: React.ReactNode
   tooltip?: string
-  onClick: () => void
+  onClick?: () => void
+  disabled?: boolean
 }
 
 interface UserAvatarListProps {
@@ -61,8 +62,9 @@ export function UserAvatarList({ users, maxVisible = 3, overlapAmount = 8, actio
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={actionButton.onClick}
-                  className="relative z-10 flex h-6 w-6 border border-background items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:translate-y-[-3px] hover:z-20 hover:bg-primary/90"
+                  onClick={actionButton.disabled ? undefined : actionButton.onClick}
+                  disabled={actionButton.disabled}
+                  className="relative z-10 flex h-6 w-6 border border-background items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:translate-y-[-3px] hover:z-20 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:bg-primary"
                 >
                   {actionButton.icon}
                 </button>

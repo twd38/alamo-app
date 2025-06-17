@@ -18,9 +18,10 @@ import { User } from "@prisma/client"
 interface ClockInModalProps {
   workOrderId: string
   clockedInUsers: User[]
+  disabled?: boolean
 }
 
-export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps) {
+export function ClockInModal({ workOrderId, clockedInUsers, disabled = false }: ClockInModalProps) {
   const [open, setOpen] = useState(false)
   const [scannedUsers, setScannedUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -143,12 +144,18 @@ export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps)
 				users={clockedInUsers} 
 				actionButton={{
 				icon: <LogIn className="h-3 w-3" />,
-				tooltip: clockedInUsers.length > 0 ? "Clock In/Out" : "Clock In",
-				onClick: openClockOutModal
+				tooltip: disabled ? "Cannot clock in/out while work order is in progress" : (clockedInUsers.length > 0 ? "Clock In/Out" : "Clock In"),
+				onClick: openClockOutModal,
+				disabled: disabled
 				}}
 			/>
 		):(
-			<Button variant="secondary" onClick={openClockInModal}>
+			<Button 
+				variant="secondary" 
+				onClick={openClockInModal}
+				disabled={disabled}
+				title={disabled ? "Cannot clock in while work order is in progress" : undefined}
+			>
 				<LogIn className="h-4 w-4 mr-2" />
 				Clock In
 			</Button>
