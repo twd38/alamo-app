@@ -5,12 +5,13 @@ import { Scanner } from '@yudiel/react-qr-scanner'
 import type { IDetectedBarcode } from '@yudiel/react-qr-scanner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserAvatarList } from "@/components/user-avatar-list"
 import { toast } from "react-hot-toast"
 import { AlertCircle, LogIn, LogOut } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { getAccessBadge, type AccessBadgeWithUser } from "@/lib/queries"
+import { getAccessBadge } from "@/lib/queries"
 import { clockInUsersToWorkOrder, clockOutUsersFromWorkOrder } from "@/lib/actions"
 import { User } from "@prisma/client"
 
@@ -26,21 +27,10 @@ export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isClockingOut, setIsClockingOut] = useState(false)
-
-  const validateBadge = (badge: AccessBadgeWithUser): boolean => {
-	if (!badge) return false
-	
-	// Check if badge is expired
-	if (badge.expiredAt && new Date(badge.expiredAt) < new Date()) {
-	  return false
-	}
-	return true
-  }
+  const [activeTab, setActiveTab] = useState("clock-in")
 
   const handleScan = useCallback(async (result: IDetectedBarcode[]) => {
-	
 	if (!result?.[0]?.rawValue || isProcessing) return
-	console.log(result)
 	
 	try {
 	  setIsProcessing(true)
@@ -55,12 +45,6 @@ export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps)
 	  
 	  if (!badge) {
 		toast.error("Invalid badge")
-		return
-	  }
-	  
-	  // Validate badge
-	  if (!validateBadge(badge)) {
-		toast.error("Badge has expired")
 		return
 	  }
 	  
@@ -142,6 +126,16 @@ export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps)
 	}
   }
 
+  const openClockInModal = () => {
+	setActiveTab("clock-in")
+	setOpen(true)
+  }
+
+  const openClockOutModal = () => {
+	setActiveTab("clock-out")
+	setOpen(true)
+  }
+
   return (
 	<>
 		{clockedInUsers.length > 0 ? (
@@ -150,11 +144,11 @@ export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps)
 				actionButton={{
 				icon: <LogIn className="h-3 w-3" />,
 				tooltip: clockedInUsers.length > 0 ? "Clock In/Out" : "Clock In",
-				onClick: () => setOpen(true)
+				onClick: openClockOutModal
 				}}
 			/>
 		):(
-			<Button variant="secondary" onClick={() => setOpen(true)}>
+			<Button variant="secondary" onClick={openClockInModal}>
 				<LogIn className="h-4 w-4 mr-2" />
 				Clock In
 			</Button>
@@ -165,111 +159,132 @@ export function ClockInModal({ workOrderId, clockedInUsers }: ClockInModalProps)
 			<DialogHeader>
 			<DialogTitle>Clock In / Out</DialogTitle>
 		  </DialogHeader>
-		  <div className="space-y-4">
-			{/* QR Scanner */}
-			<div className="space-y-2">
-			  <div className="aspect-square w-full overflow-hidden rounded-lg border">
-				{cameraError ? (
-				  <Alert variant="destructive" className="h-full flex items-center justify-center">
-					<AlertCircle className="h-4 w-4 mr-2" />
-					<AlertDescription>{cameraError}</AlertDescription>
-				  </Alert>
-				) : (
-				  <Scanner
-					constraints={{ 
-					  facingMode: "environment",
-					  width: { min: 360, ideal: 640, max: 1920 },
-					  height: { min: 240, ideal: 480, max: 1080 }
-					}}
-					onScan={handleScan}
-					onError={handleError}
-					classNames={{
-					  container: "w-full h-full"
-					}}
-					styles={{
-					  video: { objectFit: "cover" }
-					}}
-					scanDelay={1000} // Increased delay between scans to reduce errors
-					allowMultiple
-				  />
-				)}
-			  </div>
-			</div>
-
-			{/* Scanned Users List */}
-			{scannedUsers.length > 0 && (
+		  
+		  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+			<TabsList className="w-full ">
+			  <TabsTrigger value="clock-in" className="flex items-center gap-2 w-full">
+				<LogIn className="h-4 w-4" />
+				Clock In
+			  </TabsTrigger>
+			  <TabsTrigger value="clock-out" className="flex items-center gap-2 w-full">
+				<LogOut className="h-4 w-4" />
+				Clock Out
+			  </TabsTrigger>
+			</TabsList>
+			
+			<TabsContent value="clock-in" className="space-y-4 min-h-[400px]">
+			  {/* QR Scanner */}
 			  <div className="space-y-2">
-				<h3 className="text-sm font-medium">Scanned Users</h3>
-				<div className="space-y-2">
-				  {scannedUsers.map((user) => (
-					<div key={user.id} className="flex items-center justify-between p-3 rounded-lg border">
-					  <div className="flex items-center gap-3">
-						<Avatar>
-						  <AvatarImage src={user.image ?? undefined} />
-						  <AvatarFallback>
-							{user.name[0]}
-						  </AvatarFallback>
-						</Avatar>
-						<div>
-						  <p className="font-medium">{user.name}</p>
-						  <p className="text-sm text-muted-foreground">{user.email}</p>
-						</div>
-					  </div>
-					  <Button
-						variant="ghost"
-						size="sm"
-						onClick={() => removeScannedUser(user.id)}
-					  >
-						Remove
-					  </Button>
-					</div>
-				  ))}
-				  <Button 
-					onClick={handleClockIn} 
-					disabled={isLoading}
-					className="w-full"
-				  >
-					{isLoading ? "Clocking in..." : `Clock In ${scannedUsers.length} User${scannedUsers.length > 1 ? 's' : ''}`}
-				  </Button>
+				<div className="aspect-square w-full overflow-hidden rounded-lg border">
+				  {cameraError ? (
+					<Alert variant="destructive" className="h-full flex items-center justify-center">
+					  <AlertCircle className="h-4 w-4 mr-2" />
+					  <AlertDescription>{cameraError}</AlertDescription>
+					</Alert>
+				  ) : (
+					<Scanner
+					  constraints={{ 
+						facingMode: "environment",
+						width: { min: 360, ideal: 640, max: 1920 },
+						height: { min: 240, ideal: 480, max: 1080 }
+					  }}
+					  onScan={handleScan}
+					  onError={handleError}
+					  classNames={{
+						container: "w-full h-full"
+					  }}
+					  styles={{
+						video: { objectFit: "cover" }
+					  }}
+					  scanDelay={1000} // Increased delay between scans to reduce errors
+					  allowMultiple
+					/>
+				  )}
 				</div>
 			  </div>
-			)}
 
-			{/* Currently Clocked In Users */}
-			{clockedInUsers.length > 0 && (
-			  <div className="space-y-2">
-				<h3 className="text-sm font-medium">Currently Clocked In</h3>
+			  {/* Scanned Users List */}
+			  {scannedUsers.length > 0 && (
 				<div className="space-y-2">
-				  {clockedInUsers.map((user) => (
-					<div key={user.id} className="flex items-center justify-between p-3 rounded-lg border bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-800">
-					  <div className="flex items-center gap-3">
-						<Avatar>
-						  <AvatarImage src={user.image ?? undefined} />
-						  <AvatarFallback>
-							{user.name[0]}
-						  </AvatarFallback>
-						</Avatar>
-						<div>
-						  <p className="font-medium">{user.name}</p>
-						  <p className="text-sm text-muted-foreground">{user.email}</p>
+				  <h3 className="text-sm font-medium">Scanned Users</h3>
+				  <div className="space-y-2">
+					{scannedUsers.map((user) => (
+					  <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border">
+						<div className="flex items-center gap-3">
+						  <Avatar>
+							<AvatarImage src={user.image ?? undefined} />
+							<AvatarFallback>
+							  {user.name[0]}
+							</AvatarFallback>
+						  </Avatar>
+						  <div>
+							<p className="font-medium">{user.name}</p>
+							<p className="text-sm text-muted-foreground">{user.email}</p>
+						  </div>
 						</div>
+						<Button
+						  variant="ghost"
+						  size="sm"
+						  onClick={() => removeScannedUser(user.id)}
+						>
+						  Remove
+						</Button>
 					  </div>
-					  <Button
-						variant="outline"
-						size="sm"
-						onClick={() => handleClockOut(user.id)}
-						disabled={isClockingOut}
-						className="flex items-center gap-2"
-					  >
-						<LogOut className="h-3 w-3" />
-						{isClockingOut ? "Clocking out..." : "Clock Out"}
-					  </Button>
-					</div>
-				  ))}
+					))}
+					<Button 
+					  onClick={handleClockIn} 
+					  disabled={isLoading}
+					  className="w-full"
+					>
+					  {isLoading ? "Clocking in..." : `Clock In ${scannedUsers.length} User${scannedUsers.length > 1 ? 's' : ''}`}
+					</Button>
+				  </div>
 				</div>
-			  </div>
-			)}
-		  </div>
+			  )}
+			</TabsContent>
+
+			<TabsContent value="clock-out" className="space-y-4 min-h-[400px]">
+			  {/* Currently Clocked In Users */}
+			  {clockedInUsers.length > 0 ? (
+				<div className="space-y-2">
+				  <div className="space-y-2 max-h-[350px] overflow-y-auto">
+					{clockedInUsers.map((user) => (
+					  <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-800">
+						<div className="flex items-center gap-3">
+						  <Avatar>
+							<AvatarImage src={user.image ?? undefined} />
+							<AvatarFallback>
+							  {user.name[0]}
+							</AvatarFallback>
+						  </Avatar>
+						  <div>
+							<p className="font-medium">{user.name}</p>
+							<p className="text-sm text-muted-foreground">{user.email}</p>
+						  </div>
+						</div>
+						<Button
+						  variant="outline"
+						  size="sm"
+						  onClick={() => handleClockOut(user.id)}
+						  disabled={isClockingOut}
+						  className="flex items-center gap-2"
+						>
+						  <LogOut className="h-3 w-3" />
+						  {isClockingOut ? "Clocking out..." : "Clock Out"}
+						</Button>
+					  </div>
+					))}
+				  </div>
+				</div>
+			  ) : (
+				<div className="text-center text-muted-foreground py-8 flex flex-col items-center justify-center h-full">
+				  <LogOut className="h-12 w-12 mx-auto mb-4 opacity-50" />
+				  <p>No users currently clocked in</p>
+				  <p className="text-sm">Use the Clock In tab to scan users</p>
+				</div>
+			  )}
+			</TabsContent>
+		  </Tabs>
 		</DialogContent>
 	  </Dialog>
 	</>

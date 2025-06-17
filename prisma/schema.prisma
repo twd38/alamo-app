@@ -109,7 +109,7 @@ model WorkOrder {
   partQty         Int
   part            Part                     @relation(fields: [partId], references: [id])
   notes           String?
-  timeTaken       Int?                     @default(0) // Time taken in seconds
+  timeTaken       Int?                     @default(0) // Time taken in milliseconds
   clockInEntries  ClockInEntry[]
   stepExecutions  WorkOrderStepExecution[]
   timeEntries     WorkOrderTimeEntry[]

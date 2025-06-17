@@ -1496,20 +1496,72 @@ export async function startWorkOrderProduction(workOrderId: string) {
     // Create workOrderTimeEntry for each user currently clocked in to the work order
     const clockInEntries = await prisma.clockInEntry.findMany({
         where: {
-            workOrderId
+            workOrderId,
+            clockOutTime: null
         }
     })
 
     // Create a workOrderTimeEntry for each clockInEntry
+    const startTime = new Date()
     const workOrderTimeEntries = await prisma.workOrderTimeEntry.createMany({
         data: clockInEntries.map((clockInEntry) => ({
             userId: clockInEntry.userId,
             workOrderId,
-            startTime: clockInEntry.clockInTime
+            startTime
         }))
     })
 
+    // Update the work order status to IN_PROGRESS
+    await prisma.workOrder.update({
+        where: { id: workOrderId },
+        data: { status: WorkOrderStatus.IN_PROGRESS }
+    })
+
+    revalidatePath('/production')
+
     return { success: true, data: workOrderTimeEntries }
+}
+
+export async function pauseWorkOrderProduction(workOrderId: string) {
+    // Stop all active workOrderTimeEntries for the work order
+    const activeTimeEntries = await prisma.workOrderTimeEntry.findMany({
+        where: {
+            workOrderId,
+            stopTime: null
+        }
+    })
+
+    await prisma.workOrderTimeEntry.updateMany({
+        where: {
+            workOrderId,
+            stopTime: null
+        },
+        data: {
+            stopTime: new Date()
+        }
+    })
+
+    // Calculate the time taken so far and update the work order
+    const timeTakenForCurrentEntry = new Date().getTime() - activeTimeEntries[0].startTime.getTime()
+
+    // Get current work order to add to existing timeTaken
+    const currentWorkOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+        select: { timeTaken: true }
+    })
+
+    // Update the work order status to PAUSED and add to timeTaken
+    await prisma.workOrder.update({
+        where: { id: workOrderId },
+        data: { 
+            status: WorkOrderStatus.PAUSED,
+            timeTaken: (currentWorkOrder?.timeTaken || 0) + timeTakenForCurrentEntry
+        }
+    })
+
+    revalidatePath('/production')
+
+    return { success: true, data: { count: activeTimeEntries.length } }
 }
 
 export async function stopWorkOrderProduction(workOrderId: string) {
@@ -1548,7 +1600,6 @@ export async function stopWorkOrderProduction(workOrderId: string) {
 
     return { success: true, data: { count: activeTimeEntries.length } }
 }
-
 
 export async function startWorkOrderTimeEntry(userId: string, workOrderId: string) {
     // Create a new WorkOrderTimeEntry with the current time

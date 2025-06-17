@@ -363,7 +363,8 @@ export async function getWorkOrder(workOrderId: string) {
                 include: {
                     user: true
                 }
-            }
+            },
+            timeEntries: true
         }
     })
 }

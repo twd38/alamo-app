@@ -7,46 +7,43 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { PlayIcon, PauseIcon } from "lucide-react"
 import { TimerWidget } from "./timer-widget"
+import { Timer } from "./timer"
 // import { ActionGates } from "./action-gates"
 // import { NotesModal } from "./notes-modal"
 import { getWorkOrder } from "@/lib/queries"
 import { Prisma, User, WorkOrderStatus } from "@prisma/client"
 import { cn } from "@/lib/utils"
 import { ClockInModal } from "./clock-in-modal"
+import { startWorkOrderProduction, pauseWorkOrderProduction } from "@/lib/actions"
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>
 
 interface WorkOrderExecutionProps {
   workOrder: WorkOrder
 }
 
-const StartStopButton = ({ status }: { status: WorkOrderStatus }) => {
-    if (status === WorkOrderStatus.PAUSED || status === WorkOrderStatus.TODO) {
-        return (
-            <Button variant="secondary" className="flex items-center w-24">
-                <PlayIcon className="w-4 h-4 mr-2" />
-                Start
-            </Button>
-        )
-    }
-
-    if (status === WorkOrderStatus.IN_PROGRESS) {
-        return (
-            <Button variant="secondary" className="flex items-center w-24">
-                <PauseIcon className="w-4 h-4 mr-2" />
-                Pause
-            </Button>
-        )
-    }
-
-    return <></>
-}
-
 export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     if (!workOrder) return null
 
+    const elapsedTimeSoFar = () => {
+        // if the work order is not in progress, return the time taken
+        if (workOrder.status !== "IN_PROGRESS") return workOrder.timeTaken || 0
+
+        // if the work order is in progress, base time taken on the work order from .timeTaken + the difference between the current time and the most recent time entry
+        const baseTimeTaken = workOrder.timeTaken || 0
+        const timeEntries = workOrder.timeEntries
+        const timeEntriesWithoutStop = timeEntries.filter(entry => entry.stopTime === null)
+
+        const mostRecentTimeEntry = timeEntriesWithoutStop.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0]
+
+        if (!mostRecentTimeEntry) return baseTimeTaken
+        
+        const timeTaken = baseTimeTaken + (new Date().getTime() - mostRecentTimeEntry.startTime.getTime())
+        return timeTaken
+    }
+
     const [isRunning, setIsRunning] = useState(workOrder.status === "IN_PROGRESS")
     const [currentStep, setCurrentStep] = useState(0)
-    const [elapsedTime, setElapsedTime] = useState(0)
+    const [isLoading, setIsLoading] = useState(false)
 
     const steps = workOrder.part.workInstructions[0].steps
     const totalSteps = steps.length
@@ -61,7 +58,8 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     const timeEstimate = steps.reduce((acc, step) => acc + step.estimatedLabourTime, 0)
     
     const getTimeStatus = () => {
-        const percentage = (elapsedTime / timeEstimate) * 100
+        const elapsedTime = elapsedTimeSoFar()
+        const percentage = (elapsedTime / (timeEstimate * 60 * 1000)) * 100 // Convert minutes to milliseconds
         if (percentage < 80) return "on-time"
         if (percentage < 100) return "warning"
         return "overdue"
@@ -69,7 +67,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     
     const getTimeStatusColor = () => {
         const status = getTimeStatus()
-        if(workOrderStatus !== WorkOrderStatus.IN_PROGRESS) return "bg-green-500"
+        if(workOrderStatus !== WorkOrderStatus.IN_PROGRESS) return "bg-gray-400"
         switch (status) {
             case "on-time":
             return "bg-green-500"
@@ -82,21 +80,63 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
         }
     }
 
-    const formatTime = (minutes: number) => {
-        const hours = Math.floor(minutes / 60)
-        const mins = minutes % 60
-        return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
-    }
-    
-    useEffect(() => {
-        let interval: NodeJS.Timeout
-        if (isRunning) {
-          interval = setInterval(() => {
-            setElapsedTime((prev) => prev + 1)
-          }, 60000) // Update every minute
+    const handleStartStop = async () => {
+        setIsLoading(true)
+        try {
+            if (workOrderStatus === WorkOrderStatus.IN_PROGRESS) {
+                // Pause the work order
+                const result = await pauseWorkOrderProduction(workOrder.id)
+                if (result.success) {
+                    setIsRunning(false)
+                }
+            } else {
+                // Start the work order
+                const result = await startWorkOrderProduction(workOrder.id)
+                if (result.success) {
+                    setIsRunning(true)
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling work order:', error)
+        } finally {
+            setIsLoading(false)
         }
-        return () => clearInterval(interval)
-      }, [isRunning])
+    }
+
+    const StartStopButton = () => {
+        const hasUsers = clockedInUsers.length > 0
+        const isDisabled = !hasUsers || isLoading
+
+        if (workOrderStatus === WorkOrderStatus.PAUSED || workOrderStatus === WorkOrderStatus.TODO) {
+            return (
+                <Button 
+                    variant="secondary" 
+                    className="flex items-center w-24"
+                    onClick={handleStartStop}
+                    disabled={isDisabled}
+                >
+                    <PlayIcon className="w-4 h-4 mr-2" />
+                    Start
+                </Button>
+            )
+        }
+
+        if (workOrderStatus === WorkOrderStatus.IN_PROGRESS) {
+            return (
+                <Button 
+                    variant="secondary" 
+                    className="flex items-center w-24"
+                    onClick={handleStartStop}
+                    disabled={isLoading}
+                >
+                    <PauseIcon className="w-4 h-4 mr-2" />
+                    Pause
+                </Button>
+            )
+        }
+
+        return <></>
+    }
 
     return (
         <div className={cn("p-4 text-white space-y-4", getTimeStatusColor())}>
@@ -111,13 +151,13 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
 
                 <div className="flex items-center gap-4">
                     {/* Time Tracking */}
-                    <div className="text-center">
-                        <div className="text-2xl font-mono font-bold">{formatTime(elapsedTime)}</div>
-                        <div className="text-xs opacity-90">Elapsed Time</div>
-                    </div>
+                    <Timer 
+                        initialElapsedTime={elapsedTimeSoFar()}
+                        isRunning={isRunning}
+                    />
 
                     {/* Start/Stop Button */}
-                    <StartStopButton status={workOrderStatus} />
+                    <StartStopButton />
 
                     {/* Clocked in Users */}
                     <ClockInModal workOrderId={workOrder.id} clockedInUsers={clockedInUsers} />
