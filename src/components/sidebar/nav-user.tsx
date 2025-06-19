@@ -6,8 +6,10 @@ import {
   ChevronsUpDown,
   LogOut,
   Moon,
+  Settings,
   Sun,
 } from "lucide-react"
+import Link from "next/link"
 
 import {
   Avatar,
@@ -31,7 +33,9 @@ import {
 } from "src/components/ui/sidebar"
 import { signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
-import { BadgeQRDialog } from './badge-qr-dialog';
+import { BadgeQRDialog } from './badge-qr-dialog'
+import { PermissionGate } from '@/components/rbac/permission-gate'
+import { PERMISSIONS } from '@/lib/rbac'
 
 export function NavUser({
   user,
@@ -102,6 +106,14 @@ export function NavUser({
                 <BadgeCheck className="w-4 h-4 mr-2" />
                 Account
               </DropdownMenuItem>
+              <PermissionGate permission={PERMISSIONS.SYSTEM.ADMIN}>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="w-full">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Admin
+                  </Link>
+                </DropdownMenuItem>
+              </PermissionGate>
               <DropdownMenuItem>
                 <Bell className="w-4 h-4 mr-2" />
                 Notifications

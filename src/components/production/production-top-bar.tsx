@@ -2,14 +2,14 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { PlayIcon, PauseIcon } from "lucide-react"
+import { PlayIcon, PauseIcon, ChevronLeft } from "lucide-react"
 import { Timer } from "./timer"
 import { getWorkOrder } from "@/lib/queries"
 import { WorkOrderStatus } from "@prisma/client"
 import { cn } from "@/lib/utils"
 import { ClockInModal } from "./clock-in-modal"
 import { startWorkOrderProduction, pauseWorkOrderProduction } from "@/lib/actions"
+import { useRouter } from "next/navigation"
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>
 
 interface WorkOrderExecutionProps {
@@ -18,6 +18,8 @@ interface WorkOrderExecutionProps {
 
 export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     if (!workOrder) return null
+
+    const router = useRouter()
 
     const elapsedTimeSoFar = () => {
         // if the work order is not in progress, return the time taken
@@ -136,12 +138,24 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     return (
         <div className={cn("p-4 text-white space-y-4 h-20", getTimeStatusColor())}>
             <div className="flex justify-between items-center">
-                {/* Part Info */}
-                <div className="">
-                    <h1 className="text-xl font-bold">{workOrder.part.name}</h1>
-                    <p className="text-sm opacity-90">
-                        {workOrder.part.partNumber}/{workOrder.part.partRevision} • Qty: {workOrder.partQty}
-                    </p>
+                <div className="flex items-center">
+                    {/* Return Button */}
+                    <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => router.push('/production')}
+                        className="text-white hover:bg-white/20 p-2 mr-2 h-8 w-8"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
+
+                    {/* Part Info */}
+                    <div className="">
+                        <h1 className="text-xl font-bold">{workOrder.part.name}</h1>
+                        <p className="text-sm opacity-90">
+                            {workOrder.part.partNumber}/{workOrder.part.partRevision} • Qty: {workOrder.partQty}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4">

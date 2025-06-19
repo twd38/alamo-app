@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle, UserCheck, Hash, Camera, Check } from "lucide-react";
 import { ActionType } from "@prisma/client";
+import { completeStepAction } from "@/lib/actions";
+import { useRouter } from "next/navigation";
 
 type WorkInstructionStepAction = {
     id: string;
@@ -25,23 +27,59 @@ type WorkInstructionStepAction = {
 
 interface ProductionActionItemProps {
     action: WorkInstructionStepAction;
+    workOrderId: string;
+    stepId: string;
+    actionExecution?: {
+        value: number | null;
+        notes: string | null;
+        completedAt: Date | null;
+        completedBy: string | null;
+        uploadedFileId: string | null;
+    };
     disabled?: boolean;
 }
 
-export function ProductionActionItem({ action, disabled = false }: ProductionActionItemProps) {
-    console.log(action)
-    // TODO: Check if the action has been completed
-    const isCompleted = null;
+export function ProductionActionItem({ 
+    action, 
+    workOrderId,
+    stepId,
+    actionExecution,
+    disabled = false 
+}: ProductionActionItemProps) {
+    const router = useRouter();
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const handleActionUpdate = (value: any, completed = true) => {
-        // TODO: Implement API call to update action
-        console.log('Updating action:', action.id, { value, completed });
+    const isCompleted = !!actionExecution?.completedAt;
+    
+    const handleActionUpdate = async (value: any, notes?: string) => {
+        setIsSubmitting(true);
+        try {
+            const result = await completeStepAction({
+                workOrderId,
+                stepId,
+                actionId: action.id,
+                value,
+                notes
+            });
+            
+            if (result.success) {
+                // Refresh the page to show updated state
+                router.refresh();
+            } else {
+                console.error('Failed to complete action:', result.error);
+                // You could show a toast notification here
+            }
+        } catch (error) {
+            console.error('Error completing action:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getActionIcon = () => {
-        if (isCompleted) {
-            return <CheckCircle className="h-4 w-4 text-green-500" />;
-        }
+        // if (isCompleted) {
+        //     return <CheckCircle className="h-4 w-4 text-green-500" />;
+        // }
 
         switch (action.actionType) {
             case ActionType.VALUE_INPUT:
@@ -60,13 +98,13 @@ export function ProductionActionItem({ action, disabled = false }: ProductionAct
     const renderActionInput = () => {
         switch (action.actionType) {
             case ActionType.VALUE_INPUT:
-                return <ValueInputAction action={action} onUpdate={handleActionUpdate} disabled={disabled} />;
+                return <ValueInputAction action={action} onUpdate={handleActionUpdate} disabled={disabled} actionExecution={actionExecution} />;
             case ActionType.CHECKBOX:
-                return <CheckboxAction action={action} onUpdate={handleActionUpdate} disabled={disabled} />;
+                return <CheckboxAction action={action} onUpdate={handleActionUpdate} disabled={disabled} actionExecution={actionExecution} />;
             case ActionType.SIGNOFF:
-                return <SignoffAction action={action} onUpdate={handleActionUpdate} disabled={disabled} />;
+                return <SignoffAction action={action} onUpdate={handleActionUpdate} disabled={disabled} actionExecution={actionExecution} />;
             case ActionType.UPLOAD_IMAGE:
-                return <UploadImageAction action={action} onUpdate={handleActionUpdate} disabled={disabled} />;
+                return <UploadImageAction action={action} onUpdate={handleActionUpdate} disabled={disabled} actionExecution={actionExecution} />;
             default:
                 return null;
         }
@@ -81,10 +119,12 @@ export function ProductionActionItem({ action, disabled = false }: ProductionAct
                     <div className="mt-1">
                         {getActionIcon()}
                     </div>
-                    <h4 className="font-medium">{action.description}</h4>
+                    <div className="flex items-center space-x-2">
+                        <h4 className="font-medium">{action.description}</h4>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {action.isRequired && (
+                    {action.isRequired && !isCompleted && (
                         <Badge variant="outline" className="text-xs">
                             Required
                         </Badge>
@@ -104,46 +144,72 @@ export function ProductionActionItem({ action, disabled = false }: ProductionAct
                 </div>
             )}
             
-            {isCompleted ? (
-                <div className="text-sm text-green-700 bg-green-50 p-2 rounded">
+            {renderActionInput()}
+            
+            {/* {isCompleted && actionExecution?.notes && (
+                <div className="text-sm text-green-700 bg-green-100 p-2 rounded border border-green-200">
                     <div className="flex items-center mb-1">
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Completed
+                        Previous Notes: {actionExecution.notes}
                     </div>
-                    {/* {action.completedBy && <div>By: {action.completedBy}</div>}
-                    {action.completedAt && <div>At: {action.completedAt.toLocaleString()}</div>}
-                    {action.completedValue && (
-                        <div>Value: {action.completedValue} {action.unit}</div>
-                    )} */}
-                    {action.notes && <div>Notes: {action.notes}</div>}
                 </div>
-            ) : (
-                renderActionInput()
-            )}
+            )} */}
         </div>
     );
 }
 
 // Value Input Action Component
-function ValueInputAction({ action, onUpdate, disabled = false }: { 
+function ValueInputAction({ action, onUpdate, disabled = false, actionExecution }: { 
     action: WorkInstructionStepAction; 
-    onUpdate: (value: any, completed?: boolean) => void;
+    onUpdate: (value: any, notes?: string) => void;
     disabled?: boolean;
+    actionExecution?: {
+        value: number | null;
+        notes: string | null;
+        completedAt: Date | null;
+        completedBy: string | null;
+        uploadedFileId: string | null;
+    };
 }) {
-    const [inputValue, setInputValue] = useState<string>("");
+    const [inputValue, setInputValue] = useState<string>(
+        actionExecution?.value?.toString() || ""
+    );
+    const [notes, setNotes] = useState<string>("");
 
-    const handleSubmit = () => {
+    // Validation logic
+    const getValidationStatus = () => {
+        if (!inputValue || inputValue.trim() === "") {
+            return { isValid: true, errorMessage: null };
+        }
+
         const value = parseFloat(inputValue);
-        if (isNaN(value)) return;
+        if (isNaN(value)) {
+            return { isValid: false, errorMessage: "Please enter a valid number" };
+        }
 
-        let isValid = true;
         if (action.targetValue && action.tolerance) {
             const min = action.targetValue - action.tolerance;
             const max = action.targetValue + action.tolerance;
-            isValid = value >= min && value <= max;
+            const isValid = value >= min && value <= max;
+            
+            if (!isValid) {
+                return { 
+                    isValid: false, 
+                    errorMessage: `Value must be between ${min} and ${max} ${action.unit || ''}`
+                };
+            }
         }
 
-        onUpdate({ value }, isValid);
+        return { isValid: true, errorMessage: null };
+    };
+
+    const { isValid, errorMessage } = getValidationStatus();
+
+    const handleSubmit = () => {
+        const value = parseFloat(inputValue);
+        if (isNaN(value) || !isValid) return;
+
+        onUpdate(value, notes);
     };
 
     return (
@@ -152,42 +218,60 @@ function ValueInputAction({ action, onUpdate, disabled = false }: {
                 <Label htmlFor={`input-${action.id}`} className="text-sm font-medium">
                     Enter Value {action.unit && `(${action.unit})`}
                 </Label>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 items-center">
                     <Input
                         id={`input-${action.id}`}
                         type="number"
+                        inputSize="md"
                         placeholder={action.targetValue ? `Target: ${action.targetValue}` : "Enter value"}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        className="flex-1"
+                        className={`flex-1 ${errorMessage ? "border-red-500 focus:border-red-500" : ""}`}
                         disabled={disabled}
                     />
                     <Button
                         size="sm"
                         onClick={handleSubmit}
-                        disabled={!inputValue || disabled}
+                        disabled={!inputValue || !isValid || disabled}
+                        variant={actionExecution?.value ? "outline" : "default"}
                     >
-                        Submit
+                        {actionExecution?.value ? "Update" : "Submit"}
                     </Button>
                 </div>
-                {action.targetValue && action.tolerance && (
-                    <p className="text-xs text-muted-foreground">
-                        Acceptable range: {action.targetValue - action.tolerance} - {action.targetValue + action.tolerance} {action.unit}
-                    </p>
+                {errorMessage && (
+                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                        <div className="flex items-center">
+                            <span className="font-medium">⚠️</span>
+                            <span className="ml-2">{errorMessage}</span>
+                        </div>
+                    </div>
                 )}
+
             </div>
         </div>
     );
 }
 
 // Checkbox Action Component
-function CheckboxAction({ action, onUpdate, disabled = false }: { 
+function CheckboxAction({ action, onUpdate, disabled = false, actionExecution }: { 
     action: WorkInstructionStepAction; 
-    onUpdate: (value: any, completed?: boolean) => void;
+    onUpdate: (value: any, notes?: string) => void;
     disabled?: boolean;
+    actionExecution?: {
+        value: number | null;
+        notes: string | null;
+        completedAt: Date | null;
+        completedBy: string | null;
+        uploadedFileId: string | null;
+    };
 }) {
+    const [isChecked, setIsChecked] = useState<boolean>(
+        actionExecution?.value === 1 || false
+    );
+
     const handleCheckboxChange = (checked: boolean) => {
-        onUpdate({ checked }, checked);
+        setIsChecked(checked);
+        onUpdate(checked ? 1 : 0);
     };
 
     return (
@@ -195,6 +279,7 @@ function CheckboxAction({ action, onUpdate, disabled = false }: {
             <div className="flex items-center space-x-2">
                 <Checkbox
                     id={`checkbox-${action.id}`}
+                    checked={isChecked}
                     onCheckedChange={handleCheckboxChange}
                     disabled={disabled}
                 />
@@ -207,13 +292,22 @@ function CheckboxAction({ action, onUpdate, disabled = false }: {
 }
 
 // Signoff Action Component
-function SignoffAction({ action, onUpdate, disabled = false }: { 
+function SignoffAction({ action, onUpdate, disabled = false, actionExecution }: { 
     action: WorkInstructionStepAction; 
-    onUpdate: (value: any, completed?: boolean) => void;
+    onUpdate: (value: any, notes?: string) => void;
     disabled?: boolean;
+    actionExecution?: {
+        value: number | null;
+        notes: string | null;
+        completedAt: Date | null;
+        completedBy: string | null;
+        uploadedFileId: string | null;
+    };
 }) {
+    const isSignedOff = actionExecution?.value === 1;
+
     const handleSignoff = () => {
-        onUpdate({ signedOff: true }, true);
+        onUpdate(1, "Signed off");
     };
 
     return (
@@ -227,21 +321,30 @@ function SignoffAction({ action, onUpdate, disabled = false }: {
                 className="w-full"
                 onClick={handleSignoff}
                 disabled={disabled}
+                variant={isSignedOff ? "outline" : "default"}
             >
                 <UserCheck className="h-4 w-4 mr-2" />
-                Sign Off
+                {isSignedOff ? "Re-sign Off" : "Sign Off"}
             </Button>
         </div>
     );
 }
 
 // Upload Image Action Component
-function UploadImageAction({ action, onUpdate, disabled = false }: { 
+function UploadImageAction({ action, onUpdate, disabled = false, actionExecution }: { 
     action: WorkInstructionStepAction; 
-    onUpdate: (value: any, completed?: boolean) => void;
+    onUpdate: (value: any, notes?: string) => void;
     disabled?: boolean;
+    actionExecution?: {
+        value: number | null;
+        notes: string | null;
+        completedAt: Date | null;
+        completedBy: string | null;
+        uploadedFileId: string | null;
+    };
 }) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const hasUploadedFile = !!actionExecution?.uploadedFileId;
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -254,15 +357,23 @@ function UploadImageAction({ action, onUpdate, disabled = false }: {
         if (!selectedFile) return;
         
         // TODO: Implement actual file upload
-        onUpdate({ fileName: selectedFile.name }, true);
+        onUpdate(1, `Uploaded file: ${selectedFile.name}`);
     };
 
     return (
         <div className="space-y-3">
             <div className="space-y-2">
                 <Label htmlFor={`file-${action.id}`} className="text-sm font-medium">
-                    Upload Image
+                    {hasUploadedFile ? "Replace Image" : "Upload Image"}
                 </Label>
+                {hasUploadedFile && (
+                    <div className="text-sm text-green-700 bg-green-50 p-2 rounded border border-green-200">
+                        <div className="flex items-center">
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            File uploaded previously
+                        </div>
+                    </div>
+                )}
                 <Input
                     id={`file-${action.id}`}
                     type="file"
@@ -280,9 +391,10 @@ function UploadImageAction({ action, onUpdate, disabled = false }: {
                 className="w-full"
                 onClick={handleUpload}
                 disabled={!selectedFile || disabled}
+                variant={hasUploadedFile ? "outline" : "default"}
             >
                 <Camera className="h-4 w-4 mr-2" />
-                Upload Image
+                {hasUploadedFile ? "Re-upload Image" : "Upload Image"}
             </Button>
         </div>
     );

@@ -57,8 +57,17 @@ export function WorkInstructionsViewer({ steps, workOrder, className }: WorkInst
         ? steps.find(step => step.id === selectedStepId) || null
         : null;
 
+    // Function to advance to the next step
+    const advanceToNextStep = (currentStepId: string) => {
+        const currentStepIndex = steps.findIndex(step => step.id === currentStepId);
+        if (currentStepIndex !== -1 && currentStepIndex < steps.length - 1) {
+            const nextStep = steps[currentStepIndex + 1];
+            setSelectedStepId(nextStep.id);
+        }
+    };
+
     return (
-        <ResizablePanelGroup direction="horizontal" className="max-h-[calc(100vh-5rem)]">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-5rem)] max-h-[calc(100vh-5rem)]">
             {/* Left – Step list */}
             <ResizablePanel
                 defaultSize={25}
@@ -159,7 +168,11 @@ export function WorkInstructionsViewer({ steps, workOrder, className }: WorkInst
                 maxSize={40}
                 className="border-l flex flex-col justify-between"
             >
-                <ProductionSidebar step={selectedStep} workOrder={workOrder} />
+                <ProductionSidebar 
+                    step={selectedStep} 
+                    workOrder={workOrder} 
+                    onStepCompleted={advanceToNextStep}
+                />
             </ResizablePanel>
         </ResizablePanelGroup>
     );

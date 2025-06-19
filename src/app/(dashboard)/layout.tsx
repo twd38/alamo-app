@@ -1,3 +1,5 @@
+"use client"
+
 import Link from 'next/link';
 import {
   Home,
@@ -16,6 +18,7 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import {
   SidebarInset,
 } from "@/components/ui/sidebar"
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
   children
@@ -24,12 +27,37 @@ export default function DashboardLayout({
 }) {
   return (
     <Providers>
+      <DashboardContent>{children}</DashboardContent>
+      <Analytics />
+    </Providers>
+  );
+}
+
+function DashboardContent({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  
+  // Hide sidebar for production work order pages
+  const isProductionWorkOrder = pathname?.match(/^\/production\/[^\/]+$/);
+  
+  if (isProductionWorkOrder) {
+    return (
+      <div className="w-full h-full">
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <>
       <AppSidebar className="flex-shrink-0"/>
       <DesktopNav>
         {children}
       </DesktopNav>
-      <Analytics />
-    </Providers>
+    </>
   );
 }
 

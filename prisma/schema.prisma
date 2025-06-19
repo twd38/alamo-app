@@ -33,6 +33,12 @@ model User {
   accessBadge           AccessBadge?
   createdAccessBadges   AccessBadge[]        @relation("CreatedAccessBadges")
   clockInEntries        ClockInEntry[]
+  
+  // RBAC relationships
+  userRoles             UserRole[]
+  userPermissions       UserPermission[]
+  assignedRoles         UserRole[]           @relation("AssignedRoles")
+  assignedPermissions   UserPermission[]     @relation("AssignedPermissions")
 }
 
 model Account {
@@ -605,4 +611,98 @@ model AccessBadge {
   createdBy User     @relation("CreatedAccessBadges", fields: [createdById], references: [id])
 
   @@index([createdById])
+}
+
+// RBAC Models
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isSystemRole Boolean @default(false) // Prevents deletion of core system roles
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  resource    String?  // e.g., "boards", "work_orders", "parts", "users", etc.
+  action      String   // e.g., "create", "read", "update", "delete", "assign", etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+}
+
+model UserRole {
+  id       String  @id @default(cuid())
+  userId   String
+  roleId   String
+  
+  // Resource-specific role assignment (optional)
+  resourceType String? // e.g., "board", "work_order", "part", etc.
+  resourceId   String? // ID of the specific resource
+  
+  // Audit fields
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  expiresAt  DateTime? // For temporary role assignments
+  
+  // Relationships
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedRoles", fields: [assignedBy], references: [id])
+  
+  @@unique([userId, roleId, resourceType, resourceId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([resourceType, resourceId])
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+  
+  // Relationships
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+}
+
+model UserPermission {
+  id           String @id @default(cuid())
+  userId       String
+  permissionId String
+  
+  // Resource-specific permission (optional)
+  resourceType String? // e.g., "board", "work_order", "part", etc.
+  resourceId   String? // ID of the specific resource
+  
+  // Grant/Deny flag (true = grant, false = deny)
+  granted Boolean @default(true)
+  
+  // Audit fields
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  expiresAt  DateTime? // For temporary permissions
+  
+  // Relationships
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedPermissions", fields: [assignedBy], references: [id])
+  
+  @@unique([userId, permissionId, resourceType, resourceId])
+  @@index([userId])
+  @@index([permissionId])
+  @@index([resourceType, resourceId])
 }

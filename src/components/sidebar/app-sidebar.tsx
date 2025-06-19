@@ -15,6 +15,7 @@ import { useUser } from "src/hooks/use-user"
 import Image from "next/image"
 import Link from "next/link"
 import { getUserAccessBadge } from "src/lib/queries"
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const { data: badge } = useQuery({

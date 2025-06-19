@@ -101,6 +101,80 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: async ({ session, user }) => {
       if (session.user) {
         session.user.id = user.id;
+        
+        // Load user's roles and permissions into the session
+        try {
+          // Get user's roles with their permissions
+          const userRoles = await prisma.userRole.findMany({
+            where: { 
+              userId: user.id,
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gt: new Date() } }
+              ]
+            },
+            include: {
+              role: {
+                include: {
+                  rolePermissions: {
+                    include: {
+                      permission: true
+                    }
+                  }
+                }
+              }
+            }
+          });
+
+          // Get user's direct permissions
+          const userPermissions = await prisma.userPermission.findMany({
+            where: { 
+              userId: user.id,
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gt: new Date() } }
+              ]
+            },
+            include: {
+              permission: true
+            }
+          });
+
+          // Extract all permissions from roles
+          const rolePermissions = userRoles.flatMap(ur => 
+            ur.role.rolePermissions.map(rp => ({
+              name: rp.permission.name,
+              resourceType: ur.resourceType,
+              resourceId: ur.resourceId
+            }))
+          );
+
+          // Extract direct permissions
+          const directPermissions = userPermissions
+            .filter(up => up.granted) // Only granted permissions
+            .map(up => ({
+              name: up.permission.name,
+              resourceType: up.resourceType,
+              resourceId: up.resourceId
+            }));
+
+          // Combine all permissions
+          const allPermissions = [...rolePermissions, ...directPermissions];
+
+          // Add roles and permissions to session
+          session.user.roles = userRoles.map(ur => ({
+            name: ur.role.name,
+            resourceType: ur.resourceType,
+            resourceId: ur.resourceId
+          }));
+          
+          session.user.permissions = allPermissions;
+        } catch (error) {
+          console.error('Error loading user permissions in session:', error);
+          // Set empty arrays as fallback
+          session.user.roles = [];
+          session.user.permissions = [];
+        }
       }
       return session;
     },
@@ -116,6 +190,16 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
+      roles: Array<{
+        name: string;
+        resourceType?: string | null;
+        resourceId?: string | null;
+      }>;
+      permissions: Array<{
+        name: string;
+        resourceType?: string | null;
+        resourceId?: string | null;
+      }>;
     }
   }
 }

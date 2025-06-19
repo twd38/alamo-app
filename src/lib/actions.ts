@@ -1241,7 +1241,10 @@ export async function createBoard({name, isPrivate, collaboratorIds, icon}: Boar
 
 export async function updateBoard(boardId: string, {name, private: isPrivate, collaboratorIds, icon}: { name?: string; private?: boolean; collaboratorIds?: string[]; icon?: string }) {
   try {
-    // Get user from auth
+    // Import RBAC functions
+    const { requirePermission, PERMISSIONS, canAccessResource } = await import('@/lib/rbac')
+    
+    // Get user from auth first to handle the case where requirePermission fails
     const session = await auth();
     const userId = session?.user?.id;
 
@@ -1249,19 +1252,11 @@ export async function updateBoard(boardId: string, {name, private: isPrivate, co
       return { success: false, error: 'User not authenticated' };
     }
 
-    // Check if user has permission to update the board
-    const board = await prisma.board.findFirst({
-      where: {
-        id: boardId,
-        OR: [
-          { createdById: userId },
-          { collaborators: { some: { id: userId } } }
-        ]
-      }
-    });
-
-    if (!board) {
-      return { success: false, error: 'Board not found or you do not have permission to update it' };
+    // Check permission to update this specific board using RBAC
+    const hasAccess = await canAccessResource(userId, PERMISSIONS.BOARDS.UPDATE, 'board', boardId)
+    
+    if (!hasAccess) {
+      return { success: false, error: 'You do not have permission to update this board' };
     }
 
     // Update the board
@@ -1348,8 +1343,11 @@ export async function createWorkOrder({
   notes?: string
 }) {
   try {
-    const session = await auth()
-    const userId = session?.user?.id || "cm78gevrb0004kxxg43qs0mqv"
+    // Import RBAC functions
+    const { requirePermission, PERMISSIONS } = await import('@/lib/rbac')
+    
+    // Check permission to create work orders
+    const userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE)
 
     // Helper to generate incremental WO number e.g. WO-000123
     const generateWorkOrderNumber = async () => {
@@ -1508,6 +1506,30 @@ export async function startWorkOrderProduction(workOrderId: string) {
         data: { status: WorkOrderStatus.IN_PROGRESS }
     })
 
+    // Initialize the first step execution
+    const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+        include: {
+            part: {
+                include: {
+                    workInstructions: {
+                        include: {
+                            steps: {
+                                orderBy: { stepNumber: 'asc' },
+                                take: 1 // Get only the first step
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+    if (workOrder?.part.workInstructions[0]?.steps[0]) {
+        const firstStepId = workOrder.part.workInstructions[0].steps[0].id
+        await initializeStepExecution(workOrderId, firstStepId)
+    }
+
     revalidatePath('/production')
 
     return { success: true, data: workOrderTimeEntries }
@@ -1627,4 +1649,509 @@ export async function stopWorkOrderTimeEntry(userId: string, workOrderId: string
     })
     
     return { success: true, data: workOrderTimeEntry }
+}
+
+// -----------------------------------------------------------------------------
+// Work Order Step Execution actions
+// -----------------------------------------------------------------------------
+
+/**
+ * Initialize a single step execution for a work order
+ * Creates a WorkOrderStepExecution record for a specific step
+ */
+export async function initializeStepExecution(workOrderId: string, stepId: string) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Check if step execution already exists
+    const existingStepExecution = await prisma.workOrderStepExecution.findUnique({
+      where: {
+        workOrderId_workInstructionStepId: {
+          workOrderId,
+          workInstructionStepId: stepId
+        }
+      }
+    })
+
+    if (existingStepExecution) {
+      return { success: true, data: existingStepExecution }
+    }
+
+    // Create step execution
+    const stepExecution = await prisma.workOrderStepExecution.create({
+      data: {
+        workOrderId,
+        workInstructionStepId: stepId,
+        status: 'PENDING'
+      }
+    })
+
+    return { success: true, data: stepExecution }
+  } catch (error) {
+    console.error('Error initializing step execution:', error)
+    return { success: false, error: 'Failed to initialize step execution' }
+  }
+}
+
+/**
+ * Initialize step executions for a work order
+ * Creates WorkOrderStepExecution records for all steps in the work instruction
+ * Note: This is mainly for bulk initialization or migration purposes.
+ * For normal workflow, use initializeStepExecution() for just-in-time initialization.
+ */
+export async function initializeWorkOrderStepExecutions(workOrderId: string) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Get work order with its work instruction steps
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: {
+        part: {
+          include: {
+            workInstructions: {
+              include: {
+                steps: {
+                  orderBy: { stepNumber: 'asc' }
+                }
+              }
+            }
+          }
+        },
+        stepExecutions: true
+      }
+    })
+
+    if (!workOrder) {
+      return { success: false, error: 'Work order not found' }
+    }
+
+    const workInstruction = workOrder.part.workInstructions[0]
+    if (!workInstruction) {
+      return { success: false, error: 'No work instructions found for this part' }
+    }
+
+    // Create step executions for steps that don't already have them
+    const existingStepIds = workOrder.stepExecutions.map(se => se.workInstructionStepId)
+    const stepsToCreate = workInstruction.steps.filter(step => 
+      !existingStepIds.includes(step.id)
+    )
+
+    const stepExecutions = await prisma.$transaction(
+      stepsToCreate.map(step => 
+        prisma.workOrderStepExecution.create({
+          data: {
+            workOrderId,
+            workInstructionStepId: step.id,
+            status: 'PENDING'
+          }
+        })
+      )
+    )
+
+    return { success: true, data: stepExecutions }
+  } catch (error) {
+    console.error('Error initializing step executions:', error)
+    return { success: false, error: 'Failed to initialize step executions' }
+  }
+}
+
+/**
+ * Start execution of a specific step
+ */
+export async function startStepExecution({
+  workOrderId,
+  stepId
+}: {
+  workOrderId: string
+  stepId: string
+}) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Check if work order is in progress
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: { stepExecutions: true }
+    })
+
+    if (!workOrder) {
+      return { success: false, error: 'Work order not found' }
+    }
+
+    if (workOrder.status !== 'IN_PROGRESS') {
+      return { success: false, error: 'Work order must be in progress to start steps' }
+    }
+
+    // Get the step execution (should already be initialized)
+    let stepExecution = await prisma.workOrderStepExecution.findUnique({
+      where: {
+        workOrderId_workInstructionStepId: {
+          workOrderId,
+          workInstructionStepId: stepId
+        }
+      }
+    })
+
+    // If step execution doesn't exist, initialize it (fallback for direct step access)
+    if (!stepExecution) {
+      const initResult = await initializeStepExecution(workOrderId, stepId)
+      if (!initResult.success) {
+        return initResult
+      }
+      stepExecution = initResult.data!
+    }
+
+    // Start the step execution
+    const updatedStepExecution = await prisma.workOrderStepExecution.update({
+      where: { id: stepExecution.id },
+       data: {
+         status: 'IN_PROGRESS',
+         activeWorkers: { increment: 1 }
+       }
+     })
+
+    revalidatePath(`/production/${workOrderId}`)
+    return { success: true, data: updatedStepExecution }
+  } catch (error) {
+    console.error('Error starting step execution:', error)
+    return { success: false, error: 'Failed to start step execution' }
+  }
+}
+
+/**
+ * Complete a step action execution
+ */
+export async function completeStepAction({
+  workOrderId,
+  stepId,
+  actionId,
+  value,
+  notes,
+  uploadedFileId
+}: {
+  workOrderId: string
+  stepId: string
+  actionId: string
+  value?: number | boolean | string
+  notes?: string
+  uploadedFileId?: string
+}) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Get or create step execution
+    let stepExecution = await prisma.workOrderStepExecution.findUnique({
+      where: {
+        workOrderId_workInstructionStepId: {
+          workOrderId,
+          workInstructionStepId: stepId
+        }
+      }
+    })
+
+    if (!stepExecution) {
+      const initResult = await initializeStepExecution(workOrderId, stepId)
+      if (!initResult.success) {
+        return initResult
+      }
+      stepExecution = initResult.data!
+    }
+
+    // Create or update action execution
+    const actionExecution = await prisma.stepActionExecution.upsert({
+      where: {
+        workOrderStepExecutionId_workInstructionStepActionId: {
+          workOrderStepExecutionId: stepExecution.id,
+          workInstructionStepActionId: actionId
+        }
+      },
+      update: {
+        value: typeof value === 'number' ? value : null,
+        notes,
+        completedAt: new Date(),
+        completedBy: userId,
+        uploadedFileId
+      },
+      create: {
+        workOrderStepExecutionId: stepExecution.id,
+        workInstructionStepActionId: actionId,
+        value: typeof value === 'number' ? value : null,
+        notes,
+        completedAt: new Date(),
+        completedBy: userId,
+        uploadedFileId
+      }
+    })
+
+    revalidatePath(`/production/${workOrderId}`)
+    return { success: true, data: actionExecution }
+  } catch (error) {
+    console.error('Error completing step action:', error)
+    return { success: false, error: 'Failed to complete step action' }
+  }
+}
+
+/**
+ * Complete a step execution
+ * Validates that all required actions are completed
+ */
+export async function completeStepExecution({
+  workOrderId,
+  stepId
+}: {
+  workOrderId: string
+  stepId: string
+}) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Get or create step execution with actions
+    let stepExecution = await prisma.workOrderStepExecution.findUnique({
+      where: {
+        workOrderId_workInstructionStepId: {
+          workOrderId,
+          workInstructionStepId: stepId
+        }
+      },
+      include: {
+        workInstructionStep: {
+          include: {
+            actions: true
+          }
+        },
+        actionExecutions: true
+      }
+    })
+
+    // Create step execution if it doesn't exist (e.g., for steps with no required actions)
+    if (!stepExecution) {
+      const initResult = await initializeStepExecution(workOrderId, stepId)
+      if (!initResult.success) {
+        return initResult
+      }
+      
+      // Refetch with includes after creation
+      stepExecution = await prisma.workOrderStepExecution.findUnique({
+        where: { id: initResult.data!.id },
+        include: {
+          workInstructionStep: {
+            include: {
+              actions: true
+            }
+          },
+          actionExecutions: true
+        }
+      })
+      
+      if (!stepExecution) {
+        return { success: false, error: 'Failed to create step execution' }
+      }
+    }
+
+         // Check if all required actions are completed
+     const requiredActions = stepExecution.workInstructionStep.actions.filter(action => action.isRequired)
+     const completedRequiredActions = stepExecution.actionExecutions.filter(ae => 
+       requiredActions.some(ra => ra.id === ae.workInstructionStepActionId) && ae.completedAt
+     )
+
+     // Only validate required actions if there are any
+     if (requiredActions.length > 0 && completedRequiredActions.length < requiredActions.length) {
+       return { 
+         success: false, 
+         error: `${requiredActions.length - completedRequiredActions.length} required actions still need to be completed` 
+       }
+     }
+
+         // Since we don't track startedAt anymore, we'll use the existing timeTaken or null
+     const timeTaken = stepExecution.timeTaken || null
+
+    // Complete the step
+    const updatedStepExecution = await prisma.workOrderStepExecution.update({
+      where: { id: stepExecution.id },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        timeTaken,
+        activeWorkers: 0
+      }
+    })
+
+    // Initialize the next step execution
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: {
+        part: {
+          include: {
+            workInstructions: {
+              include: {
+                steps: {
+                  orderBy: { stepNumber: 'asc' }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (workOrder?.part.workInstructions[0]?.steps) {
+      const steps = workOrder.part.workInstructions[0].steps
+      const currentStepIndex = steps.findIndex(step => step.id === stepId)
+      const nextStep = steps[currentStepIndex + 1]
+      
+      if (nextStep) {
+        await initializeStepExecution(workOrderId, nextStep.id)
+      }
+    }
+
+    revalidatePath(`/production/${workOrderId}`)
+    return { success: true, data: updatedStepExecution }
+  } catch (error) {
+    console.error('Error completing step execution:', error)
+    return { success: false, error: 'Failed to complete step execution' }
+  }
+}
+
+/**
+ * Skip a step execution
+ */
+export async function skipStepExecution({
+  workOrderId,
+  stepId,
+  reason
+}: {
+  workOrderId: string
+  stepId: string
+  reason?: string
+}) {
+  try {
+    const session = await auth()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Get or create step execution
+    let stepExecution = await prisma.workOrderStepExecution.findUnique({
+      where: {
+        workOrderId_workInstructionStepId: {
+          workOrderId,
+          workInstructionStepId: stepId
+        }
+      }
+    })
+
+    if (!stepExecution) {
+      const initResult = await initializeStepExecution(workOrderId, stepId)
+      if (!initResult.success) {
+        return initResult
+      }
+      stepExecution = initResult.data!
+    }
+
+    // Skip the step
+    const updatedStepExecution = await prisma.workOrderStepExecution.update({
+      where: { id: stepExecution.id },
+      data: {
+        status: 'SKIPPED',
+        completedAt: new Date(),
+        activeWorkers: 0
+      }
+    })
+
+    revalidatePath(`/production/${workOrderId}`)
+    return { success: true, data: updatedStepExecution }
+  } catch (error) {
+    console.error('Error skipping step execution:', error)
+    return { success: false, error: 'Failed to skip step execution' }
+  }
+}
+
+/**
+ * Get step execution status for a work order
+ */
+export async function getStepExecutionStatus(workOrderId: string) {
+  try {
+    const stepExecutions = await prisma.workOrderStepExecution.findMany({
+      where: { workOrderId },
+      include: {
+        workInstructionStep: {
+          select: {
+            id: true,
+            stepNumber: true,
+            title: true,
+            actions: {
+              select: {
+                id: true,
+                isRequired: true
+              }
+            }
+          }
+        },
+        actionExecutions: {
+          select: {
+            workInstructionStepActionId: true,
+            completedAt: true
+          }
+        }
+      },
+      orderBy: {
+        workInstructionStep: {
+          stepNumber: 'asc'
+        }
+      }
+    })
+
+    const statusSummary = stepExecutions.map(se => {
+      const requiredActions = se.workInstructionStep.actions.filter(a => a.isRequired)
+      const completedRequiredActions = se.actionExecutions.filter(ae => 
+        requiredActions.some(ra => ra.id === ae.workInstructionStepActionId) && ae.completedAt
+      )
+
+             return {
+         stepId: se.workInstructionStep.id,
+         stepNumber: se.workInstructionStep.stepNumber,
+         stepTitle: se.workInstructionStep.title,
+         status: se.status,
+         completedAt: se.completedAt,
+         timeTaken: se.timeTaken,
+         activeWorkers: se.activeWorkers,
+         requiredActionsCount: requiredActions.length,
+         completedRequiredActionsCount: completedRequiredActions.length,
+         canComplete: completedRequiredActions.length === requiredActions.length
+       }
+    })
+
+    return { success: true, data: statusSummary }
+  } catch (error) {
+    console.error('Error getting step execution status:', error)
+    return { success: false, error: 'Failed to get step execution status' }
+  }
 }

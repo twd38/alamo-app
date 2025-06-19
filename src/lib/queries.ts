@@ -368,7 +368,27 @@ export async function getWorkOrder(workOrderId: string) {
                     user: true
                 }
             },
-            timeEntries: true
+            timeEntries: true,
+            stepExecutions: {
+                include: {
+                    workInstructionStep: {
+                        select: {
+                            id: true,
+                            stepNumber: true
+                        }
+                    },
+                    actionExecutions: {
+                        include: {
+                            workInstructionStepAction: {
+                                select: {
+                                    id: true,
+                                    isRequired: true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     })
 }
