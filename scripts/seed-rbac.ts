@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Seeding RBAC system...')
-  console.log(`📡 Using database: ${process.env.DATABASE_URL?.substring(0, 50)}...`)
+  console.log(`📡 Using database: ${process.env.DATABASE_URL}...`)
 
   // Create all permissions
   console.log('📋 Creating permissions...')

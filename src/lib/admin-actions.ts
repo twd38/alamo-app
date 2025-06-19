@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { requirePermission, PERMISSIONS } from '@/lib/rbac'
+import { auth } from '@/lib/auth'
+import { hasPermission } from '@/lib/rbac'
 
 /**
  * Create a new user
@@ -75,26 +77,36 @@ export async function updateUser(userId: string, userData: {
 }
 
 /**
- * Delete a user (soft delete by setting a flag or hard delete)
+ * Deletes a user (only for admins)
  */
 export async function deleteUser(userId: string) {
   try {
-    await requirePermission(PERMISSIONS.SYSTEM.USER_MANAGEMENT)
+    const session = await auth();
     
-    // For safety, we could implement soft delete or add additional checks
-    // For now, we'll do a hard delete but you might want to modify this
+    if (!session || !session.user?.id) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Check if user has admin permission
+    const hasAdminPermission = await hasPermission(session.user.id, PERMISSIONS.SYSTEM.ADMIN);
+    if (!hasAdminPermission) {
+      return { success: false, error: "Insufficient permissions" };
+    }
+
+    // Prevent deleting yourself
+    if (session.user.id === userId) {
+      return { success: false, error: "Cannot delete your own account" };
+    }
+
+    // Delete the user
     await prisma.user.delete({
       where: { id: userId }
-    })
-    
-    revalidatePath('/admin')
-    return { success: true }
+    });
+
+    return { success: true };
   } catch (error) {
-    console.error('Error deleting user:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to delete user' 
-    }
+    console.error("Delete user error:", error);
+    return { success: false, error: "Failed to delete user" };
   }
 }
 
@@ -244,5 +256,92 @@ export async function deleteRole(roleId: string) {
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to delete role' 
     }
+  }
+}
+
+/**
+ * Creates a new access badge for a user
+ */
+export async function createAccessBadge(userId: string) {
+  try {
+    const session = await auth();
+    
+    if (!session || !session.user?.id) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Check if user has admin permission
+    const hasAdminPermission = await hasPermission(session.user.id, PERMISSIONS.SYSTEM.ADMIN);
+    if (!hasAdminPermission) {
+      return { success: false, error: "Insufficient permissions" };
+    }
+
+    // Check if user already has a badge
+    const existingBadge = await prisma.accessBadge.findUnique({
+      where: { userId }
+    });
+
+    if (existingBadge) {
+      return { success: false, error: "User already has an access badge" };
+    }
+
+    // Create the badge
+    const badge = await prisma.accessBadge.create({
+      data: {
+        userId,
+        createdById: session.user.id,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    return { success: true, data: badge };
+  } catch (error) {
+    console.error("Create access badge error:", error);
+    return { success: false, error: "Failed to create access badge" };
+  }
+}
+
+/**
+ * Deletes an access badge
+ */
+export async function deleteAccessBadge(badgeId: string) {
+  try {
+    const session = await auth();
+    
+    if (!session || !session.user?.id) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Check if user has admin permission
+    const hasAdminPermission = await hasPermission(session.user.id, PERMISSIONS.SYSTEM.ADMIN);
+    if (!hasAdminPermission) {
+      return { success: false, error: "Insufficient permissions" };
+    }
+
+    // Delete the badge
+    await prisma.accessBadge.delete({
+      where: { id: badgeId }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Delete access badge error:", error);
+    return { success: false, error: "Failed to delete access badge" };
   }
 } 

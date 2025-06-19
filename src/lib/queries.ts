@@ -923,4 +923,48 @@ export async function getUserAccessBadge(userId: string) {
     })
 }
 
+export async function getAllAccessBadges() {
+    return await prisma.accessBadge.findMany({
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true,
+                }
+            },
+            createdBy: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                }
+            }
+        },
+        orderBy: {
+            createdAt: 'desc'
+        }
+    })
+}
+
+export async function getUsersWithoutBadges() {
+    return await prisma.user.findMany({
+        where: {
+            accessBadge: null
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+        },
+        orderBy: {
+            name: 'asc'
+        }
+    })
+}
+
 export type AccessBadgeWithUser = Prisma.PromiseReturnType<typeof getAccessBadge>
+export type AccessBadgeWithRelations = Prisma.PromiseReturnType<typeof getAllAccessBadges>[0]
+export type UserWithoutBadge = Prisma.PromiseReturnType<typeof getUsersWithoutBadges>[0]

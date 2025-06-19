@@ -36,7 +36,7 @@ export default function TaskDetail({task, boardId}: {task: TaskWithRelations | n
   const isOpen = activeTask.type === "edit";
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleOpenChange} modal={false} >
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-full max-w-[90vw] md:max-w-[700px] overflow-y-auto p-0" >
         <SheetTitle className="hidden">Task</SheetTitle>
         <TaskForm task={task} boardId={boardId} />
