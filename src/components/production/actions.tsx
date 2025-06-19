@@ -66,7 +66,7 @@ export function ProductionActionItem({
                 // Refresh the page to show updated state
                 router.refresh();
             } else {
-                console.error('Failed to complete action:', result.error);
+                console.error('Failed to complete action:', 'error' in result ? result.error : 'Unknown error');
                 // You could show a toast notification here
             }
         } catch (error) {

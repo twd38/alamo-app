@@ -12,6 +12,7 @@ async function main() {
   }
   
   console.log(`🔑 Initializing admin user: ${userEmail}`)
+  console.log(`📡 Using database: ${process.env.DATABASE_URL?.substring(0, 50)}...`)
   
   try {
     const result = await initializeAdminUser(userEmail)

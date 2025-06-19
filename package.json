@@ -6,7 +6,15 @@
     "start": "next start",
     "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy"
+    "prisma:migrate": "prisma migrate deploy",
+    "seed:rbac": "dotenv -e .env.local -- tsx scripts/seed-rbac.ts",
+    "seed:rbac:prod": "dotenv -e .env.production -- tsx scripts/seed-rbac.ts",
+    "seed:rbac:staging": "dotenv -e .env.staging -- tsx scripts/seed-rbac.ts",
+    "seed:rbac:env": "dotenv -e .env.$NODE_ENV -- tsx scripts/seed-rbac.ts",
+    "init:admin": "dotenv -e .env.local -- tsx scripts/init-admin.ts",
+    "init:admin:prod": "dotenv -e .env.production -- tsx scripts/init-admin.ts",
+    "init:admin:staging": "dotenv -e .env.staging -- tsx scripts/init-admin.ts",
+    "init:admin:env": "dotenv -e .env.$NODE_ENV -- tsx scripts/init-admin.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
@@ -113,6 +121,7 @@
   "devDependencies": {
     "@types/three": "^0.173.0",
     "@types/ws": "^8.5.14",
+    "dotenv-cli": "^8.0.0",
     "prisma": "^6.2.1"
   }
 }
