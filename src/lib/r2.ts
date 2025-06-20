@@ -5,6 +5,7 @@ import {
   GetObjectCommand
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { randomUUID } from 'crypto';
 
 // Initialize S3 client with R2 configuration
 const r2Client = new S3Client({
@@ -18,13 +19,27 @@ const r2Client = new S3Client({
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
 const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
+const UPLOAD_URL_EXPIRY = 3600; // 1 hour
+const DOWNLOAD_URL_EXPIRY = 3600; // 1 hour
+
+// Helper to sanitize filenames
+function sanitizeFileName(fileName: string): string {
+  // Remove special characters and spaces, keep extension
+  const ext = fileName.split('.').pop() || '';
+  const name = fileName.slice(0, -(ext.length + 1));
+  const sanitized = name.replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 50);
+  return ext ? `${sanitized}.${ext}` : sanitized;
+}
 
 export async function getUploadUrl(
   fileName: string,
   contentType: string,
   path: string
-): Promise<{ url: string; key: string }> {
-  const key = `${path}/${Date.now()}-${fileName}`;
+): Promise<{ url: string; key: string; publicUrl: string }> {
+  // Generate unique key with UUID to prevent collisions
+  const sanitizedName = sanitizeFileName(fileName);
+  const key = `${path}/${randomUUID()}-${sanitizedName}`;
+
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
@@ -32,44 +47,33 @@ export async function getUploadUrl(
   });
 
   const presignedUrl = await getSignedUrl(r2Client, command, {
-    expiresIn: 3600
+    expiresIn: UPLOAD_URL_EXPIRY
   });
 
   return {
     url: presignedUrl,
-    key
+    key,
+    publicUrl: `${PUBLIC_URL}/${key}`
   };
 }
 
+// @deprecated Use getUploadUrl() for client-side uploads instead
 export async function uploadFileToR2(
   file: File,
   path: string
 ): Promise<{ url: string; key: string }> {
-  const key = `${path}/${Date.now()}-${file.name}`;
+  const sanitizedName = sanitizeFileName(file.name);
+  const key = `${path}/${randomUUID()}-${sanitizedName}`;
+
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
-    ContentType: file.type
+    ContentType: file.type,
+    Body: file
   });
 
-  // Upload file using a presigned URL
-  const presignedUrl = await getSignedUrl(r2Client, command, {
-    expiresIn: 3600
-  });
+  await r2Client.send(command);
 
-  const upload = await fetch(presignedUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type
-    }
-  });
-
-  if (!upload.ok) {
-    throw new Error('Failed to upload file to R2');
-  }
-
-  // Return the public URL and key
   return {
     url: `${PUBLIC_URL}/${key}`,
     key
@@ -91,18 +95,33 @@ export async function getSignedDownloadUrl(key: string): Promise<string> {
     Key: key
   });
 
-  // Get presigned URL for download
-  const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+  const signedUrl = await getSignedUrl(r2Client, command, {
+    expiresIn: DOWNLOAD_URL_EXPIRY
+  });
   return signedUrl;
 }
 
-export async function getSignedDownloadUrlFromUnsignedUrl(
-  url: string
+export async function getSignedDownloadUrlFromPublicUrl(
+  publicUrl: string
 ): Promise<string> {
-  // remove the public url from the url
-  console.log('url', url);
-  const key = url.replace(`${PUBLIC_URL}/`, '');
-  console.log('key', key);
-  const signedUrl = await getSignedDownloadUrl(key);
-  return signedUrl;
+  // Extract key from public URL
+  if (!publicUrl.startsWith(PUBLIC_URL)) {
+    throw new Error('Invalid public URL');
+  }
+
+  const key = publicUrl.replace(`${PUBLIC_URL}/`, '');
+  return getSignedDownloadUrl(key);
+}
+
+// Helper to get key from public URL
+export function getKeyFromPublicUrl(publicUrl: string): string {
+  if (!publicUrl.startsWith(PUBLIC_URL)) {
+    throw new Error('Invalid public URL');
+  }
+  return publicUrl.replace(`${PUBLIC_URL}/`, '');
+}
+
+// Helper to get public URL from key
+export function getPublicUrlFromKey(key: string): string {
+  return `${PUBLIC_URL}/${key}`;
 }

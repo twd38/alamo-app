@@ -14,11 +14,11 @@ import {
   TaskTag
 } from '@prisma/client';
 import {
-  uploadFileToR2,
   deleteFileFromR2,
   getSignedDownloadUrl,
   getUploadUrl,
-  getSignedDownloadUrlFromUnsignedUrl
+  getSignedDownloadUrlFromPublicUrl,
+  getKeyFromPublicUrl
 } from '@/lib/r2';
 import {
   generateRandomColor,
@@ -187,9 +187,14 @@ export async function createTask(data: {
     const fileData: Prisma.FileCreateInput[] = [];
     if (data.files && data.files.length > 0) {
       for (const file of data.files) {
-        const { url } = await uploadFileToR2(file, 'tasks');
+        const { key, publicUrl } = await getUploadUrl(
+          file.name,
+          file.type,
+          'tasks'
+        );
         fileData.push({
-          url,
+          url: publicUrl,
+          key,
           name: file.name,
           type: file.type,
           size: file.size
@@ -515,9 +520,13 @@ export async function updateTask(
 
       // Delete removed files from R2 and database
       for (const file of filesToDelete) {
-        const key = file.url.split('/').pop(); // Extract key from URL
-        if (key) {
-          await deleteFileFromR2(key);
+        try {
+          const key = file.key || getKeyFromPublicUrl(file.url);
+          if (key) {
+            await deleteFileFromR2(key);
+          }
+        } catch (error) {
+          console.error('Failed to delete file:', error);
         }
       }
 
@@ -525,20 +534,15 @@ export async function updateTask(
       const fileData = [];
       for (const file of newFiles) {
         if (isFileInstance(file)) {
-          console.log(file);
           // Handle new file upload
-          const { url, key } = await getUploadUrl(
-            file.name,
-            file.type,
-            'tasks'
-          );
-          console.log({
-            url,
-            key
-          });
+          const {
+            url: presignedUrl,
+            key,
+            publicUrl
+          } = await getUploadUrl(file.name, file.type, 'tasks');
 
           // Upload file to R2 with fetch
-          const upload = await fetch(url, {
+          const upload = await fetch(presignedUrl, {
             method: 'PUT',
             body: file,
             headers: {
@@ -546,12 +550,12 @@ export async function updateTask(
             }
           });
 
-          console.log({
-            upload
-          });
+          if (!upload.ok) {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
 
           fileData.push({
-            url,
+            url: publicUrl,
             key,
             name: file.name,
             type: file.type,
@@ -668,8 +672,13 @@ export async function getFileUrlFromKey(key: string) {
 }
 
 export async function getFileUrlFromUnsignedUrl(url: string) {
-  const presignedUrl = await getSignedDownloadUrlFromUnsignedUrl(url);
-  return { success: true, url: presignedUrl };
+  try {
+    const presignedUrl = await getSignedDownloadUrlFromPublicUrl(url);
+    return { success: true, url: presignedUrl };
+  } catch (error) {
+    console.error('Error getting signed URL:', error);
+    return { success: false, error: 'Failed to get signed URL' };
+  }
 }
 
 export async function getPresignedUploadUrl(
@@ -686,21 +695,37 @@ export async function getPresignedUploadUrl(
   }
 }
 
+// @deprecated This function should not be used - use getUploadUrl instead
 export async function getFileUrl(path: string, fileName: string) {
-  try {
-    // Create the key in the same format as it would be generated in getUploadUrl
-    const key = `${path}/${fileName}`;
-    // Return the permanent URL for the file
-    return `${process.env.R2_PUBLIC_URL}/${key}`;
-  } catch (error) {
-    console.error('Error getting file URL:', error);
-    throw new Error('Failed to get file URL');
-  }
+  console.warn('getFileUrl is deprecated - use getUploadUrl instead');
+  const key = `${path}/${fileName}`;
+  return `${process.env.R2_PUBLIC_URL}/${key}`;
 }
 
+// @deprecated Use getUploadUrl for client-side uploads
 export async function uploadFile(file: File, path: string) {
-  const { url } = await uploadFileToR2(file, path);
-  return { success: true, url };
+  console.warn(
+    'uploadFile is deprecated - use getUploadUrl for client-side uploads'
+  );
+  const {
+    url: presignedUrl,
+    key,
+    publicUrl
+  } = await getUploadUrl(file.name, file.type, path);
+
+  const upload = await fetch(presignedUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type
+    }
+  });
+
+  if (!upload.ok) {
+    throw new Error('Failed to upload file');
+  }
+
+  return { success: true, url: publicUrl, key };
 }
 
 export async function createPart({
@@ -746,29 +771,55 @@ export async function createPart({
 
     // Handle part image upload if it exists and is a File object (not already uploaded)
     if (partImage && partImage instanceof File) {
-      const path = `parts/${Date.now()}-${partImage.name}`;
-      const uploadResult = await uploadFile(partImage, path);
-      if (uploadResult.success) {
-        // Create a file record in the database
-        partImageFile = {
-          url: uploadResult.url,
-          name: partImage.name,
-          type: partImage.type,
-          size: partImage.size
-        };
+      const {
+        url: presignedUrl,
+        key,
+        publicUrl
+      } = await getUploadUrl(partImage.name, partImage.type, 'parts');
+
+      const upload = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: partImage,
+        headers: {
+          'Content-Type': partImage.type
+        }
+      });
+
+      if (!upload.ok) {
+        throw new Error('Failed to upload part image');
       }
+
+      partImageFile = {
+        url: publicUrl,
+        key,
+        name: partImage.name,
+        type: partImage.type,
+        size: partImage.size
+      };
     }
 
     // Handle multiple files upload if they exist
     if (files && Array.isArray(files)) {
       const filePromises = files.map(async (file: File) => {
         if (file instanceof File) {
-          const path = `parts/${Date.now()}-${file.name}`;
-          const uploadResult = await uploadFile(file, path);
-          if (uploadResult.success) {
-            // Create a file record in the database
+          const {
+            url: presignedUrl,
+            key,
+            publicUrl
+          } = await getUploadUrl(file.name, file.type, 'parts');
+
+          const upload = await fetch(presignedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type
+            }
+          });
+
+          if (upload.ok) {
             return {
-              url: uploadResult.url,
+              url: publicUrl,
+              key,
               name: file.name,
               type: file.type,
               size: file.size
@@ -780,7 +831,7 @@ export async function createPart({
 
       // Filter out null values
       const uploadedFiles = (await Promise.all(filePromises)).filter(
-        (file): file is Prisma.FileCreateInput => file !== null
+        (file): file is NonNullable<typeof file> => file !== null
       );
       partFiles = uploadedFiles;
     }
@@ -921,13 +972,26 @@ export async function updatePart({
 
     // Handle part image upload if it exists and is a File object
     if (partImage && partImage instanceof File) {
-      const path = `parts/${Date.now()}-${partImage.name}`;
-      const uploadResult = await uploadFile(partImage, path);
-      if (uploadResult.success) {
+      const {
+        url: presignedUrl,
+        key,
+        publicUrl
+      } = await getUploadUrl(partImage.name, partImage.type, 'parts');
+
+      const upload = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: partImage,
+        headers: {
+          'Content-Type': partImage.type
+        }
+      });
+
+      if (upload.ok) {
         // Create a new file record for the part image
         const imageFile = await prisma.file.create({
           data: {
-            url: uploadResult.url,
+            url: publicUrl,
+            key,
             name: partImage.name,
             type: partImage.type,
             size: partImage.size
@@ -940,9 +1004,22 @@ export async function updatePart({
 
         // Delete old part image if it exists
         if (existingPart.partImageId) {
-          await prisma.file.delete({
+          const oldImage = await prisma.file.findUnique({
             where: { id: existingPart.partImageId }
           });
+          if (oldImage) {
+            try {
+              const oldKey = oldImage.key || getKeyFromPublicUrl(oldImage.url);
+              if (oldKey) {
+                await deleteFileFromR2(oldKey);
+              }
+            } catch (error) {
+              console.error('Failed to delete old image:', error);
+            }
+            await prisma.file.delete({
+              where: { id: existingPart.partImageId }
+            });
+          }
         }
       }
     }
@@ -978,9 +1055,13 @@ export async function updatePart({
 
       // Delete removed files from R2 and database
       for (const file of filesToDelete) {
-        const key = file.url.split('/').pop(); // Extract key from URL
-        if (key) {
-          await deleteFileFromR2(key);
+        try {
+          const key = file.key || getKeyFromPublicUrl(file.url);
+          if (key) {
+            await deleteFileFromR2(key);
+          }
+        } catch (error) {
+          console.error('Failed to delete file:', error);
         }
       }
 
@@ -988,11 +1069,24 @@ export async function updatePart({
       const fileData = [];
       for (const file of newFiles) {
         if (isFileInstance(file)) {
-          const path = `parts/${Date.now()}-${file.name}`;
-          const uploadResult = await uploadFile(file, path);
-          if (uploadResult.success) {
+          const {
+            url: presignedUrl,
+            key,
+            publicUrl
+          } = await getUploadUrl(file.name, file.type, 'parts');
+
+          const upload = await fetch(presignedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type
+            }
+          });
+
+          if (upload.ok) {
             fileData.push({
-              url: uploadResult.url,
+              url: publicUrl,
+              key,
               name: file.name,
               type: file.type,
               size: file.size

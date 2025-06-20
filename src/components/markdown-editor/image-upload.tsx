@@ -4,8 +4,7 @@ import { getPresignedUploadUrl, getFileUrl } from '@/lib/actions';
 
 const onUpload = (file: File) => {
   return new Promise<string>((resolve, reject) => {
-    const fileName = crypto.randomUUID() + '-' + file.name;
-    const folderPath = '/content';
+    const folderPath = 'content';
 
     // First get a presigned URL for uploading
     toast
@@ -14,7 +13,7 @@ const onUpload = (file: File) => {
           try {
             // Get a presigned PUT URL
             const presignedUrlResult = await getPresignedUploadUrl(
-              fileName,
+              file.name,
               file.type,
               folderPath
             );
@@ -36,19 +35,21 @@ const onUpload = (file: File) => {
               throw new Error(`Upload failed: ${uploadResult.statusText}`);
             }
 
-            // Get the permanent URL for the file (not the presigned one)
+            // Return just the key portion for the content route
             const key = presignedUrlResult.key;
+            // Extract just the filename part after content/
+            const contentKey = key.split('/').pop() || key;
 
-            // Preload the image
+            // Preload the image using the content route
             const image = new Image();
-            image.src = key;
+            image.src = `/content/${contentKey}`;
 
             return new Promise<string>((imageResolve) => {
-              image.onload = () => imageResolve(key);
+              image.onload = () => imageResolve(`/content/${contentKey}`);
               image.onerror = () => {
                 // If we can't load the image, still return the URL
                 // as it might just be CORS or other issues
-                imageResolve(key);
+                imageResolve(`/content/${contentKey}`);
               };
             });
           } catch (error) {

@@ -5,7 +5,6 @@ import { Paperclip, X } from 'lucide-react';
 import { File as FileIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatFileSize } from '@/lib/utils';
-import Link from 'next/link';
 import { File } from '@prisma/client';
 import { getFileUrlFromUnsignedUrl } from '@/lib/actions';
 
@@ -39,15 +38,17 @@ const FileList = ({ files, onChange }: FileListProps) => {
                 key={index}
                 className="flex items-center justify-between p-2 h-12 bg-secondary border rounded-md px-2"
               >
-                <div className="flex items-center gap-2">
-                  <FileIcon className="h-4 w-4" />
-                  <Button
-                    variant="link"
-                    onClick={() => downloadFile(file.url || '')}
-                    className="text-sm font-medium"
-                  >
-                    {file.name}
-                  </Button>
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div className="flex items-center gap-2">
+                    <FileIcon className="h-4 w-4" />
+                    <Button
+                      variant="link"
+                      onClick={() => downloadFile(file.url || '')}
+                      className="text-sm font-medium p-0 h-auto justify-start min-w-0 flex-1 max-w-[300px]"
+                    >
+                      <span className="truncate block">{file.name}</span>
+                    </Button>
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {formatFileSize(file.size)}
                   </span>
