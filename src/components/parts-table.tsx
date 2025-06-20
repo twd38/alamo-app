@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+  TableRow
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,10 +18,10 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2 } from "lucide-react";
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2 } from 'lucide-react';
 
 export type Column<T> = {
   header: string;
@@ -46,7 +46,7 @@ export function PartsTable<T>({
   data,
   onDelete,
   onSelectionChange,
-  isLoading = false,
+  isLoading = false
 }: PartsTableProps<T>) {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [itemToDelete, setItemToDelete] = useState<T | null>(null);
@@ -62,7 +62,9 @@ export function PartsTable<T>({
     setSelectedRows(newSelectedRows);
 
     if (onSelectionChange) {
-      const selectedItems = data.filter((item: any) => newSelectedRows.has(item.id));
+      const selectedItems = data.filter((item: any) =>
+        newSelectedRows.has(item.id)
+      );
       onSelectionChange(selectedItems);
     }
   };
@@ -90,7 +92,7 @@ export function PartsTable<T>({
       await onDelete(itemToDelete);
       setItemToDelete(null);
     } catch (error) {
-      console.error("Error deleting item:", error);
+      console.error('Error deleting item:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -144,7 +146,9 @@ export function PartsTable<T>({
                     <TableCell key={String(column.accessorKey)}>
                       {column.cell
                         ? column.cell(getNestedValue(item, column.accessorKey))
-                        : String(getNestedValue(item, column.accessorKey) ?? '')}
+                        : String(
+                            getNestedValue(item, column.accessorKey) ?? ''
+                          )}
                     </TableCell>
                   ))}
                   {onDelete && (
@@ -168,12 +172,16 @@ export function PartsTable<T>({
         </Table>
       </div>
 
-      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+      <AlertDialog
+        open={!!itemToDelete}
+        onOpenChange={() => setItemToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently remove the selected item from the part.
+              This action cannot be undone. This will permanently remove the
+              selected item from the part.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -183,7 +191,7 @@ export function PartsTable<T>({
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

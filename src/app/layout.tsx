@@ -3,7 +3,6 @@ import { ThemeProvider } from 'src/components/providers/theme-provider';
 import { Analytics } from '@vercel/analytics/react';
 import toast, { Toaster } from 'react-hot-toast';
 
-
 export const metadata = {
   title: 'Alamo',
   description:

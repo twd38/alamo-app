@@ -2,7 +2,7 @@
 
 /**
  * This script helps link a Google account to an existing user in your application
- * 
+ *
  * Usage:
  * 1. Get Google account details from Prisma Studio or database
  * 2. Run: node scripts/link-google-account.mjs
@@ -38,41 +38,47 @@ const rl = readline.createInterface({
 });
 
 function question(query) {
-  return new Promise(resolve => rl.question(query, resolve));
+  return new Promise((resolve) => rl.question(query, resolve));
 }
 
 async function main() {
   try {
     console.log('\n🔗 Google Account Linking Tool\n');
-    
+
     // Get the base URL from environment or ask the user
     let baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    
+
     if (!baseUrl) {
-      baseUrl = await question('Enter your app URL [default: http://localhost:3000]: ');
+      baseUrl = await question(
+        'Enter your app URL [default: http://localhost:3000]: '
+      );
       baseUrl = baseUrl || 'http://localhost:3000';
     }
-    
-    const email = await question('Enter the email address of the existing user: ');
-    
+
+    const email = await question(
+      'Enter the email address of the existing user: '
+    );
+
     if (!email || !email.includes('@')) {
       console.error('❌ Invalid email address');
       return;
     }
-    
+
     console.log('\nNow we need the Google account details to link:');
-    console.log('You can get these from Prisma Studio by looking at the Accounts table\n');
-    
+    console.log(
+      'You can get these from Prisma Studio by looking at the Accounts table\n'
+    );
+
     const providerAccountId = await question('Google provider account ID: ');
-    
+
     if (!providerAccountId) {
       console.error('❌ Provider account ID is required');
       return;
     }
-    
+
     const access_token = await question('Access token (optional): ');
     const refresh_token = await question('Refresh token (optional): ');
-    
+
     // Construct the account details
     const googleAccountDetails = {
       provider: 'google',
@@ -80,31 +86,34 @@ async function main() {
       access_token: access_token || null,
       refresh_token: refresh_token || null,
       token_type: 'bearer',
-      scope: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',
+      scope:
+        'openid email profile https://www.googleapis.com/auth/gmail.readonly'
     };
-    
+
     console.log('\nSending request to link account...');
-    
+
     // Send the request to the API
     const response = await fetch(`${baseUrl}/api/auth/cleanup`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         email,
         action: 'link',
-        googleAccountDetails,
-      }),
+        googleAccountDetails
+      })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.success) {
       console.log('\n✅ Success:', result.message);
       console.log('User ID:', result.userId);
       console.log('Account ID:', result.accountId);
-      console.log('\nYou should now be able to sign in with your Google account.');
+      console.log(
+        '\nYou should now be able to sign in with your Google account.'
+      );
     } else {
       console.error('\n❌ Error:', result.message);
       console.log('Please check the details and try again.');
@@ -117,4 +126,4 @@ async function main() {
 }
 
 // Run the script
-main().catch(console.error); 
+main().catch(console.error);

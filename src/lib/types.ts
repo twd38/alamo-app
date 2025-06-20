@@ -17,4 +17,4 @@ export interface ParsedOrderData {
   trackingNumber?: string | null;
   trackingUrl?: string | null;
   additionalNotes?: string | null;
-} 
+}

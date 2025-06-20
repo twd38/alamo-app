@@ -1,21 +1,27 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { PermissionGate } from '@/components/rbac/permission-gate'
-import { PERMISSIONS } from '@/lib/rbac'
-import { Users, Shield, Settings, CreditCard } from 'lucide-react'
-import { UsersTab } from '@/components/admin/users-tab'
-import { BadgesTab } from '@/components/admin/badges-tab'
-import TopBar from '@/components/layouts/basic-top-bar'
-import PageContainer from '@/components/page-container'
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { PermissionGate } from '@/components/rbac/permission-gate';
+import { PERMISSIONS } from '@/lib/rbac';
+import { Users, Shield, Settings, CreditCard } from 'lucide-react';
+import { UsersTab } from '@/components/admin/users-tab';
+import { BadgesTab } from '@/components/admin/badges-tab';
+import TopBar from '@/components/layouts/basic-top-bar';
+import PageContainer from '@/components/page-container';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState('users')
+  const [activeTab, setActiveTab] = useState('users');
 
   return (
-    <PermissionGate 
+    <PermissionGate
       permission={PERMISSIONS.SYSTEM.ADMIN}
       fallback={
         <div className="flex items-center justify-center h-full">
@@ -33,9 +39,13 @@ export default function AdminPage() {
       <div className="flex flex-col">
         {/* Admin Top Bar - Using same structure as BoardsTopBar */}
         <TopBar />
-        
+
         <PageContainer>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-4"
+          >
             <TabsList className="">
               {/* <TabsTrigger value="general" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -49,7 +59,10 @@ export default function AdminPage() {
                 <CreditCard className="h-4 w-4" />
                 Badges
               </TabsTrigger>
-              <TabsTrigger value="permissions" className="flex items-center gap-2">
+              <TabsTrigger
+                value="permissions"
+                className="flex items-center gap-2"
+              >
                 <Shield className="h-4 w-4" />
                 Roles & Permissions
               </TabsTrigger>
@@ -94,5 +107,5 @@ export default function AdminPage() {
         </PageContainer>
       </div>
     </PermissionGate>
-  )
-} 
+  );
+}

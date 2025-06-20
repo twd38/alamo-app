@@ -34,14 +34,16 @@ export async function notify(options: NotifyOptions): Promise<void> {
   // Fetch user emails – we only need email addresses for Slack right now.
   const users = await prisma.user.findMany({
     where: { id: { in: [...recipientIds] } },
-    select: { id: true, email: true },
+    select: { id: true, email: true }
   });
 
   // Guard against missing env var so local development still works even when
   // Slack is not configured.
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
-    console.warn('[NotificationService] SLACK_BOT_TOKEN not set – skipping Slack notifications.');
+    console.warn(
+      '[NotificationService] SLACK_BOT_TOKEN not set – skipping Slack notifications.'
+    );
     return;
   }
 
@@ -50,6 +52,12 @@ export async function notify(options: NotifyOptions): Promise<void> {
   await Promise.all(
     users
       .filter((u): u is { id: string; email: string } => Boolean(u.email))
-      .map((user) => slackClient.sendDirectMessageByEmail({ recipientEmail: user.email!, text: message, blocks }))
+      .map((user) =>
+        slackClient.sendDirectMessageByEmail({
+          recipientEmail: user.email!,
+          text: message,
+          blocks
+        })
+      )
   );
-} 
+}

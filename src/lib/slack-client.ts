@@ -14,7 +14,9 @@ export class SlackClient {
 
   constructor(token: string | undefined) {
     if (!token) {
-      throw new Error('SlackClient: SLACK_BOT_TOKEN environment variable is missing.');
+      throw new Error(
+        'SlackClient: SLACK_BOT_TOKEN environment variable is missing.'
+      );
     }
 
     this.token = token;
@@ -36,27 +38,33 @@ export class SlackClient {
 
     const userId = await this.lookupUserId(recipientEmail);
     if (!userId) {
-      console.warn(`[SlackClient] No Slack user found for email: ${recipientEmail}`);
+      console.warn(
+        `[SlackClient] No Slack user found for email: ${recipientEmail}`
+      );
       return;
     }
 
     const channelId = await this.openDirectChannel(userId);
     if (!channelId) {
-      console.warn(`[SlackClient] Failed to open conversation with user: ${userId}`);
+      console.warn(
+        `[SlackClient] Failed to open conversation with user: ${userId}`
+      );
       return;
     }
 
     await this.postMessage({ channelId, text, blocks });
   }
-  
 
   // ---------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------
-  
+
   private async lookupUserId(email: string): Promise<string | null> {
     const url = `${this.apiBaseUrl}/users.lookupByEmail?email=${encodeURIComponent(email)}`;
-    const response = await this.fetchSlack<{ ok: boolean; user?: { id: string } }>(url);
+    const response = await this.fetchSlack<{
+      ok: boolean;
+      user?: { id: string };
+    }>(url);
 
     if (!response.ok || !response.user) {
       return null;
@@ -68,9 +76,12 @@ export class SlackClient {
   private async openDirectChannel(userId: string): Promise<string | null> {
     const url = `${this.apiBaseUrl}/conversations.open`;
     const body = JSON.stringify({ users: userId });
-    const response = await this.fetchSlack<{ ok: boolean; channel?: { id: string } }>(url, {
+    const response = await this.fetchSlack<{
+      ok: boolean;
+      channel?: { id: string };
+    }>(url, {
       method: 'POST',
-      body,
+      body
     });
 
     if (!response.ok || !response.channel) {
@@ -87,12 +98,12 @@ export class SlackClient {
   }): Promise<void> {
     const { channelId, text, blocks } = params;
     const url = `${this.apiBaseUrl}/chat.postMessage`;
-    const body = JSON.stringify({ 
-        channel: channelId, 
-        text, 
-        blocks,
-        unfurl_links: false,
-        unfurl_media: false,
+    const body = JSON.stringify({
+      channel: channelId,
+      text,
+      blocks,
+      unfurl_links: false,
+      unfurl_media: false
     });
 
     await this.fetchSlack(url, { method: 'POST', body });
@@ -108,8 +119,8 @@ export class SlackClient {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         Authorization: `Bearer ${this.token}`,
-        ...(init.headers ?? {}),
-      },
+        ...(init.headers ?? {})
+      }
     });
 
     const data = (await response.json()) as T;
@@ -124,4 +135,4 @@ export class SlackClient {
 
     return data;
   }
-} 
+}

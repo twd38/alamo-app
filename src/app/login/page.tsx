@@ -1,20 +1,25 @@
-import Image from "next/image"
-import { GalleryVerticalEnd } from "lucide-react"
-import townhomesImage from './assets/ahc-townhomes.png'
-import ahcLogo from './assets/ahc-logo.png'
+import Image from 'next/image';
+import { GalleryVerticalEnd } from 'lucide-react';
+import townhomesImage from './assets/ahc-townhomes.png';
+import ahcLogo from './assets/ahc-logo.png';
 
-
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from '@/components/login-form';
 
 export default async function LoginPage() {
-  return(
+  return (
     <div className="h-screen w-full">
-      <Image src={ahcLogo} width={100} height={100} alt="AHC Logo" className="fixed mb-10 ml-6 mt-4" />
+      <Image
+        src={ahcLogo}
+        width={100}
+        height={100}
+        alt="AHC Logo"
+        className="fixed mb-10 ml-6 mt-4"
+      />
       <div className="w-full flex flex-col items-center justify-center h-screen">
         <LoginForm />
       </div>
     </div>
-  )
+  );
 }
 // export default async function LoginPage() {
 //   return(
@@ -28,4 +33,3 @@ export default async function LoginPage() {
 //     </div>
 //   )
 // }
-

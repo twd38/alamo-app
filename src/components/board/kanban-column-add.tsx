@@ -1,18 +1,16 @@
-'use client'
+'use client';
 
-import { Plus } from "lucide-react"
-import { Button } from "src/components/ui/button"
+import { Plus } from 'lucide-react';
+import { Button } from 'src/components/ui/button';
 
 interface KanbanColumnNewProps {
-  onAddColumn: () => void
+  onAddColumn: () => void;
 }
 
 export function KanbanColumnNew({ onAddColumn }: KanbanColumnNewProps) {
   return (
     <div className="dark:bg-gray-800 rounded-lg">
-      <div 
-        className="flex-1 min-w-[280px] max-w-[350px] transition-all duration-200"
-      >
+      <div className="flex-1 min-w-[280px] max-w-[350px] transition-all duration-200">
         <Button
           onClick={onAddColumn}
           variant="ghost"
@@ -23,5 +21,5 @@ export function KanbanColumnNew({ onAddColumn }: KanbanColumnNewProps) {
         </Button>
       </div>
     </div>
-  )
-} 
+  );
+}

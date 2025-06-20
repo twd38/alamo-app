@@ -1,5 +1,5 @@
-import mapboxgl from 'mapbox-gl'
-import { acresToSquareFeet } from '@/lib/utils'
+import mapboxgl from 'mapbox-gl';
+import { acresToSquareFeet } from '@/lib/utils';
 
 /**
  * Fetch all parcels from a Mapbox vector tileset source,
@@ -19,37 +19,37 @@ export default function getDevelopableParcelCount(
   minLotAreaSqft: number
 ): number {
   if (!map.isStyleLoaded()) {
-    throw new Error('Map style is not loaded.')
+    throw new Error('Map style is not loaded.');
   }
 
   // Query all features from the source-layer (no bounding box filter)
   const rawFeatures: mapboxgl.MapboxGeoJSONFeature[] = map.querySourceFeatures(
     sourceId,
     { sourceLayer }
-  )
+  );
 
   // Count features that meet the area requirement
   const count = rawFeatures.reduce<number>((count, feature) => {
-    const props = feature.properties as Record<string, unknown>
+    const props = feature.properties as Record<string, unknown>;
 
     // Determine lot area in square feet
     const lotAreaSqft: number = (() => {
       if (typeof props.ll_gissqft === 'number') {
-        return props.ll_gissqft
+        return props.ll_gissqft;
       }
       if (typeof props.gisacre === 'number') {
-        return acresToSquareFeet(props.gisacre as number)
+        return acresToSquareFeet(props.gisacre as number);
       }
-      return 0
-    })()
+      return 0;
+    })();
 
     const isDevelopable =
       minLotAreaSqft <= 0 ||
-      (Number.isFinite(lotAreaSqft) && lotAreaSqft >= minLotAreaSqft)
+      (Number.isFinite(lotAreaSqft) && lotAreaSqft >= minLotAreaSqft);
 
-    return isDevelopable ? count + 1 : count
-  }, 0)
+    return isDevelopable ? count + 1 : count;
+  }, 0);
 
-  console.log("Developable Parcel Count:", count);
+  console.log('Developable Parcel Count:', count);
   return count;
-} 
+}

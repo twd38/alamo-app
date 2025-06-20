@@ -1,8 +1,8 @@
-import type { SchemeTemplate } from "./types";
+import type { SchemeTemplate } from './types';
 
 export const SCHEMES: SchemeTemplate[] = [
   {
-    name: "Rowhouses",
+    name: 'Rowhouses',
     minLotAreaSqFt: 6000,
     minLotWidthFt: 60,
     typicalStories: 3,
@@ -10,10 +10,10 @@ export const SCHEMES: SchemeTemplate[] = [
     footprintPerUnitSqFt: 1800,
     parkingPerUnit: 0,
     constCostPerGfa: 175,
-    salePriceOrRentPerUnit: 375000,
+    salePriceOrRentPerUnit: 375000
   },
   {
-    name: "DuplexRear",
+    name: 'DuplexRear',
     minLotAreaSqFt: 5750,
     minLotWidthFt: 60,
     typicalStories: 3,
@@ -21,10 +21,10 @@ export const SCHEMES: SchemeTemplate[] = [
     footprintPerUnitSqFt: 1800,
     parkingPerUnit: 0,
     constCostPerGfa: 170,
-    salePriceOrRentPerUnit: 395000,
+    salePriceOrRentPerUnit: 395000
   },
   {
-    name: "TriplexStack",
+    name: 'TriplexStack',
     minLotAreaSqFt: 3500,
     minLotWidthFt: 60,
     typicalStories: 3,
@@ -32,10 +32,10 @@ export const SCHEMES: SchemeTemplate[] = [
     footprintPerUnitSqFt: 750,
     parkingPerUnit: 0,
     constCostPerGfa: 165,
-    salePriceOrRentPerUnit: 365000,
+    salePriceOrRentPerUnit: 365000
   },
   {
-    name: "Apt5Story",
+    name: 'Apt5Story',
     minLotAreaSqFt: 8000,
     minLotWidthFt: 60,
     typicalStories: 5,
@@ -43,6 +43,6 @@ export const SCHEMES: SchemeTemplate[] = [
     footprintPerUnitSqFt: 1200,
     parkingPerUnit: 0,
     constCostPerGfa: 210,
-    salePriceOrRentPerUnit: 21000, // annual rent per unit
-  },
+    salePriceOrRentPerUnit: 21000 // annual rent per unit
+  }
 ];

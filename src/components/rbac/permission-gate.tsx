@@ -1,54 +1,59 @@
-import { ReactNode } from 'react'
-import { useSession } from 'next-auth/react'
-import { hasPermissionInSession } from '@/lib/session-permissions'
+import { ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
+import { hasPermissionInSession } from '@/lib/session-permissions';
 
 interface PermissionGateProps {
-  permission: string
-  children: ReactNode
-  fallback?: ReactNode
-  resourceType?: string
-  resourceId?: string
+  permission: string;
+  children: ReactNode;
+  fallback?: ReactNode;
+  resourceType?: string;
+  resourceId?: string;
 }
 
 /**
  * Component that conditionally renders children based on user permissions
- * 
+ *
  * Usage:
  * <PermissionGate permission={PERMISSIONS.WORK_ORDERS.CREATE}>
  *   <CreateWorkOrderButton />
  * </PermissionGate>
- * 
- * <PermissionGate 
- *   permission={PERMISSIONS.BOARDS.UPDATE} 
- *   resourceType="board" 
+ *
+ * <PermissionGate
+ *   permission={PERMISSIONS.BOARDS.UPDATE}
+ *   resourceType="board"
  *   resourceId={boardId}
  *   fallback={<div>You don't have permission to edit this board</div>}
  * >
  *   <EditBoardForm />
  * </PermissionGate>
  */
-export function PermissionGate({ 
-  permission, 
-  children, 
+export function PermissionGate({
+  permission,
+  children,
   fallback = null,
   resourceType,
-  resourceId 
+  resourceId
 }: PermissionGateProps) {
-  const { data: session, status } = useSession()
-  
+  const { data: session, status } = useSession();
+
   // Check permission using session data
-  const hasAccess = hasPermissionInSession(session, permission, resourceType, resourceId)
-  const loading = status === 'loading'
+  const hasAccess = hasPermissionInSession(
+    session,
+    permission,
+    resourceType,
+    resourceId
+  );
+  const loading = status === 'loading';
 
   if (loading) {
-    return null // or a loading spinner
+    return null; // or a loading spinner
   }
 
   if (!hasAccess) {
-    return <>{fallback}</>
+    return <>{fallback}</>;
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }
 
 /**
@@ -59,10 +64,15 @@ export function usePermissionGate(
   resourceType?: string,
   resourceId?: string
 ) {
-  const { data: session, status } = useSession()
-  
-  const hasAccess = hasPermissionInSession(session, permission, resourceType, resourceId)
-  const loading = status === 'loading'
-  
-  return { hasAccess, loading }
-} 
+  const { data: session, status } = useSession();
+
+  const hasAccess = hasPermissionInSession(
+    session,
+    permission,
+    resourceType,
+    resourceId
+  );
+  const loading = status === 'loading';
+
+  return { hasAccess, loading };
+}

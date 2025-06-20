@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Command as CommandPrimitive } from "cmdk";
+import * as React from 'react';
+import { X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Command, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Command as CommandPrimitive } from 'cmdk';
 
 type Option = {
   label: string;
@@ -23,12 +23,12 @@ export function MultiSelect({
   options,
   selected,
   onChange,
-  placeholder = "Select options",
-  className,
+  placeholder = 'Select options',
+  className
 }: MultiSelectProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [open, setOpen] = React.useState(false);
-  const [inputValue, setInputValue] = React.useState("");
+  const [inputValue, setInputValue] = React.useState('');
 
   const handleUnselect = (value: string) => {
     onChange(selected.filter((s) => s !== value));
@@ -40,19 +40,23 @@ export function MultiSelect({
     } else {
       onChange([...selected, value]);
     }
-    setInputValue("");
+    setInputValue('');
     inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
-    if ((key === "Backspace" || key === "Delete") && !inputValue && selected.length > 0) {
+    if (
+      (key === 'Backspace' || key === 'Delete') &&
+      !inputValue &&
+      selected.length > 0
+    ) {
       handleUnselect(selected[selected.length - 1]);
     }
   };
 
   // Filter options based on input value
-  const filteredOptions = options.filter((option) => 
+  const filteredOptions = options.filter((option) =>
     option.label.toLowerCase().includes(inputValue.toLowerCase())
   );
 
@@ -77,7 +81,7 @@ export function MultiSelect({
                 <button
                   className="ml-1 rounded-sm ring-offset-background hover:bg-secondary"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleUnselect(value);
+                    if (e.key === 'Enter') handleUnselect(value);
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -96,7 +100,7 @@ export function MultiSelect({
             onValueChange={setInputValue}
             onBlur={() => setOpen(false)}
             onFocus={() => setOpen(true)}
-            placeholder={selected.length === 0 ? placeholder : ""}
+            placeholder={selected.length === 0 ? placeholder : ''}
             className="ml-2 bg-transparent outline-none placeholder:text-muted-foreground flex-1"
           />
         </div>
@@ -111,12 +115,16 @@ export function MultiSelect({
                   <CommandItem
                     key={option.value}
                     onSelect={() => handleSelect(option.value)}
-                    className={`flex items-center gap-2 ${isSelected ? "bg-accent/50" : ""}`}
+                    className={`flex items-center gap-2 ${isSelected ? 'bg-accent/50' : ''}`}
                   >
-                    <div 
-                      className={`h-4 w-4 rounded-sm border ${isSelected ? "bg-primary border-primary" : "border-primary"}`}
+                    <div
+                      className={`h-4 w-4 rounded-sm border ${isSelected ? 'bg-primary border-primary' : 'border-primary'}`}
                     >
-                      {isSelected && <span className="flex h-full w-full items-center justify-center text-primary-foreground">✓</span>}
+                      {isSelected && (
+                        <span className="flex h-full w-full items-center justify-center text-primary-foreground">
+                          ✓
+                        </span>
+                      )}
                     </div>
                     <span>{option.label}</span>
                   </CommandItem>
@@ -128,4 +136,4 @@ export function MultiSelect({
       </div>
     </Command>
   );
-} 
+}

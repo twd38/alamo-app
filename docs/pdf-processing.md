@@ -36,6 +36,7 @@ This integrated approach ensures that information from both the email body and a
 A standalone API endpoint is available at `/api/process-pdf` for direct PDF processing, which can also include email context:
 
 **Request:**
+
 ```json
 POST /api/process-pdf
 Content-Type: application/json
@@ -50,6 +51,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -99,10 +101,12 @@ ts-node scripts/convert-pdf-to-base64.ts ./path/to/your-file.pdf
 ```
 
 This will generate:
+
 - `your-file.base64.txt`: Contains the raw base64 data
 - `your-file.json`: Contains a JSON object ready for testing the API
 
 To test the API:
+
 ```bash
 curl -X POST http://localhost:3000/api/process-pdf \
   -H "Content-Type: application/json" \
@@ -137,4 +141,4 @@ If PDF processing fails:
 2. Verify the PDF is properly formatted and contains text content (not just images)
 3. Try reducing the PDF file size if it's large
 4. Check the server logs for specific error messages
-5. Ensure the PDF contains order information in a readable format 
+5. Ensure the PDF contains order information in a readable format

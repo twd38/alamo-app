@@ -1,65 +1,75 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAllAccessBadges, getUsersWithoutBadges } from '@/lib/queries'
-import { deleteAccessBadge } from '@/lib/admin-actions'
-import { BadgesDataTable } from './badges-data-table'
-import { CreateBadgeDialog } from './create-badge-dialog'
-import { toast } from 'react-hot-toast'
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { getAllAccessBadges, getUsersWithoutBadges } from '@/lib/queries';
+import { deleteAccessBadge } from '@/lib/admin-actions';
+import { BadgesDataTable } from './badges-data-table';
+import { CreateBadgeDialog } from './create-badge-dialog';
+import { toast } from 'react-hot-toast';
 
 export function BadgesTab() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const queryClient = useQueryClient()
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: badges = [], isLoading: badgesLoading, error: badgesError } = useQuery({
+  const {
+    data: badges = [],
+    isLoading: badgesLoading,
+    error: badgesError
+  } = useQuery({
     queryKey: ['admin-badges'],
-    queryFn: getAllAccessBadges,
-  })
+    queryFn: getAllAccessBadges
+  });
 
   const { data: usersWithoutBadges = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users-without-badges'],
-    queryFn: getUsersWithoutBadges,
-  })
+    queryFn: getUsersWithoutBadges
+  });
 
   const handleCreateBadge = () => {
-    setIsCreateDialogOpen(true)
-  }
+    setIsCreateDialogOpen(true);
+  };
 
   const handleDeleteBadge = async (badgeId: string) => {
     try {
-      const result = await deleteAccessBadge(badgeId)
-      
+      const result = await deleteAccessBadge(badgeId);
+
       if (result.success) {
-        toast.success('Badge deleted successfully')
+        toast.success('Badge deleted successfully');
         // Invalidate both queries to refresh the data
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['admin-badges'] }),
           queryClient.invalidateQueries({ queryKey: ['users-without-badges'] })
-        ])
+        ]);
       } else {
-        toast.error(result.error || 'Failed to delete badge')
+        toast.error(result.error || 'Failed to delete badge');
       }
     } catch (error) {
-      console.error('Error deleting badge:', error)
-      toast.error('An unexpected error occurred')
+      console.error('Error deleting badge:', error);
+      toast.error('An unexpected error occurred');
     }
-  }
+  };
 
   const handleBadgeCreated = async () => {
-    toast.success('Badge created successfully')
+    toast.success('Badge created successfully');
     // Invalidate both queries to refresh the data
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] }),
       queryClient.invalidateQueries({ queryKey: ['users-without-badges'] })
-    ])
-    setIsCreateDialogOpen(false)
-  }
+    ]);
+    setIsCreateDialogOpen(false);
+  };
 
   const handleDialogClose = () => {
-    setIsCreateDialogOpen(false)
-  }
+    setIsCreateDialogOpen(false);
+  };
 
   if (badgesError) {
     return (
@@ -74,7 +84,7 @@ export function BadgesTab() {
           </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -99,9 +109,9 @@ export function BadgesTab() {
       <CreateBadgeDialog
         isOpen={isCreateDialogOpen}
         onClose={handleDialogClose}
-                 usersWithoutBadges={usersWithoutBadges || []}
+        usersWithoutBadges={usersWithoutBadges || []}
         onBadgeCreated={handleBadgeCreated}
       />
     </>
-  )
-} 
+  );
+}

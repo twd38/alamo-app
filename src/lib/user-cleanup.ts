@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma } from '@/lib/db';
 
 /**
  * Find and clean accounts with missing or problematic authentication data
@@ -14,22 +14,22 @@ export async function cleanupUserAccounts(email: string): Promise<{
     // Find the user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      include: { 
+      include: {
         accounts: true,
-        sessions: true,
-      },
+        sessions: true
+      }
     });
 
     if (!user) {
       return {
         success: false,
-        message: `No user found with email: ${email}`,
+        message: `No user found with email: ${email}`
       };
     }
 
     // Delete all sessions for this user
     const deletedSessions = await prisma.session.deleteMany({
-      where: { userId: user.id },
+      where: { userId: user.id }
     });
 
     // Delete Google accounts that might be problematic (no refresh token)
@@ -37,20 +37,20 @@ export async function cleanupUserAccounts(email: string): Promise<{
       where: {
         userId: user.id,
         provider: 'google',
-        refresh_token: null,
-      },
+        refresh_token: null
+      }
     });
 
     return {
       success: true,
       message: `Cleaned up user account for ${email}`,
-      cleanedRecords: deletedSessions.count + deletedAccounts.count,
+      cleanedRecords: deletedSessions.count + deletedAccounts.count
     };
   } catch (error) {
     console.error('Error cleaning up user account:', error);
     return {
       success: false,
-      message: `Error cleaning up accounts: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: `Error cleaning up accounts: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 }
@@ -78,18 +78,18 @@ export async function forceAccountLinking(
       where: {
         provider: sourceProvider,
         user: {
-          email: email.toLowerCase(),
+          email: email.toLowerCase()
         }
       },
       include: {
-        user: true,
-      },
+        user: true
+      }
     });
 
     if (!sourceAccount) {
       return {
         success: false,
-        message: `No ${sourceProvider} account found for ${email}`,
+        message: `No ${sourceProvider} account found for ${email}`
       };
     }
 
@@ -99,23 +99,23 @@ export async function forceAccountLinking(
         email: email.toLowerCase(),
         accounts: {
           some: {
-            provider: targetProvider,
-          },
-        },
+            provider: targetProvider
+          }
+        }
       },
       include: {
         accounts: {
           where: {
-            provider: targetProvider,
-          },
-        },
-      },
+            provider: targetProvider
+          }
+        }
+      }
     });
 
     if (!targetUser) {
       return {
         success: false,
-        message: `No user with ${targetProvider} account found for ${email}`,
+        message: `No user with ${targetProvider} account found for ${email}`
       };
     }
 
@@ -123,14 +123,14 @@ export async function forceAccountLinking(
     const existingLink = await prisma.account.findFirst({
       where: {
         userId: targetUser.id,
-        provider: sourceProvider,
-      },
+        provider: sourceProvider
+      }
     });
 
     if (existingLink) {
       return {
         success: true,
-        message: `${sourceProvider} account is already linked to the ${targetProvider} account for ${email}`,
+        message: `${sourceProvider} account is already linked to the ${targetProvider} account for ${email}`
       };
     }
 
@@ -146,19 +146,19 @@ export async function forceAccountLinking(
         expires_at: sourceAccount.expires_at,
         token_type: sourceAccount.token_type,
         scope: sourceAccount.scope,
-        id_token: sourceAccount.id_token,
-      },
+        id_token: sourceAccount.id_token
+      }
     });
 
     return {
       success: true,
-      message: `Successfully linked ${sourceProvider} account to ${targetProvider} account for ${email}`,
+      message: `Successfully linked ${sourceProvider} account to ${targetProvider} account for ${email}`
     };
   } catch (error) {
     console.error('Error forcing account link:', error);
     return {
       success: false,
-      message: `Error linking accounts: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: `Error linking accounts: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 }
@@ -170,7 +170,7 @@ export async function forceAccountLinking(
  * @returns Object containing the result of the operation
  */
 export async function linkGoogleAccount(
-  email: string, 
+  email: string,
   googleAccountDetails: {
     provider: string;
     providerAccountId: string;
@@ -191,13 +191,13 @@ export async function linkGoogleAccount(
     // Find the user by email
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      include: { accounts: true },
+      include: { accounts: true }
     });
 
     if (!user) {
       return {
         success: false,
-        message: `No user found with email: ${email}`,
+        message: `No user found with email: ${email}`
       };
     }
 
@@ -206,16 +206,16 @@ export async function linkGoogleAccount(
       where: {
         provider_providerAccountId: {
           provider: googleAccountDetails.provider,
-          providerAccountId: googleAccountDetails.providerAccountId,
-        },
-      },
+          providerAccountId: googleAccountDetails.providerAccountId
+        }
+      }
     });
 
     if (existingAccount && existingAccount.userId !== user.id) {
       // The Google account is already linked to another user
       return {
         success: false,
-        message: `This Google account is already linked to another user`,
+        message: `This Google account is already linked to another user`
       };
     }
 
@@ -230,24 +230,31 @@ export async function linkGoogleAccount(
         where: {
           provider_providerAccountId: {
             provider: 'google',
-            providerAccountId: existingGoogleAccount.providerAccountId,
-          },
+            providerAccountId: existingGoogleAccount.providerAccountId
+          }
         },
         data: {
-          refresh_token: googleAccountDetails.refresh_token || existingGoogleAccount.refresh_token,
-          access_token: googleAccountDetails.access_token || existingGoogleAccount.access_token,
-          expires_at: googleAccountDetails.expires_at || existingGoogleAccount.expires_at,
-          token_type: googleAccountDetails.token_type || existingGoogleAccount.token_type,
+          refresh_token:
+            googleAccountDetails.refresh_token ||
+            existingGoogleAccount.refresh_token,
+          access_token:
+            googleAccountDetails.access_token ||
+            existingGoogleAccount.access_token,
+          expires_at:
+            googleAccountDetails.expires_at || existingGoogleAccount.expires_at,
+          token_type:
+            googleAccountDetails.token_type || existingGoogleAccount.token_type,
           scope: googleAccountDetails.scope || existingGoogleAccount.scope,
-          id_token: googleAccountDetails.id_token || existingGoogleAccount.id_token,
-        },
+          id_token:
+            googleAccountDetails.id_token || existingGoogleAccount.id_token
+        }
       });
 
       return {
         success: true,
         message: `Updated existing Google account for user ${email}`,
         userId: user.id,
-        accountId: updatedAccount.providerAccountId,
+        accountId: updatedAccount.providerAccountId
       };
     } else {
       // Create a new Google account for this user
@@ -262,22 +269,22 @@ export async function linkGoogleAccount(
           expires_at: googleAccountDetails.expires_at,
           token_type: googleAccountDetails.token_type,
           scope: googleAccountDetails.scope,
-          id_token: googleAccountDetails.id_token,
-        },
+          id_token: googleAccountDetails.id_token
+        }
       });
 
       return {
         success: true,
         message: `Linked new Google account to user ${email}`,
         userId: user.id,
-        accountId: newAccount.providerAccountId,
+        accountId: newAccount.providerAccountId
       };
     }
   } catch (error) {
     console.error('Error linking Google account:', error);
     return {
       success: false,
-      message: `Error linking Google account: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: `Error linking Google account: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 }
@@ -294,31 +301,31 @@ export async function removeUserCompletely(email: string): Promise<{
   try {
     // Find the user by email
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: email.toLowerCase() }
     });
 
     if (!user) {
       return {
         success: false,
-        message: `No user found with email: ${email}`,
+        message: `No user found with email: ${email}`
       };
     }
 
     // Prisma will handle cascading deletes for accounts and sessions
     // based on the prisma schema relationships
     await prisma.user.delete({
-      where: { id: user.id },
+      where: { id: user.id }
     });
 
     return {
       success: true,
-      message: `User ${email} has been completely removed`,
+      message: `User ${email} has been completely removed`
     };
   } catch (error) {
     console.error('Error removing user:', error);
     return {
       success: false,
-      message: `Error removing user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: `Error removing user: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
-} 
+}

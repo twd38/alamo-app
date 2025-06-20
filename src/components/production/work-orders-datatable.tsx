@@ -1,8 +1,8 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import debounce from "lodash/debounce"
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import debounce from 'lodash/debounce';
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -13,13 +13,13 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
-import { format } from "date-fns"
+  useReactTable
+} from '@tanstack/react-table';
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { format } from 'date-fns';
 
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -27,32 +27,32 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import Link from "next/link"
-import type { Part, WorkOrder, User } from "@prisma/client"
+  TableRow
+} from '@/components/ui/table';
+import Link from 'next/link';
+import type { Part, WorkOrder, User } from '@prisma/client';
 
 /**
  * Extended WorkOrder type including eagerly loaded relations necessary for the data-table.
  */
 export interface WorkOrderData extends WorkOrder {
-  part: Part | null
-  createdBy: User | null
+  part: Part | null;
+  createdBy: User | null;
 }
 
 // ----------------------------- Table columns -----------------------------
 const columns: ColumnDef<WorkOrderData>[] = [
   {
-    id: "select",
+    id: 'select',
     header: ({ table }) => (
       <Checkbox
         checked={table.getIsAllPageRowsSelected()}
@@ -70,69 +70,81 @@ const columns: ColumnDef<WorkOrderData>[] = [
       />
     ),
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: false
   },
   {
-    accessorKey: "workOrderNumber",
+    accessorKey: 'workOrderNumber',
     header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}> 
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+      >
         WO #
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div>{row.getValue("workOrderNumber")}</div>,
+    cell: ({ row }) => <div>{row.getValue('workOrderNumber')}</div>
   },
   {
-    id: "partInfo",
-    header: "Part",
+    id: 'partInfo',
+    header: 'Part',
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <span>{row.original.part?.name ?? "—"}</span>
-        <span className="text-xs text-muted-foreground">{row.original.part?.partNumber ?? ""}/{row.original.part?.partRevision ?? ""}</span>
+        <span>{row.original.part?.name ?? '—'}</span>
+        <span className="text-xs text-muted-foreground">
+          {row.original.part?.partNumber ?? ''}/
+          {row.original.part?.partRevision ?? ''}
+        </span>
       </div>
     ),
-    enableSorting: false,
+    enableSorting: false
   },
   {
-    accessorKey: "operation",
-    header: "Operation",
-    cell: ({ row }) => <div>{row.getValue("operation")}</div>,
+    accessorKey: 'operation',
+    header: 'Operation',
+    cell: ({ row }) => <div>{row.getValue('operation')}</div>
   },
   {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <div>{row.getValue("status")}</div>,
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => <div>{row.getValue('status')}</div>
   },
   {
-    accessorKey: "partQty",
-    header: "Qty",
-    cell: ({ row }) => <div>{row.getValue("partQty")}</div>,
+    accessorKey: 'partQty',
+    header: 'Qty',
+    cell: ({ row }) => <div>{row.getValue('partQty')}</div>
   },
   {
-    accessorKey: "dueDate",
-    header: "Due",
+    accessorKey: 'dueDate',
+    header: 'Due',
     cell: ({ row }) => {
-      const value: Date | null = row.getValue("dueDate") ?? null
-      return <div>{value ? format(new Date(value), "MMM d, yyyy") : "—"}</div>
+      const value: Date | null = row.getValue('dueDate') ?? null;
+      return <div>{value ? format(new Date(value), 'MMM d, yyyy') : '—'}</div>;
     },
-    sortingFn: "datetime",
+    sortingFn: 'datetime'
   },
   {
-    id: "actions",
+    id: 'actions',
     enableHiding: false,
     cell: ({ row }) => {
-      const wo = row.original
+      const wo = row.original;
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(wo.id)}>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(wo.id)}
+            >
               Copy work order ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -141,81 +153,81 @@ const columns: ColumnDef<WorkOrderData>[] = [
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      )
-    },
-  },
-]
+      );
+    }
+  }
+];
 
 // --------------------------- Main component ------------------------------
 export function WorkOrdersDataTable({
   workOrders,
-  totalCount,
+  totalCount
 }: {
-  workOrders: WorkOrderData[]
-  totalCount: number
+  workOrders: WorkOrderData[];
+  totalCount: number;
 }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // ---------------------------------------------------- URL-state helpers
-  const initialQuery = searchParams.get("query") || ""
-  const initialPage = Number(searchParams.get("page") || "1")
-  const initialLimit = Number(searchParams.get("limit") || "10")
+  const initialQuery = searchParams.get('query') || '';
+  const initialPage = Number(searchParams.get('page') || '1');
+  const initialLimit = Number(searchParams.get('limit') || '10');
 
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = useState({})
-  const [searchValue, setSearchValue] = useState<string>(initialQuery)
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
+  const [searchValue, setSearchValue] = useState<string>(initialQuery);
 
   // Debounced URL update on search
   const updateSearchQuery = useCallback(
     (value: string) => {
-      const params = new URLSearchParams(searchParams.toString())
+      const params = new URLSearchParams(searchParams.toString());
 
       if (value) {
-        params.set("query", value)
-        params.set("page", "1")
+        params.set('query', value);
+        params.set('page', '1');
       } else {
-        params.delete("query")
+        params.delete('query');
       }
 
-      router.push(`${pathname}?${params.toString()}`)
+      router.push(`${pathname}?${params.toString()}`);
     },
     [router, pathname, searchParams]
-  )
+  );
 
   const debouncedUpdateQuery = useMemo(
     () => debounce(updateSearchQuery, 500),
     [updateSearchQuery]
-  )
+  );
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setSearchValue(value)
-      debouncedUpdateQuery(value)
+      const value = e.target.value;
+      setSearchValue(value);
+      debouncedUpdateQuery(value);
     },
     [debouncedUpdateQuery]
-  )
+  );
 
   useEffect(() => {
     return () => {
-      debouncedUpdateQuery.cancel()
-    }
-  }, [debouncedUpdateQuery])
+      debouncedUpdateQuery.cancel();
+    };
+  }, [debouncedUpdateQuery]);
 
   const updatePage = useCallback(
     (page: number) => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set("page", page.toString())
-      router.push(`${pathname}?${params.toString()}`)
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('page', page.toString());
+      router.push(`${pathname}?${params.toString()}`);
     },
     [router, pathname, searchParams]
-  )
+  );
 
-  if (!workOrders) return null
+  if (!workOrders) return null;
 
   const table = useReactTable({
     data: workOrders,
@@ -232,9 +244,9 @@ export function WorkOrdersDataTable({
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
-    },
-  })
+      rowSelection
+    }
+  });
 
   // ------------------------------- Render -------------------------------
   return (
@@ -278,7 +290,10 @@ export function WorkOrdersDataTable({
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -287,17 +302,28 @@ export function WorkOrdersDataTable({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} onClick={() => router.push(`/production/${row.original.id}`)} className="cursor-pointer hover:bg-muted/50">
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  onClick={() => router.push(`/production/${row.original.id}`)}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No results.
                 </TableCell>
               </TableRow>
@@ -307,8 +333,8 @@ export function WorkOrdersDataTable({
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s)
-          selected.
+          {table.getFilteredSelectedRowModel().rows.length} of{' '}
+          {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
         <div className="space-x-2">
           <Button
@@ -330,5 +356,5 @@ export function WorkOrdersDataTable({
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

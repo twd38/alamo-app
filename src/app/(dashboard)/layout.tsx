@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import Link from 'next/link';
 import {
@@ -14,10 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Analytics } from '@vercel/analytics/react';
 import Providers from '@/components/providers/providers';
-import { AppSidebar } from "@/components/sidebar/app-sidebar"
-import {
-  SidebarInset,
-} from "@/components/ui/sidebar"
+import { AppSidebar } from '@/components/sidebar/app-sidebar';
+import { SidebarInset } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
@@ -33,44 +31,26 @@ export default function DashboardLayout({
   );
 }
 
-function DashboardContent({
-  children
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
+
   // Hide sidebar for production work order pages
   const isProductionWorkOrder = pathname?.match(/^\/production\/[^\/]+$/);
-  
+
   if (isProductionWorkOrder) {
-    return (
-      <div className="w-full h-full">
-        {children}
-      </div>
-    );
+    return <div className="w-full h-full">{children}</div>;
   }
 
   return (
     <>
-      <AppSidebar className="flex-shrink-0"/>
-      <DesktopNav>
-        {children}
-      </DesktopNav>
+      <AppSidebar className="flex-shrink-0" />
+      <DesktopNav>{children}</DesktopNav>
     </>
   );
 }
 
-function DesktopNav({
-  children
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <SidebarInset className="overflow-hidden">
-      {children}
-    </SidebarInset>
-  );
+function DesktopNav({ children }: { children: React.ReactNode }) {
+  return <SidebarInset className="overflow-hidden">{children}</SidebarInset>;
 }
 
 function MobileNav() {
@@ -131,4 +111,3 @@ function MobileNav() {
     </Sheet>
   );
 }
-

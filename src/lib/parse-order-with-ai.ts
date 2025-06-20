@@ -1,7 +1,7 @@
-import OpenAI from "openai";
-import { ParsedOrderData } from "@/lib/types";
-import { parseOrderFromEmail } from "@/lib/parse-order-from-email";
-import { PdfReader } from "pdfreader";
+import OpenAI from 'openai';
+import { ParsedOrderData } from '@/lib/types';
+import { parseOrderFromEmail } from '@/lib/parse-order-from-email';
+import { PdfReader } from 'pdfreader';
 
 // Initialize OpenAI client
 let openaiClient: OpenAI | null = null;
@@ -9,13 +9,15 @@ let openaiClient: OpenAI | null = null;
 try {
   if (process.env.OPENAI_API_KEY) {
     openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY
     });
   } else {
-    console.warn("OpenAI API key is not set. Order parsing with AI will not work.");
+    console.warn(
+      'OpenAI API key is not set. Order parsing with AI will not work.'
+    );
   }
 } catch (error) {
-  console.error("Failed to initialize OpenAI client:", error);
+  console.error('Failed to initialize OpenAI client:', error);
 }
 
 /**
@@ -25,13 +27,13 @@ try {
  */
 async function extractTextFromPdf(pdfBuffer: Buffer): Promise<string> {
   return new Promise((resolve) => {
-    let textContent = "";
+    let textContent = '';
     let lastY: number | undefined;
-    let text = "";
-    
+    let text = '';
+
     new PdfReader().parseBuffer(pdfBuffer, (err, item) => {
       if (err) {
-        console.error("Error parsing PDF:", err);
+        console.error('Error parsing PDF:', err);
       } else if (!item) {
         // End of file, resolve the promise with the extracted text
         resolve(textContent);
@@ -39,11 +41,11 @@ async function extractTextFromPdf(pdfBuffer: Buffer): Promise<string> {
         // New line if y position changes
         const itemY = (item as any).y as number;
         if (lastY !== itemY) {
-          textContent += "\n";
-          text = "";
+          textContent += '\n';
+          text = '';
           lastY = itemY;
         }
-        
+
         text += item.text;
         textContent += item.text;
       }
@@ -70,12 +72,12 @@ export async function parseOrderWithAI(
   try {
     // Check if OpenAI client is available
     if (!openaiClient) {
-      console.error("OpenAI client not available. Check your API key.");
+      console.error('OpenAI client not available. Check your API key.');
       return null;
     }
 
     if (!subject || !snippet) {
-      console.error("Missing required fields: subject and snippet");
+      console.error('Missing required fields: subject and snippet');
       return null;
     }
 
@@ -89,33 +91,33 @@ export async function parseOrderWithAI(
       ${snippet}
     `;
 
-    console.log("EMAIL CONTENT", emailContent);
-    
+    console.log('EMAIL CONTENT', emailContent);
+
     // If we have a PDF attachment, use Vision API approach
     if (pdfAttachment) {
       return await parseWithPdf(emailContent, pdfAttachment);
     }
-    
+
     // Otherwise, use regular text-based approach
     // Call OpenAI to parse order information
     const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
       messages: [
         {
-          role: "system",
-          content: getSystemPrompt(),
+          role: 'system',
+          content: getSystemPrompt()
         },
         {
-          role: "user",
-          content: emailContent,
-        },
+          role: 'user',
+          content: emailContent
+        }
       ],
-      response_format: { type: "json_object" },
+      response_format: { type: 'json_object' }
     });
 
     return processOpenAIResponse(response.choices[0].message.content);
   } catch (error) {
-    console.error("Error parsing order with OpenAI:", error);
+    console.error('Error parsing order with OpenAI:', error);
     return null;
   }
 }
@@ -131,32 +133,32 @@ async function parseWithPdf(
   pdfBuffer: Buffer
 ): Promise<ParsedOrderData | null> {
   try {
-    console.log("Processing email with PDF attachment");
+    console.log('Processing email with PDF attachment');
 
     // Extract text from PDF
     const pdfText = await extractTextFromPdf(pdfBuffer);
-    console.log("Extracted PDF text:", pdfText.substring(0, 500) + "...");
-    
+    console.log('Extracted PDF text:', pdfText.substring(0, 500) + '...');
+
     // Call OpenAI to parse order information from both email and PDF content
     const response = await openaiClient!.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
       messages: [
         {
-          role: "system",
-          content: getSystemPrompt(),
+          role: 'system',
+          content: getSystemPrompt()
         },
         {
-          role: "user",
-          content: `${emailContent}\n\nExtracted PDF content:\n${pdfText}`,
-        },
+          role: 'user',
+          content: `${emailContent}\n\nExtracted PDF content:\n${pdfText}`
+        }
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 4000,
+      response_format: { type: 'json_object' },
+      max_tokens: 4000
     });
 
     return processOpenAIResponse(response.choices[0].message.content);
   } catch (error) {
-    console.error("Error processing with PDF:", error);
+    console.error('Error processing with PDF:', error);
     return null;
   }
 }
@@ -169,33 +171,35 @@ async function parseWithPdf(
 function processOpenAIResponse(content: string | null): ParsedOrderData | null {
   try {
     if (!content) {
-      throw new Error("Empty response from OpenAI");
+      throw new Error('Empty response from OpenAI');
     }
 
     // Check if the content looks like HTML
     if (
-      content.trim().startsWith("<!DOCTYPE") ||
-      content.trim().startsWith("<html")
+      content.trim().startsWith('<!DOCTYPE') ||
+      content.trim().startsWith('<html')
     ) {
-      throw new Error("Received HTML instead of JSON from OpenAI API");
+      throw new Error('Received HTML instead of JSON from OpenAI API');
     }
 
     const parsedData = JSON.parse(content) as ParsedOrderData;
-    console.log("PARSED DATA", parsedData);
-    
+    console.log('PARSED DATA', parsedData);
+
     // Validate that required fields are present and format is correct
     if (!parsedData.orderNumber) {
-      console.warn("No order number found in OpenAI response");
+      console.warn('No order number found in OpenAI response');
     }
-    
+
     if (!parsedData.status) {
-      console.warn("No status found in OpenAI response, defaulting to 'unknown'");
-      parsedData.status = "unknown";
+      console.warn(
+        "No status found in OpenAI response, defaulting to 'unknown'"
+      );
+      parsedData.status = 'unknown';
     }
-    
+
     return parsedData;
   } catch (parseError) {
-    console.error("Failed to parse OpenAI response:", parseError);
+    console.error('Failed to parse OpenAI response:', parseError);
     return null;
   }
 }
@@ -238,7 +242,7 @@ Extract the following details and format your response using the EXACT JSON stru
 /**
  * Process base64-encoded PDF data along with email information
  * @param from Email sender
- * @param emailDate Email date 
+ * @param emailDate Email date
  * @param subject Email subject
  * @param snippet Email snippet
  * @param base64Pdf Base64-encoded PDF data
@@ -256,7 +260,7 @@ export async function parseOrderWithPdf(
     const pdfBuffer = Buffer.from(base64Pdf, 'base64');
     return parseOrderWithAI(from, emailDate, subject, snippet, pdfBuffer);
   } catch (error) {
-    console.error("Error processing base64 PDF:", error);
+    console.error('Error processing base64 PDF:', error);
     return null;
   }
 }
@@ -267,15 +271,18 @@ export async function parseOrderWithPdf(
  * @param snippet Email snippet
  * @returns Basic parsed order data
  */
-export function createDefaultParsedData(subject: string, snippet: string): ParsedOrderData {
+export function createDefaultParsedData(
+  subject: string,
+  snippet: string
+): ParsedOrderData {
   // Use the basic parser to extract what it can
   const basicParsed = parseOrderFromEmail(subject, snippet);
-  
+
   // Return a properly formatted object with defaults
   return {
     orderNumber: basicParsed.orderNumber,
-    supplier: basicParsed.supplier || "Unknown Supplier",
-    status: basicParsed.status || "ordered",
+    supplier: basicParsed.supplier || 'Unknown Supplier',
+    status: basicParsed.status || 'ordered',
     estimatedArrival: basicParsed.estimatedArrival,
     deliveredAt: null,
     productList: [],
@@ -285,4 +292,4 @@ export function createDefaultParsedData(subject: string, snippet: string): Parse
     trackingUrl: null,
     additionalNotes: null
   };
-} 
+}

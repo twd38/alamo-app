@@ -1,19 +1,19 @@
-import type { MouseEvent, KeyboardEvent, TouchEvent } from 'react'
+import type { MouseEvent, KeyboardEvent, TouchEvent } from 'react';
 import {
   MouseSensor as LibMouseSensor,
   KeyboardSensor as LibKeyboardSensor,
   TouchSensor as LibTouchSensor
-} from '@dnd-kit/core'
+} from '@dnd-kit/core';
 
 export class MouseSensor extends LibMouseSensor {
   static activators = [
     {
       eventName: 'onMouseDown' as const,
       handler: ({ nativeEvent: event }: MouseEvent) => {
-        return shouldHandleEvent(event.target as HTMLElement)
+        return shouldHandleEvent(event.target as HTMLElement);
       }
     }
-  ]
+  ];
 }
 
 export class KeyboardSensor extends LibKeyboardSensor {
@@ -21,10 +21,10 @@ export class KeyboardSensor extends LibKeyboardSensor {
     {
       eventName: 'onKeyDown' as const,
       handler: ({ nativeEvent: event }: KeyboardEvent<Element>) => {
-        return shouldHandleEvent(event.target as HTMLElement)
+        return shouldHandleEvent(event.target as HTMLElement);
       }
     }
-  ]
+  ];
 }
 
 export class TouchSensor extends LibTouchSensor {
@@ -32,21 +32,21 @@ export class TouchSensor extends LibTouchSensor {
     {
       eventName: 'onTouchStart' as const,
       handler: ({ nativeEvent: event }: TouchEvent) => {
-        return shouldHandleEvent(event.target as HTMLElement)
+        return shouldHandleEvent(event.target as HTMLElement);
       }
     }
-  ]
+  ];
 }
 
 function shouldHandleEvent(element: HTMLElement | null) {
-  let cur = element
+  let cur = element;
 
   while (cur) {
     if (cur.dataset && cur.dataset.noDnd) {
-      return false
+      return false;
     }
-    cur = cur.parentElement
+    cur = cur.parentElement;
   }
 
-  return true
-} 
+  return true;
+}

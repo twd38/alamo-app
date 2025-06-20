@@ -5,7 +5,7 @@ declare module 'react-file-viewer' {
     onError?: (error: Error) => void;
     errorComponent?: React.ComponentType<any>;
   }
-  
+
   const FileViewer: React.FC<FileViewerProps>;
   export default FileViewer;
-} 
+}

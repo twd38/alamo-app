@@ -26,7 +26,7 @@ const boardSchema = z.object({
   boardName: z.string().min(1, 'Board name is required'),
   isPrivate: z.boolean().default(false),
   collaboratorIds: z.array(z.string()).optional().default([]),
-  icon: z.string().optional(),
+  icon: z.string().optional()
 });
 
 type FormValues = z.infer<typeof boardSchema>;
@@ -53,13 +53,20 @@ export default function EditBoardDialog({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    setValue,
+    watch
+  } = useForm<FormValues>({
     resolver: zodResolver(boardSchema),
     defaultValues: {
       boardName: boardName,
       isPrivate: initialIsPrivate,
       collaboratorIds: initialCollaboratorIds,
-      icon: initialIcon,
+      icon: initialIcon
     }
   });
 
@@ -75,9 +82,9 @@ export default function EditBoardDialog({
         const currentUser = await getUser();
         // Filter out the current user
         const filteredUsers = fetchedUsers.filter(
-          user => user.id !== currentUser?.id
+          (user) => user.id !== currentUser?.id
         ) as User[];
-        
+
         setUsers(filteredUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -85,24 +92,33 @@ export default function EditBoardDialog({
         setLoading(false);
       }
     }
-    
+
     if (isOpen) {
       fetchUsers();
       reset({
         boardName: boardName,
         isPrivate: initialIsPrivate,
         collaboratorIds: initialCollaboratorIds,
-        icon: initialIcon,
+        icon: initialIcon
       });
     }
-  }, [isOpen, boardName, initialIsPrivate, initialCollaboratorIds, initialIcon, reset]);
+  }, [
+    isOpen,
+    boardName,
+    initialIsPrivate,
+    initialCollaboratorIds,
+    initialIcon,
+    reset
+  ]);
 
   const handleCheckboxChange = (checked: boolean) => {
     setValue('isPrivate', checked);
   };
 
   const handleCollaboratorsChange = (selectedIds: string | string[]) => {
-    const ids = Array.isArray(selectedIds) ? selectedIds : [selectedIds].filter(Boolean);
+    const ids = Array.isArray(selectedIds)
+      ? selectedIds
+      : [selectedIds].filter(Boolean);
     setValue('collaboratorIds', ids);
   };
 
@@ -116,9 +132,9 @@ export default function EditBoardDialog({
         name: data.boardName,
         private: data.isPrivate,
         collaboratorIds: data.collaboratorIds,
-        icon: data.icon,
+        icon: data.icon
       });
-      
+
       if (result.success) {
         toast.success('Board updated successfully');
         onClose();
@@ -147,23 +163,27 @@ export default function EditBoardDialog({
                 </div>
                 <Input
                   id="boardName"
-                  className='h-10'
+                  className="h-10"
                   placeholder="My New Board"
                   {...register('boardName')}
                 />
               </div>
               {errors.boardName && (
-                <p className="text-sm text-red-500">{errors.boardName.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.boardName.message}
+                </p>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-2 pt-2">
-              <Checkbox 
-                id="isPrivate" 
+              <Checkbox
+                id="isPrivate"
                 checked={isPrivate}
                 onCheckedChange={handleCheckboxChange}
               />
-              <Label htmlFor="isPrivate">Private board (only visible to you and collaborators)</Label>
+              <Label htmlFor="isPrivate">
+                Private board (only visible to you and collaborators)
+              </Label>
             </div>
 
             {isPrivate && (
@@ -172,7 +192,7 @@ export default function EditBoardDialog({
                 {loading ? (
                   <p className="text-sm text-gray-500">Loading users...</p>
                 ) : (
-                  <UserSelect 
+                  <UserSelect
                     users={users}
                     value={collaboratorIds}
                     onChange={handleCollaboratorsChange}
@@ -186,12 +206,16 @@ export default function EditBoardDialog({
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+            >
               Save Changes
             </Button>
           </DialogFooter>

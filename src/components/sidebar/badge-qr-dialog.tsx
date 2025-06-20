@@ -39,7 +39,9 @@ export function BadgeQRDialog({ badgeId, className }: BadgeQRDialogProps) {
 
     // Convert SVG to data URL
     const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgData], {
+      type: 'image/svg+xml;charset=utf-8'
+    });
     const svgUrl = URL.createObjectURL(svgBlob);
 
     // Create canvas and convert to PNG
@@ -78,7 +80,6 @@ export function BadgeQRDialog({ badgeId, className }: BadgeQRDialogProps) {
   };
 
   const handleOpenChange = (open: boolean) => {
-    
     setIsOpen(open);
   };
 
@@ -102,7 +103,7 @@ export function BadgeQRDialog({ badgeId, className }: BadgeQRDialogProps) {
           Badge QR
         </button>
       </DialogTrigger>
-      <DialogContent 
+      <DialogContent
         className="max-w-sm"
         onClick={handleDialogContentClick}
         onPointerDownOutside={(e) => {
@@ -145,4 +146,4 @@ export function BadgeQRDialog({ badgeId, className }: BadgeQRDialogProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+}

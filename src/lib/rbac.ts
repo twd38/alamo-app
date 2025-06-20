@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/db'
-import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/db';
+import { auth } from '@/lib/auth';
 
 // Permission constants organized by resource
 export const PERMISSIONS = {
@@ -7,18 +7,18 @@ export const PERMISSIONS = {
   SYSTEM: {
     ADMIN: 'system:admin',
     USER_MANAGEMENT: 'system:user_management',
-    ROLE_MANAGEMENT: 'system:role_management',
+    ROLE_MANAGEMENT: 'system:role_management'
   },
-  
+
   // Board permissions
   BOARDS: {
     CREATE: 'boards:create',
     READ: 'boards:read',
     UPDATE: 'boards:update',
     DELETE: 'boards:delete',
-    MANAGE_COLLABORATORS: 'boards:manage_collaborators',
+    MANAGE_COLLABORATORS: 'boards:manage_collaborators'
   },
-  
+
   // Task permissions
   TASKS: {
     CREATE: 'tasks:create',
@@ -26,9 +26,9 @@ export const PERMISSIONS = {
     UPDATE: 'tasks:update',
     DELETE: 'tasks:delete',
     ASSIGN: 'tasks:assign',
-    CHANGE_STATUS: 'tasks:change_status',
+    CHANGE_STATUS: 'tasks:change_status'
   },
-  
+
   // Work Order permissions
   WORK_ORDERS: {
     CREATE: 'work_orders:create',
@@ -38,9 +38,9 @@ export const PERMISSIONS = {
     ASSIGN: 'work_orders:assign',
     START: 'work_orders:start',
     COMPLETE: 'work_orders:complete',
-    CLOCK_IN: 'work_orders:clock_in',
+    CLOCK_IN: 'work_orders:clock_in'
   },
-  
+
   // Parts permissions
   PARTS: {
     CREATE: 'parts:create',
@@ -48,9 +48,9 @@ export const PERMISSIONS = {
     UPDATE: 'parts:update',
     DELETE: 'parts:delete',
     MANAGE_BOM: 'parts:manage_bom',
-    MANAGE_INVENTORY: 'parts:manage_inventory',
+    MANAGE_INVENTORY: 'parts:manage_inventory'
   },
-  
+
   // Work Instructions permissions
   WORK_INSTRUCTIONS: {
     CREATE: 'work_instructions:create',
@@ -58,9 +58,9 @@ export const PERMISSIONS = {
     UPDATE: 'work_instructions:update',
     DELETE: 'work_instructions:delete',
     APPROVE: 'work_instructions:approve',
-    EXECUTE: 'work_instructions:execute',
+    EXECUTE: 'work_instructions:execute'
   },
-  
+
   // Inventory permissions
   INVENTORY: {
     READ: 'inventory:read',
@@ -68,18 +68,18 @@ export const PERMISSIONS = {
     MOVE: 'inventory:move',
     ADJUST: 'inventory:adjust',
     RECEIVE: 'inventory:receive',
-    SHIP: 'inventory:ship',
+    SHIP: 'inventory:ship'
   },
-  
+
   // Order permissions
   ORDERS: {
     CREATE: 'orders:create',
     READ: 'orders:read',
     UPDATE: 'orders:update',
     DELETE: 'orders:delete',
-    PROCESS: 'orders:process',
-  },
-} as const
+    PROCESS: 'orders:process'
+  }
+} as const;
 
 // Role constants
 export const ROLES = {
@@ -91,13 +91,16 @@ export const ROLES = {
   QUALITY_INSPECTOR: 'quality_inspector',
   INVENTORY_CLERK: 'inventory_clerk',
   VIEWER: 'viewer',
-  BOARD_COLLABORATOR: 'board_collaborator',
-} as const
+  BOARD_COLLABORATOR: 'board_collaborator'
+} as const;
 
 // Flatten permissions for easier access
-export const ALL_PERMISSIONS = Object.values(PERMISSIONS).reduce((acc, category) => {
-  return { ...acc, ...category }
-}, {})
+export const ALL_PERMISSIONS = Object.values(PERMISSIONS).reduce(
+  (acc, category) => {
+    return { ...acc, ...category };
+  },
+  {}
+);
 
 /**
  * Check if a user has a specific permission
@@ -117,15 +120,12 @@ export async function hasPermission(
       resourceType: resourceType || null,
       resourceId: resourceId || null,
       granted: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     include: { permission: true }
-  })
+  });
 
-  if (userPermission) return true
+  if (userPermission) return true;
 
   // Check for deny permissions (these override role permissions)
   const denyPermission = await prisma.userPermission.findFirst({
@@ -135,14 +135,11 @@ export async function hasPermission(
       resourceType: resourceType || null,
       resourceId: resourceId || null,
       granted: false,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     }
-  })
+  });
 
-  if (denyPermission) return false
+  if (denyPermission) return false;
 
   // Check role-based permissions
   const rolePermissions = await prisma.userRole.findMany({
@@ -150,10 +147,7 @@ export async function hasPermission(
       userId,
       resourceType: resourceType || null,
       resourceId: resourceId || null,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     include: {
       role: {
@@ -164,11 +158,13 @@ export async function hasPermission(
         }
       }
     }
-  })
+  });
 
   return rolePermissions.some((userRole: any) =>
-    userRole.role.rolePermissions.some((rp: any) => rp.permission.name === permission)
-  )
+    userRole.role.rolePermissions.some(
+      (rp: any) => rp.permission.name === permission
+    )
+  );
 }
 
 /**
@@ -179,10 +175,10 @@ export async function currentUserHasPermission(
   resourceType?: string,
   resourceId?: string
 ): Promise<boolean> {
-  const session = await auth()
-  if (!session?.user?.id) return false
-  
-  return hasPermission(session.user.id, permission, resourceType, resourceId)
+  const session = await auth();
+  if (!session?.user?.id) return false;
+
+  return hasPermission(session.user.id, permission, resourceType, resourceId);
 }
 
 /**
@@ -200,13 +196,10 @@ export async function getUserPermissions(
       resourceType: resourceType || null,
       resourceId: resourceId || null,
       granted: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     include: { permission: true }
-  })
+  });
 
   // Get role-based permissions
   const userRoles = await prisma.userRole.findMany({
@@ -214,10 +207,7 @@ export async function getUserPermissions(
       userId,
       resourceType: resourceType || null,
       resourceId: resourceId || null,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     include: {
       role: {
@@ -228,13 +218,15 @@ export async function getUserPermissions(
         }
       }
     }
-  })
+  });
 
   const rolePermissions = userRoles.flatMap((ur: any) =>
     ur.role.rolePermissions.map((rp: any) => rp.permission.name)
-  )
+  );
 
-  const directPermissions = userPermissions.map((up: any) => up.permission.name)
+  const directPermissions = userPermissions.map(
+    (up: any) => up.permission.name
+  );
 
   // Get deny permissions to filter out
   const denyPermissions = await prisma.userPermission.findMany({
@@ -243,19 +235,22 @@ export async function getUserPermissions(
       resourceType: resourceType || null,
       resourceId: resourceId || null,
       granted: false,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     include: { permission: true }
-  })
+  });
 
-  const deniedPermissionNames = new Set(denyPermissions.map((dp: any) => dp.permission.name))
+  const deniedPermissionNames = new Set(
+    denyPermissions.map((dp: any) => dp.permission.name)
+  );
 
   // Combine and deduplicate, filtering out denied permissions
-  const uniquePermissions = Array.from(new Set([...directPermissions, ...rolePermissions]))
-  return uniquePermissions.filter(permission => !deniedPermissionNames.has(permission))
+  const uniquePermissions = Array.from(
+    new Set([...directPermissions, ...rolePermissions])
+  );
+  return uniquePermissions.filter(
+    (permission) => !deniedPermissionNames.has(permission)
+  );
 }
 
 /**
@@ -279,11 +274,11 @@ export async function assignRole(
         resourceId,
         expiresAt
       }
-    })
-    return true
+    });
+    return true;
   } catch (error) {
-    console.error('Error assigning role:', error)
-    return false
+    console.error('Error assigning role:', error);
+    return false;
   }
 }
 
@@ -304,11 +299,11 @@ export async function removeRole(
         resourceType: resourceType || null,
         resourceId: resourceId || null
       }
-    })
-    return true
+    });
+    return true;
   } catch (error) {
-    console.error('Error removing role:', error)
-    return false
+    console.error('Error removing role:', error);
+    return false;
   }
 }
 
@@ -332,7 +327,7 @@ export async function grantPermission(
         resourceType: resourceType || null,
         resourceId: resourceId || null
       }
-    })
+    });
 
     if (existingPermission) {
       await prisma.userPermission.update({
@@ -343,7 +338,7 @@ export async function grantPermission(
           assignedAt: new Date(),
           expiresAt
         }
-      })
+      });
     } else {
       await prisma.userPermission.create({
         data: {
@@ -355,12 +350,12 @@ export async function grantPermission(
           granted: true,
           expiresAt
         }
-      })
+      });
     }
-    return true
+    return true;
   } catch (error) {
-    console.error('Error granting permission:', error)
-    return false
+    console.error('Error granting permission:', error);
+    return false;
   }
 }
 
@@ -384,7 +379,7 @@ export async function denyPermission(
         resourceType: resourceType || null,
         resourceId: resourceId || null
       }
-    })
+    });
 
     if (existingPermission) {
       await prisma.userPermission.update({
@@ -395,7 +390,7 @@ export async function denyPermission(
           assignedAt: new Date(),
           expiresAt
         }
-      })
+      });
     } else {
       await prisma.userPermission.create({
         data: {
@@ -407,12 +402,12 @@ export async function denyPermission(
           granted: false,
           expiresAt
         }
-      })
+      });
     }
-    return true
+    return true;
   } catch (error) {
-    console.error('Error denying permission:', error)
-    return false
+    console.error('Error denying permission:', error);
+    return false;
   }
 }
 
@@ -428,29 +423,29 @@ export async function isResourceOwner(
     case 'board':
       const board = await prisma.board.findFirst({
         where: { id: resourceId, createdById: userId }
-      })
-      return !!board
+      });
+      return !!board;
 
     case 'task':
       const task = await prisma.task.findFirst({
         where: { id: resourceId, createdById: userId }
-      })
-      return !!task
+      });
+      return !!task;
 
     case 'work_order':
       const workOrder = await prisma.workOrder.findFirst({
         where: { id: resourceId, createdById: userId }
-      })
-      return !!workOrder
+      });
+      return !!workOrder;
 
     case 'work_instruction':
       const workInstruction = await prisma.workInstruction.findFirst({
         where: { id: resourceId, createdById: userId }
-      })
-      return !!workInstruction
+      });
+      return !!workInstruction;
 
     default:
-      return false
+      return false;
   }
 }
 
@@ -469,8 +464,8 @@ export async function isResourceCollaborator(
           id: resourceId,
           collaborators: { some: { id: userId } }
         }
-      })
-      return !!board
+      });
+      return !!board;
 
     case 'work_order':
       const workOrder = await prisma.workOrder.findFirst({
@@ -478,8 +473,8 @@ export async function isResourceCollaborator(
           id: resourceId,
           assignees: { some: { userId } }
         }
-      })
-      return !!workOrder
+      });
+      return !!workOrder;
 
     case 'task':
       const task = await prisma.task.findFirst({
@@ -487,11 +482,11 @@ export async function isResourceCollaborator(
           id: resourceId,
           assignees: { some: { id: userId } }
         }
-      })
-      return !!task
+      });
+      return !!task;
 
     default:
-      return false
+      return false;
   }
 }
 
@@ -506,19 +501,19 @@ export async function canAccessResource(
 ): Promise<boolean> {
   // Check explicit permission first
   if (await hasPermission(userId, permission, resourceType, resourceId)) {
-    return true
+    return true;
   }
 
   // Check global permission
   if (await hasPermission(userId, permission)) {
-    return true
+    return true;
   }
 
   // Check ownership-based access
   if (await isResourceOwner(userId, resourceType, resourceId)) {
     // Owners typically have read/update permissions
     if (permission.includes(':read') || permission.includes(':update')) {
-      return true
+      return true;
     }
   }
 
@@ -526,11 +521,11 @@ export async function canAccessResource(
   if (await isResourceCollaborator(userId, resourceType, resourceId)) {
     // Collaborators typically have read permissions
     if (permission.includes(':read')) {
-      return true
+      return true;
     }
   }
 
-  return false
+  return false;
 }
 
 /**
@@ -541,18 +536,24 @@ export async function requirePermission(
   resourceType?: string,
   resourceId?: string
 ): Promise<string> {
-  const session = await auth()
+  const session = await auth();
   if (!session?.user?.id) {
-    throw new Error('Authentication required')
+    throw new Error('Authentication required');
   }
 
-  const hasAccess = resourceType && resourceId
-    ? await canAccessResource(session.user.id, permission, resourceType, resourceId)
-    : await hasPermission(session.user.id, permission)
+  const hasAccess =
+    resourceType && resourceId
+      ? await canAccessResource(
+          session.user.id,
+          permission,
+          resourceType,
+          resourceId
+        )
+      : await hasPermission(session.user.id, permission);
 
   if (!hasAccess) {
-    throw new Error('Insufficient permissions')
+    throw new Error('Insufficient permissions');
   }
 
-  return session.user.id
-} 
+  return session.user.id;
+}

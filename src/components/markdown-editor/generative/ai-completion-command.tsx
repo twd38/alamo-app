@@ -1,10 +1,14 @@
-import { CommandGroup, CommandItem, CommandSeparator } from "src/components/ui/command";
-import { useEditor } from "novel";
-import { Check, TextQuote, TrashIcon } from "lucide-react";
+import {
+  CommandGroup,
+  CommandItem,
+  CommandSeparator
+} from 'src/components/ui/command';
+import { useEditor } from 'novel';
+import { Check, TextQuote, TrashIcon } from 'lucide-react';
 
 const AICompletionCommands = ({
   completion,
-  onDiscard,
+  onDiscard
 }: {
   completion: string;
   onDiscard: () => void;
@@ -26,9 +30,9 @@ const AICompletionCommands = ({
               .insertContentAt(
                 {
                   from: selection.from,
-                  to: selection.to,
+                  to: selection.to
                 },
-                completion,
+                completion
               )
               .run();
           }}

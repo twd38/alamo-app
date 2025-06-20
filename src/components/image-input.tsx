@@ -30,7 +30,11 @@ const ImageInput: React.FC<ImageInputProps> = ({ onChange, value }) => {
   return (
     <div className="flex flex-col items-center">
       {preview && (
-        <img src={preview} alt="Preview" className="w-32 h-32 object-cover mb-2" />
+        <img
+          src={preview}
+          alt="Preview"
+          className="w-32 h-32 object-cover mb-2"
+        />
       )}
       <label htmlFor="image-upload" className="cursor-pointer">
         <Button
@@ -39,7 +43,9 @@ const ImageInput: React.FC<ImageInputProps> = ({ onChange, value }) => {
           size="sm"
           className="gap-2 bg-secondary"
           onClick={() => {
-            const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+            const fileInput = document.getElementById(
+              'image-upload'
+            ) as HTMLInputElement;
             fileInput.click();
           }}
         >

@@ -1,7 +1,7 @@
-import BasicTopBar from "@/components/layouts/basic-top-bar";
-import { getWorkOrdersPaginated, getWorkOrdersCount } from "@/lib/queries";
-import PageContainer from "@/components/page-container";
-import { WorkOrdersDataTable } from "@/components/production/work-orders-datatable";
+import BasicTopBar from '@/components/layouts/basic-top-bar';
+import { getWorkOrdersPaginated, getWorkOrdersCount } from '@/lib/queries';
+import PageContainer from '@/components/page-container';
+import { WorkOrdersDataTable } from '@/components/production/work-orders-datatable';
 
 interface ProductionPageProps {
   searchParams: Promise<{
@@ -9,24 +9,24 @@ interface ProductionPageProps {
     page?: string;
     limit?: string;
     sortBy?: string;
-    sortOrder?: "asc" | "desc";
+    sortOrder?: 'asc' | 'desc';
   }>;
 }
 
 const ProductionPage = async (props: ProductionPageProps) => {
   const searchParams = await props.searchParams;
-  const query = searchParams?.query || "";
+  const query = searchParams?.query || '';
   const currentPage = Number(searchParams?.page) || 1;
   const limit = Number(searchParams?.limit) || 10;
-  const sortBy = searchParams?.sortBy || "dueDate";
-  const sortOrder = (searchParams?.sortOrder as "asc" | "desc") || "asc";
+  const sortBy = searchParams?.sortBy || 'dueDate';
+  const sortOrder = (searchParams?.sortOrder as 'asc' | 'desc') || 'asc';
 
   const workOrders = await getWorkOrdersPaginated({
     query,
     page: currentPage,
     limit,
     sortBy,
-    sortOrder,
+    sortOrder
   });
 
   const totalCount = await getWorkOrdersCount({ query });

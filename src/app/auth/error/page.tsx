@@ -14,9 +14,10 @@ type ErrorMessage = {
 };
 
 const errorMessages: Record<string, ErrorMessage> = {
-  'OAuthAccountNotLinked': {
+  OAuthAccountNotLinked: {
     title: 'Account Linking Required',
-    message: 'We found an existing account with your email address. For security reasons, you need to sign in with your original method first, and then we can connect your Google account.',
+    message:
+      'We found an existing account with your email address. For security reasons, you need to sign in with your original method first, and then we can connect your Google account.',
     action: (
       <div className="flex flex-col space-y-4">
         <Button asChild variant="default" className="w-full">
@@ -26,14 +27,18 @@ const errorMessages: Record<string, ErrorMessage> = {
           </Link>
         </Button>
         <div className="text-xs text-gray-500 italic">
-          <p>After signing in with your original method, you will be automatically able to use Google login in the future.</p>
+          <p>
+            After signing in with your original method, you will be
+            automatically able to use Google login in the future.
+          </p>
         </div>
       </div>
-    ),
+    )
   },
-  'AccessDenied': {
+  AccessDenied: {
     title: 'Access Denied',
-    message: 'You do not have permission to sign in. Please contact an administrator if you believe this is an error.',
+    message:
+      'You do not have permission to sign in. Please contact an administrator if you believe this is an error.',
     action: (
       <Button asChild variant="default">
         <Link href="/login">
@@ -41,11 +46,12 @@ const errorMessages: Record<string, ErrorMessage> = {
           Back to Login
         </Link>
       </Button>
-    ),
+    )
   },
-  'Verification': {
+  Verification: {
     title: 'Verification Required',
-    message: 'A verification email has been sent to your address. Please check your inbox and follow the instructions.',
+    message:
+      'A verification email has been sent to your address. Please check your inbox and follow the instructions.',
     action: (
       <Button asChild variant="default">
         <Link href="/login">
@@ -53,11 +59,12 @@ const errorMessages: Record<string, ErrorMessage> = {
           Back to Login
         </Link>
       </Button>
-    ),
+    )
   },
-  'Default': {
+  Default: {
     title: 'Authentication Error',
-    message: 'An error occurred during the authentication process. Please try again or contact support if the issue persists.',
+    message:
+      'An error occurred during the authentication process. Please try again or contact support if the issue persists.',
     action: (
       <div className="flex flex-col space-y-4">
         <Button asChild variant="default" className="w-full">
@@ -66,8 +73,8 @@ const errorMessages: Record<string, ErrorMessage> = {
             Back to Login
           </Link>
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full"
           onClick={() => signOut({ callbackUrl: '/login' })}
         >
@@ -75,30 +82,30 @@ const errorMessages: Record<string, ErrorMessage> = {
           Reset Session
         </Button>
       </div>
-    ),
-  },
+    )
+  }
 };
 
 // This component handles the actual error display and uses the search params
 function ErrorContent(): React.ReactElement {
   const searchParams = useSearchParams();
   const [errorType, setErrorType] = useState<string>('Default');
-  
+
   useEffect(() => {
     const error = searchParams.get('error');
     if (error && errorMessages[error]) {
       setErrorType(error);
     }
   }, [searchParams]);
-  
+
   const errorInfo = errorMessages[errorType] || errorMessages['Default'];
-  
+
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
         <AlertTriangle className="h-6 w-6 text-yellow-600" />
       </div>
-      
+
       <div className="mt-3 text-center">
         <h3 className="text-lg font-medium leading-6 text-gray-900">
           {errorInfo.title}
@@ -106,10 +113,8 @@ function ErrorContent(): React.ReactElement {
         <div className="mt-2">
           <p className="text-sm text-gray-500">{errorInfo.message}</p>
         </div>
-        
-        <div className="mt-6 flex flex-col">
-          {errorInfo.action}
-        </div>
+
+        <div className="mt-6 flex flex-col">{errorInfo.action}</div>
       </div>
     </div>
   );
@@ -122,13 +127,15 @@ function ErrorLoadingFallback(): React.ReactElement {
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
         <div className="h-6 w-6 animate-pulse bg-gray-300 rounded-full"></div>
       </div>
-      
+
       <div className="mt-3 text-center">
         <h3 className="text-lg font-medium leading-6 text-gray-900">
           Loading Error Information...
         </h3>
         <div className="mt-2">
-          <p className="text-sm text-gray-500">Please wait while we retrieve error details.</p>
+          <p className="text-sm text-gray-500">
+            Please wait while we retrieve error details.
+          </p>
         </div>
       </div>
     </div>
@@ -143,11 +150,14 @@ export default function AuthErrorPage(): React.ReactElement {
         <Suspense fallback={<ErrorLoadingFallback />}>
           <ErrorContent />
         </Suspense>
-        
+
         <div className="text-center text-sm text-gray-500 mt-4">
           <p>
             Need assistance?{' '}
-            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <a
+              href="#"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               Contact Support
             </a>
           </p>
@@ -155,4 +165,4 @@ export default function AuthErrorPage(): React.ReactElement {
       </div>
     </div>
   );
-} 
+}

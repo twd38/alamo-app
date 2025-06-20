@@ -1,13 +1,19 @@
-"use client"
+'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export interface ScenarioDetailProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  scenario: any
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  scenario: any;
   // scenario: {
   //   id: string
   //   name: string
@@ -42,9 +48,13 @@ export interface ScenarioDetailProps {
   // }
 }
 
-export function ScenarioDetail({ open, onOpenChange, scenario }: ScenarioDetailProps) {
+export function ScenarioDetail({
+  open,
+  onOpenChange,
+  scenario
+}: ScenarioDetailProps) {
   console.log(scenario);
-  if (!scenario) return null
+  if (!scenario) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,7 +98,10 @@ export function ScenarioDetail({ open, onOpenChange, scenario }: ScenarioDetailP
                 <h3 className="font-medium mb-2">Unit Breakdown</h3>
                 <div className="text-sm">
                   <p>Total Area: {scenario.metrics.units.totalSqft}</p>
-                  <p className="mt-2">Primary Unit Type: {scenario.metrics.units.breakdown[0].type}</p>
+                  <p className="mt-2">
+                    Primary Unit Type:{' '}
+                    {scenario.metrics.units.breakdown[0].type}
+                  </p>
                   <p>Size: {scenario.metrics.units.breakdown[0].sqft}</p>
                 </div>
               </div>
@@ -117,11 +130,15 @@ export function ScenarioDetail({ open, onOpenChange, scenario }: ScenarioDetailP
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Gross Built Area</div>
-                <div className="font-medium">{scenario.metrics.grossBuiltArea}</div>
+                <div className="font-medium">
+                  {scenario.metrics.grossBuiltArea}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Floor Area Ratio</div>
-                <div className="font-medium">{scenario.metrics.floorAreaRatio}</div>
+                <div className="font-medium">
+                  {scenario.metrics.floorAreaRatio}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Net Area</div>
@@ -129,57 +146,83 @@ export function ScenarioDetail({ open, onOpenChange, scenario }: ScenarioDetailP
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Impervious Coverage Area</div>
-                <div className="font-medium">{scenario.metrics.imperviousCoverageArea}</div>
+                <div className="font-medium">
+                  {scenario.metrics.imperviousCoverageArea}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Impervious Coverage Ratio</div>
-                <div className="font-medium">{scenario.metrics.imperviousCoverageRatio}</div>
+                <div className="font-medium">
+                  {scenario.metrics.imperviousCoverageRatio}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Building Height</div>
-                <div className="font-medium">{scenario.metrics.buildingHeight}</div>
+                <div className="font-medium">
+                  {scenario.metrics.buildingHeight}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Building Coverage Area</div>
-                <div className="font-medium">{scenario.metrics.buildingCoverageArea}</div>
+                <div className="font-medium">
+                  {scenario.metrics.buildingCoverageArea}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Building Coverage Ratio</div>
-                <div className="font-medium">{scenario.metrics.buildingCoverageRatio}</div>
+                <div className="font-medium">
+                  {scenario.metrics.buildingCoverageRatio}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Habitable Floor Count</div>
-                <div className="font-medium">{scenario.metrics.habitableFloorCount}</div>
+                <div className="font-medium">
+                  {scenario.metrics.habitableFloorCount}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Total Unit Count</div>
-                <div className="font-medium">{scenario.metrics.totalUnitCount}</div>
+                <div className="font-medium">
+                  {scenario.metrics.totalUnitCount}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Unit Density Per Acre</div>
-                <div className="font-medium">{scenario.metrics.unitDensityPerAcre}</div>
+                <div className="font-medium">
+                  {scenario.metrics.unitDensityPerAcre}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Average Unit Size</div>
-                <div className="font-medium">{scenario.metrics.averageUnitSize}</div>
+                <div className="font-medium">
+                  {scenario.metrics.averageUnitSize}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Gross Parking Count</div>
-                <div className="font-medium">{scenario.metrics.grossParkingCount}</div>
+                <div className="font-medium">
+                  {scenario.metrics.grossParkingCount}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Parking Ratio</div>
-                <div className="font-medium">{scenario.metrics.parkingRatio}</div>
+                <div className="font-medium">
+                  {scenario.metrics.parkingRatio}
+                </div>
               </div>
               <div className="py-2 border-b">
                 <div className="text-gray-600">Development Incentives</div>
-                <div className="font-medium">{scenario.metrics.developmentIncentives}</div>
+                <div className="font-medium">
+                  {scenario.metrics.developmentIncentives}
+                </div>
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="financials">
-            <div className="text-center py-12 text-gray-500">Financial analysis would be displayed here</div>
+            <div className="text-center py-12 text-gray-500">
+              Financial analysis would be displayed here
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -191,5 +234,5 @@ export function ScenarioDetail({ open, onOpenChange, scenario }: ScenarioDetailP
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

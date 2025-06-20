@@ -1,11 +1,11 @@
-import type { FinanceResult, Lot, SchemeTemplate, YieldResult } from "./types";
+import type { FinanceResult, Lot, SchemeTemplate, YieldResult } from './types';
 
 /** very thin assumptions object – extend as you wish */
 export interface FinanceAssumptions {
-  softCostPct: number;     // e.g. 0.25
-  contingencyPct: number;  // e.g. 0.05
-  discountRate: number;    // for residual land value
-  sellCapRate: number;     // for rental income valuation
+  softCostPct: number; // e.g. 0.25
+  contingencyPct: number; // e.g. 0.05
+  discountRate: number; // for residual land value
+  sellCapRate: number; // for rental income valuation
 }
 
 export function runFinance(
@@ -15,7 +15,7 @@ export function runFinance(
   a: FinanceAssumptions
 ): FinanceResult {
   const revenue =
-    scheme.name === "Apt5Story"
+    scheme.name === 'Apt5Story'
       ? // ‑‑ rental product: capitalise NOI
         (scheme.salePriceOrRentPerUnit * yld.units) / a.sellCapRate
       : // ‑‑ for‑sale product: unit × sale price

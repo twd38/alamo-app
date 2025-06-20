@@ -1,21 +1,21 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus, X, Trash2 } from "lucide-react"
-import { toast } from "react-hot-toast"
-import { Part, BOMType, Prisma } from "@prisma/client"
-import { getParts } from '@/lib/queries'
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, X, Trash2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { Part, BOMType, Prisma } from '@prisma/client';
+import { getParts } from '@/lib/queries';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { UseFormReturn } from "react-hook-form"
+  TableRow
+} from '@/components/ui/table';
+import { UseFormReturn } from 'react-hook-form';
 
 // Interface for BOM component items
 export interface BOMPartsItem {
@@ -38,8 +38,8 @@ export const BOMPartsManager = ({
 }: BOMPartsManagerProps) => {
   // Internal state
   const [bomParts, setBomParts] = useState<BOMPartsItem[]>(defaultValues || []);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedQuery, setDebouncedQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<Part[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
@@ -70,7 +70,10 @@ export const BOMPartsManager = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.search-container') && !target.closest('.search-results')) {
+      if (
+        !target.closest('.search-container') &&
+        !target.closest('.search-results')
+      ) {
         setShowSearchResults(false);
       }
     };
@@ -87,21 +90,21 @@ export const BOMPartsManager = ({
       setSearchResults([]);
       return;
     }
-    
+
     setIsSearching(true);
     try {
       const results = await getParts({
         query: debouncedQuery,
         page: 1,
         limit: 10,
-        sortBy: "partNumber",
-        sortOrder: "asc"
+        sortBy: 'partNumber',
+        sortOrder: 'asc'
       });
-      
+
       setSearchResults(results);
     } catch (error) {
-      console.error("Error searching parts:", error);
-      toast.error("Failed to search parts");
+      console.error('Error searching parts:', error);
+      toast.error('Failed to search parts');
     } finally {
       setIsSearching(false);
     }
@@ -110,14 +113,14 @@ export const BOMPartsManager = ({
   // Add part to BOM
   const addPartToBOM = (part: Part): void => {
     // Check if part already exists in BOM
-    const exists = bomParts.some(item => item.id === part.id);
+    const exists = bomParts.some((item) => item.id === part.id);
     if (exists) {
-      toast.error("Part already added to BOM");
+      toast.error('Part already added to BOM');
       return;
     }
-    
+
     // Add part to BOM with default quantity of 1
-    
+
     setBomParts([
       ...bomParts,
       {
@@ -127,9 +130,9 @@ export const BOMPartsManager = ({
         bomType: defaultBomType
       }
     ]);
-    
+
     // Clear search
-    setSearchQuery("");
+    setSearchQuery('');
     setSearchResults([]);
     setShowSearchResults(false);
   };
@@ -152,7 +155,6 @@ export const BOMPartsManager = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col space-y-2">
-        
         {/* Search Component */}
         <div className="relative search-container">
           <div className="flex gap-2">
@@ -177,7 +179,7 @@ export const BOMPartsManager = ({
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3"
                   onClick={() => {
-                    setSearchQuery("");
+                    setSearchQuery('');
                     setSearchResults([]);
                   }}
                 >
@@ -186,58 +188,67 @@ export const BOMPartsManager = ({
               )}
             </div>
           </div>
-          
+
           {/* Search Results Dropdown */}
-          {showSearchResults && (searchResults.length > 0 || isSearching || searchQuery) && (
-            <div className="absolute z-10 mt-1 w-full bg-popover shadow-md rounded-md border overflow-hidden search-results">
-              {isSearching ? (
-                <div className="text-center py-4">
-                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
-                  <p className="mt-1 text-xs text-muted-foreground">Searching...</p>
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="max-h-60 overflow-auto">
-                  {searchResults.map((part) => {
-                    const isAlreadyAdded = bomParts.some(
-                      item => item.id === part.id
-                    );
-                    
-                    return (
-                      <div 
-                        key={part.id} 
-                        className={`flex items-center justify-between p-2 hover:bg-accent cursor-pointer ${isAlreadyAdded ? "bg-muted/50" : ""}`}
-                        onClick={() => {
-                          if (!isAlreadyAdded) {
-                            addPartToBOM(part);
-                          }
-                        }}
-                      >
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{part.description}</span>
+          {showSearchResults &&
+            (searchResults.length > 0 || isSearching || searchQuery) && (
+              <div className="absolute z-10 mt-1 w-full bg-popover shadow-md rounded-md border overflow-hidden search-results">
+                {isSearching ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Searching...
+                    </p>
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-60 overflow-auto">
+                    {searchResults.map((part) => {
+                      const isAlreadyAdded = bomParts.some(
+                        (item) => item.id === part.id
+                      );
+
+                      return (
+                        <div
+                          key={part.id}
+                          className={`flex items-center justify-between p-2 hover:bg-accent cursor-pointer ${isAlreadyAdded ? 'bg-muted/50' : ''}`}
+                          onClick={() => {
+                            if (!isAlreadyAdded) {
+                              addPartToBOM(part);
+                            }
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {part.description}
+                              </span>
+                            </div>
+                            <span className="text-sm text-muted-foreground truncate max-w-xs">
+                              {part.partNumber}
+                            </span>
                           </div>
-                          <span className="text-sm text-muted-foreground truncate max-w-xs">{part.partNumber}</span>
+                          {isAlreadyAdded ? (
+                            <span className="text-xs text-muted-foreground px-2">
+                              Added
+                            </span>
+                          ) : (
+                            <Plus className="h-4 w-4 text-primary" />
+                          )}
                         </div>
-                        {isAlreadyAdded ? (
-                          <span className="text-xs text-muted-foreground px-2">Added</span>
-                        ) : (
-                          <Plus className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : searchQuery ? (
-                <div className="text-center py-3 text-sm text-muted-foreground">
-                  No parts found
-                </div>
-              ) : (
-                <div className="text-center py-3 text-sm text-muted-foreground">
-                  Enter a search term to find parts
-                </div>
-              )}
-            </div>
-          )}
+                      );
+                    })}
+                  </div>
+                ) : searchQuery ? (
+                  <div className="text-center py-3 text-sm text-muted-foreground">
+                    No parts found
+                  </div>
+                ) : (
+                  <div className="text-center py-3 text-sm text-muted-foreground">
+                    Enter a search term to find parts
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       </div>
 
@@ -258,7 +269,9 @@ export const BOMPartsManager = ({
                 <TableRow key={bomPart.id}>
                   <TableCell className="flex flex-col">
                     {bomPart.part.description}
-                    <span className="text-xs text-muted-foreground">{bomPart.part.partNumber}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {bomPart.part.partNumber}
+                    </span>
                   </TableCell>
                   <TableCell>{bomPart.part.unit}</TableCell>
                   <TableCell>
@@ -266,7 +279,9 @@ export const BOMPartsManager = ({
                       type="number"
                       value={bomPart.qty}
                       min="1"
-                      onChange={(e) => updateComponentQuantity(index, parseInt(e.target.value))}
+                      onChange={(e) =>
+                        updateComponentQuantity(index, parseInt(e.target.value))
+                      }
                       className="w-20"
                     />
                   </TableCell>
@@ -284,7 +299,10 @@ export const BOMPartsManager = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   No components added. Use the search above to add components.
                 </TableCell>
               </TableRow>

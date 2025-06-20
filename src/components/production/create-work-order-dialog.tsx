@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { useEffect, useState, useCallback } from "react"
-import Image from "next/image"
-import { CalendarIcon, MinusIcon, PlusIcon } from "lucide-react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
+import { CalendarIcon, MinusIcon, PlusIcon } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -13,47 +13,49 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+  FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import { UserSelect } from "@/components/user-select"
-import { getAllUsers } from "@/lib/queries"
-import { WorkOrderStatus, type User } from "@prisma/client"
-import { createWorkOrder } from "@/lib/actions"
+  PopoverTrigger
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { UserSelect } from '@/components/user-select';
+import { getAllUsers } from '@/lib/queries';
+import { WorkOrderStatus, type User } from '@prisma/client';
+import { createWorkOrder } from '@/lib/actions';
 
 // -----------------------------------------------------------------------------
 // Validation schema & types
 // -----------------------------------------------------------------------------
 
 const formSchema = z.object({
-  partQty: z.number().int().min(1, { message: "Quantity must be at least 1" }),
-  operation: z.string().min(1, { message: "Operation is required" }),
+  partQty: z.number().int().min(1, { message: 'Quantity must be at least 1' }),
+  operation: z.string().min(1, { message: 'Operation is required' }),
   timeEstimate: z.string().optional(),
-  dueDate: z.date({ required_error: "Due date is required" }),
-  assigneeIds: z.array(z.string()).min(1, { message: "Select at least one assignee" }),
+  dueDate: z.date({ required_error: 'Due date is required' }),
+  assigneeIds: z
+    .array(z.string())
+    .min(1, { message: 'Select at least one assignee' }),
   status: z.nativeEnum(WorkOrderStatus),
-  notes: z.string().optional(),
-})
+  notes: z.string().optional()
+});
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<typeof formSchema>;
 
 // -----------------------------------------------------------------------------
 // Component
@@ -61,34 +63,34 @@ type FormValues = z.infer<typeof formSchema>
 interface CreateWorkOrderDialogProps {
   /** The part for which this work order is being created */
   part: {
-    id: string
-    partNumber: string
-    description: string
-    partImage?: { url: string } | null
-  }
+    id: string;
+    partNumber: string;
+    description: string;
+    partImage?: { url: string } | null;
+  };
 }
 
 export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [users, setUsers] = useState<User[]>([])
+  const [open, setOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   // ---------------------------------------------------------------------------
   // Fetch users when dialog opens
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!open) {
-      return
+      return;
     }
     const fetchUsers = async () => {
       try {
-        const data = await getAllUsers()
-        setUsers(data as User[])
+        const data = await getAllUsers();
+        setUsers(data as User[]);
       } catch (error) {
-        console.error("Failed to load users", error)
+        console.error('Failed to load users', error);
       }
-    }
-    fetchUsers()
-  }, [open])
+    };
+    fetchUsers();
+  }, [open]);
 
   // ---------------------------------------------------------------------------
   // Form setup
@@ -97,19 +99,19 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       partQty: 1,
-      operation: "Manufacture", // reasonable default
+      operation: 'Manufacture', // reasonable default
       dueDate: undefined, // filled by user
       assigneeIds: [],
-      status: "TODO",
-      timeEstimate: "",
-      notes: "",
-    },
-  })
+      status: 'TODO',
+      timeEstimate: '',
+      notes: ''
+    }
+  });
 
-  const { watch, setValue, handleSubmit, formState } = form
-  const quantity = watch("partQty")
-  const dueDate = watch("dueDate")
-  const assigneeIds = watch("assigneeIds")
+  const { watch, setValue, handleSubmit, formState } = form;
+  const quantity = watch('partQty');
+  const dueDate = watch('dueDate');
+  const assigneeIds = watch('assigneeIds');
 
   //--------------------------------------------------------------------------
   // Handler
@@ -122,28 +124,28 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
           partQty: data.partQty,
           operation: data.operation,
           status: data.status as WorkOrderStatus,
-          timeEstimate: data.timeEstimate ?? "",
+          timeEstimate: data.timeEstimate ?? '',
           dueDate: data.dueDate,
           assigneeIds: data.assigneeIds,
-          notes: data.notes ?? "",
-        })
+          notes: data.notes ?? ''
+        });
 
         if (result?.success) {
           // eslint-disable-next-line no-console
-          console.log("Work order created", result.data)
-          form.reset()
-          setOpen(false)
+          console.log('Work order created', result.data);
+          form.reset();
+          setOpen(false);
         } else {
           // eslint-disable-next-line no-console
-          console.error(result?.error)
+          console.error(result?.error);
         }
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error("Failed to create work order", err)
+        console.error('Failed to create work order', err);
       }
     },
     [form, part.id]
-  )
+  );
 
   //--------------------------------------------------------------------------
   // Render
@@ -162,7 +164,8 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
             <DialogHeader>
               <DialogTitle>Create Work Order</DialogTitle>
               <DialogDescription>
-                Fill in the details below to create a new work order for this part.
+                Fill in the details below to create a new work order for this
+                part.
               </DialogDescription>
             </DialogHeader>
 
@@ -175,7 +178,7 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                 <h3 className="font-medium text-sm">Part Preview</h3>
                 <div className="flex justify-center">
                   <Image
-                    src={part.partImage?.url || "/placeholder.svg"}
+                    src={part.partImage?.url || '/placeholder.svg'}
                     alt={part.description}
                     width={150}
                     height={150}
@@ -184,10 +187,12 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                 </div>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium">Part Number:</span> {part.partNumber}
+                    <span className="font-medium">Part Number:</span>{' '}
+                    {part.partNumber}
                   </div>
                   <div>
-                    <span className="font-medium">Description:</span> {part.description}
+                    <span className="font-medium">Description:</span>{' '}
+                    {part.description}
                   </div>
                 </div>
               </div>
@@ -208,7 +213,7 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                             value={quantity}
                             onChange={(e) =>
                               setValue(
-                                "partQty",
+                                'partQty',
                                 Number.parseInt(e.target.value)
                               )
                             }
@@ -264,12 +269,12 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !dueDate && "text-muted-foreground"
+                              'w-full justify-start text-left font-normal',
+                              !dueDate && 'text-muted-foreground'
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dueDate ? format(dueDate, "PPP") : "Select date"}
+                            {dueDate ? format(dueDate, 'PPP') : 'Select date'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -299,7 +304,7 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                         value={assigneeIds}
                         onChange={(value) =>
                           setValue(
-                            "assigneeIds",
+                            'assigneeIds',
                             Array.isArray(value) ? value : [value]
                           )
                         }
@@ -337,20 +342,24 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setOpen(false)
-                  form.reset()
+                  setOpen(false);
+                  form.reset();
                 }}
                 disabled={formState.isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={formState.isSubmitting} isLoading={formState.isSubmitting}>
-                {formState.isSubmitting ? "Creating…" : "Create Work Order"}
+              <Button
+                type="submit"
+                disabled={formState.isSubmitting}
+                isLoading={formState.isSubmitting}
+              >
+                {formState.isSubmitting ? 'Creating…' : 'Create Work Order'}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

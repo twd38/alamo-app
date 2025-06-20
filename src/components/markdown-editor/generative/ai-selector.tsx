@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { Command, CommandInput } from "src/components/ui/command";
+import { Command, CommandInput } from 'src/components/ui/command';
 
-import { useCompletion } from "ai/react";
-import { ArrowUp, LoaderPinwheel, WandSparkles } from "lucide-react";
-import { useEditor } from "novel";
-import { addAIHighlight } from "novel";
-import { useState } from "react";
-import Markdown from "react-markdown";
-import { toast } from "react-hot-toast";
-import { Button } from "../../ui/button";
-import { ScrollArea } from "../../ui/scroll-area";
-import AICompletionCommands from "./ai-completion-command";
-import AISelectorCommands from "./ai-selector-commands";
+import { useCompletion } from 'ai/react';
+import { ArrowUp, LoaderPinwheel, WandSparkles } from 'lucide-react';
+import { useEditor } from 'novel';
+import { addAIHighlight } from 'novel';
+import { useState } from 'react';
+import Markdown from 'react-markdown';
+import { toast } from 'react-hot-toast';
+import { Button } from '../../ui/button';
+import { ScrollArea } from '../../ui/scroll-area';
+import AICompletionCommands from './ai-completion-command';
+import AISelectorCommands from './ai-selector-commands';
 //TODO: I think it makes more sense to create a custom Tiptap extension for this functionality https://tiptap.dev/docs/editor/ai/introduction
 
 interface AISelectorProps {
@@ -22,22 +22,22 @@ interface AISelectorProps {
 
 export function AISelector({ onOpenChange }: AISelectorProps) {
   const { editor } = useEditor();
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
 
   if (!editor) return null;
 
   const { completion, complete, isLoading } = useCompletion({
     // id: "novel",
-    api: "/api/generate",
+    api: '/api/generate',
     onResponse: (response: any) => {
       if (response.status === 429) {
-        toast.error("You have reached your request limit for the day.");
+        toast.error('You have reached your request limit for the day.');
         return;
       }
     },
     onError: (e) => {
       toast.error(e.message);
-    },
+    }
   });
 
   const hasCompletion = completion.length > 0;
@@ -70,7 +70,11 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
               value={inputValue}
               onValueChange={setInputValue}
               autoFocus
-              placeholder={hasCompletion ? "Tell AI what to do next" : "Ask AI to edit or generate..."}
+              placeholder={
+                hasCompletion
+                  ? 'Tell AI what to do next'
+                  : 'Ask AI to edit or generate...'
+              }
               onFocus={() => addAIHighlight(editor)}
             />
             <Button
@@ -79,15 +83,17 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
               onClick={() => {
                 if (completion)
                   return complete(completion, {
-                    body: { option: "zap", command: inputValue },
-                  }).then(() => setInputValue(""));
+                    body: { option: 'zap', command: inputValue }
+                  }).then(() => setInputValue(''));
 
                 const slice = editor.state.selection.content();
-                const text = editor.storage.markdown.serializer.serialize(slice.content);
+                const text = editor.storage.markdown.serializer.serialize(
+                  slice.content
+                );
 
                 complete(text, {
-                  body: { option: "zap", command: inputValue },
-                }).then(() => setInputValue(""));
+                  body: { option: 'zap', command: inputValue }
+                }).then(() => setInputValue(''));
               }}
             >
               <ArrowUp className="h-4 w-4" />
@@ -102,7 +108,11 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
               completion={completion}
             />
           ) : (
-            <AISelectorCommands onSelect={(value, option) => complete(value, { body: { option } })} />
+            <AISelectorCommands
+              onSelect={(value, option) =>
+                complete(value, { body: { option } })
+              }
+            />
           )}
         </>
       )}

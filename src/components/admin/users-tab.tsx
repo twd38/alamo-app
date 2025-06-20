@@ -1,58 +1,68 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getUsersWithRoles } from '@/lib/rbac-actions'
-import { UserDialog } from '@/components/admin/user-dialog'
-import { UsersDataTable } from './users-data-table'
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { getUsersWithRoles } from '@/lib/rbac-actions';
+import { UserDialog } from '@/components/admin/user-dialog';
+import { UsersDataTable } from './users-data-table';
 
 interface User {
-  id: string
-  name: string
-  email: string
-  image?: string | null
-  createdAt: Date
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
+  createdAt: Date;
   userRoles: Array<{
     role: {
-      id: string
-      name: string
-      description?: string | null
-    }
-  }>
+      id: string;
+      name: string;
+      description?: string | null;
+    };
+  }>;
 }
 
 export function UsersTab() {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const queryClient = useQueryClient()
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: usersResult, isLoading, error } = useQuery({
+  const {
+    data: usersResult,
+    isLoading,
+    error
+  } = useQuery({
     queryKey: ['admin-users'],
-    queryFn: getUsersWithRoles,
-  })
+    queryFn: getUsersWithRoles
+  });
 
-  const users = usersResult?.success ? usersResult.data || [] : []
+  const users = usersResult?.success ? usersResult.data || [] : [];
 
   const handleCreateUser = () => {
-    setSelectedUser(null)
-    setIsDialogOpen(true)
-  }
+    setSelectedUser(null);
+    setIsDialogOpen(true);
+  };
 
   const handleEditUser = (user: User) => {
-    setSelectedUser(user)
-    setIsDialogOpen(true)
-  }
+    setSelectedUser(user);
+    setIsDialogOpen(true);
+  };
 
   const handleDialogClose = () => {
-    setIsDialogOpen(false)
-    setSelectedUser(null)
-  }
+    setIsDialogOpen(false);
+    setSelectedUser(null);
+  };
 
   const handleUserSaved = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    handleDialogClose()
-  }
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    handleDialogClose();
+  };
 
   if (error) {
     return (
@@ -67,7 +77,7 @@ export function UsersTab() {
           </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -96,5 +106,5 @@ export function UsersTab() {
         onUserSaved={handleUserSaved}
       />
     </>
-  )
-} 
+  );
+}

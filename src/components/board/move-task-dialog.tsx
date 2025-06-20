@@ -1,102 +1,116 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { ComboBox } from "@/components/combo-box"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { updateTask } from "@/lib/actions"
-import { toast } from "react-hot-toast"
-import { useRouter } from "next/navigation"
-import { useAtom } from "jotai"
-import { taskModal } from "./utils"
-import { getKanbanSections } from "@/lib/queries"
-import useSWR from "swr"
-import { Task } from "@prisma/client"
+  DialogTitle
+} from '@/components/ui/dialog';
+import { ComboBox } from '@/components/combo-box';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form';
+import { updateTask } from '@/lib/actions';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { useAtom } from 'jotai';
+import { taskModal } from './utils';
+import { getKanbanSections } from '@/lib/queries';
+import useSWR from 'swr';
+import { Task } from '@prisma/client';
 
 const formSchema = z.object({
   boardId: z.string(),
-  kanbanSectionId: z.string(),
-})
+  kanbanSectionId: z.string()
+});
 
 interface MoveTaskDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  taskId: string
-  task: Task
-  currentBoardId: string
-  boards: { id: string; name: string }[]
+  isOpen: boolean;
+  onClose: () => void;
+  taskId: string;
+  task: Task;
+  currentBoardId: string;
+  boards: { id: string; name: string }[];
 }
 
-export function MoveTaskDialog({ isOpen, onClose, taskId, task,currentBoardId, boards }: MoveTaskDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const [activeTask, setActiveTask] = useAtom(taskModal)
+export function MoveTaskDialog({
+  isOpen,
+  onClose,
+  taskId,
+  task,
+  currentBoardId,
+  boards
+}: MoveTaskDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const [activeTask, setActiveTask] = useAtom(taskModal);
 
   const handleClose = () => {
     setActiveTask({
       type: null,
       taskId: null,
-      kanbanSectionId: null,
-    })
-    onClose()
-  }
+      kanbanSectionId: null
+    });
+    onClose();
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      boardId: "",
-      kanbanSectionId: "",
-    },
-  })
+      boardId: '',
+      kanbanSectionId: ''
+    }
+  });
 
-  const selectedBoardId = form.watch("boardId")
-  const selectedKanbanSectionId = form.watch("kanbanSectionId")
+  const selectedBoardId = form.watch('boardId');
+  const selectedKanbanSectionId = form.watch('kanbanSectionId');
 
   const { data: kanbanSections } = useSWR(
     selectedBoardId ? `kanbanSections-${selectedBoardId}` : null,
     () => getKanbanSections(selectedBoardId)
-  )
+  );
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const result = await updateTask(taskId, {
         boardId: data.boardId,
         kanbanSectionId: data.kanbanSectionId,
         taskOrder: 0,
-        tags: [],
-      })
+        tags: []
+      });
 
       if (!result.success) {
-        throw new Error(result.error)
+        throw new Error(result.error);
       }
 
-      toast.success("Task moved successfully")
+      toast.success('Task moved successfully');
       setActiveTask({
         type: null,
         taskId: null,
-        kanbanSectionId: null,
-      })
-      router.refresh()
-      handleClose()
+        kanbanSectionId: null
+      });
+      router.refresh();
+      handleClose();
     } catch (error) {
-      console.error("Error moving task:", error)
-      toast.error("Failed to move task")
+      console.error('Error moving task:', error);
+      toast.error('Failed to move task');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -149,7 +163,13 @@ export function MoveTaskDialog({ isOpen, onClose, taskId, task,currentBoardId, b
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading || !selectedBoardId || !selectedKanbanSectionId} isLoading={isLoading} >
+              <Button
+                type="submit"
+                disabled={
+                  isLoading || !selectedBoardId || !selectedKanbanSectionId
+                }
+                isLoading={isLoading}
+              >
                 Move Task
               </Button>
             </DialogFooter>
@@ -157,5 +177,5 @@ export function MoveTaskDialog({ isOpen, onClose, taskId, task,currentBoardId, b
         </Form>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

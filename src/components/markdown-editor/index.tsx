@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import {
   EditorCommand,
   EditorCommandEmpty,
@@ -12,25 +12,25 @@ import {
   handleCommandNavigation,
   handleImageDrop,
   handleImagePaste,
-  Placeholder,
-} from "novel";
-import { useEffect, useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
-import { defaultExtensions } from "./extensions";
-import { ColorSelector } from "./selectors/color-selector";
-import { LinkSelector } from "./selectors/link-selector";
-import { MathSelector } from "./selectors/math-selector";
-import { NodeSelector } from "./selectors/node-selector";
-import { Separator } from "../ui/separator";
+  Placeholder
+} from 'novel';
+import { useEffect, useState } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
+import { defaultExtensions } from './extensions';
+import { ColorSelector } from './selectors/color-selector';
+import { LinkSelector } from './selectors/link-selector';
+import { MathSelector } from './selectors/math-selector';
+import { NodeSelector } from './selectors/node-selector';
+import { Separator } from '../ui/separator';
 
-import GenerativeMenuSwitch from "./generative/generative-menu-switch";
-import { uploadFn } from "./image-upload";
-import { TextButtons } from "./selectors/text-buttons";
-import { slashCommand, suggestionItems } from "./slash-command";
-import { ControllerRenderProps } from "react-hook-form";
-import { cn } from "@/lib/utils";
+import GenerativeMenuSwitch from './generative/generative-menu-switch';
+import { uploadFn } from './image-upload';
+import { TextButtons } from './selectors/text-buttons';
+import { slashCommand, suggestionItems } from './slash-command';
+import { ControllerRenderProps } from 'react-hook-form';
+import { cn } from '@/lib/utils';
 
-const hljs = require("highlight.js");
+const hljs = require('highlight.js');
 
 interface MarkdownEditorProps {
   initialContent: string | null | undefined;
@@ -65,7 +65,7 @@ const defaultInitialContent = `{
       ]
     }
   ]
-}`
+}`;
 
 export const MarkdownEditor = ({
   initialContent = defaultInitialContent,
@@ -75,48 +75,65 @@ export const MarkdownEditor = ({
   hideSaveStatus = false,
   hideWordCount = false,
   placeholder = 'Start writing...',
-  readOnly = false,
+  readOnly = false
 }: MarkdownEditorProps) => {
-//   const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  //   const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
+  const [saveStatus, setSaveStatus] = useState('Saved');
   const [charsCount, setCharsCount] = useState();
-  const [editorInstance, setEditorInstance] = useState<EditorInstance | null>(null);
+  const [editorInstance, setEditorInstance] = useState<EditorInstance | null>(
+    null
+  );
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
 
-  const baseExtensions = [...defaultExtensions.filter(ext => ext !== Placeholder), slashCommand];
-  const extensions = [...baseExtensions, Placeholder.configure({
-    placeholder,
-    emptyEditorClass: 'is-editor-empty',
-    emptyNodeClass: 'is-empty',
-    showOnlyWhenEditable: true,
-    includeChildren: true,
-  })] as any;
+  const baseExtensions = [
+    ...defaultExtensions.filter((ext) => ext !== Placeholder),
+    slashCommand
+  ];
+  const extensions = [
+    ...baseExtensions,
+    Placeholder.configure({
+      placeholder,
+      emptyEditorClass: 'is-editor-empty',
+      emptyNodeClass: 'is-empty',
+      showOnlyWhenEditable: true,
+      includeChildren: true
+    })
+  ] as any;
 
   //Apply Codeblock Highlighting on the HTML from editor.getHTML()
   const highlightCodeblocks = (content: string) => {
-    const doc = new DOMParser().parseFromString(content, "text/html");
-    doc.querySelectorAll("pre code").forEach((el) => {
+    const doc = new DOMParser().parseFromString(content, 'text/html');
+    doc.querySelectorAll('pre code').forEach((el) => {
       // @ts-ignore
       // https://highlightjs.readthedocs.io/en/latest/api.html?highlight=highlightElement#highlightelement
       hljs.highlightElement(el);
     });
     return new XMLSerializer().serializeToString(doc);
   };
-  
-  const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
-    const json = editor.getJSON();
-    setCharsCount(editor.storage.characterCount.words());
-    window.localStorage.setItem("html-content", highlightCodeblocks(editor.getHTML()));
-    window.localStorage.setItem("novel-content", JSON.stringify(json));
-    window.localStorage.setItem("markdown", editor.storage.markdown.getMarkdown());
-    setSaveStatus("Saved");
 
-    await updateContent(JSON.stringify(json));
-  }, 2000);
+  const debouncedUpdates = useDebouncedCallback(
+    async (editor: EditorInstance) => {
+      const json = editor.getJSON();
+      setCharsCount(editor.storage.characterCount.words());
+      window.localStorage.setItem(
+        'html-content',
+        highlightCodeblocks(editor.getHTML())
+      );
+      window.localStorage.setItem('novel-content', JSON.stringify(json));
+      window.localStorage.setItem(
+        'markdown',
+        editor.storage.markdown.getMarkdown()
+      );
+      setSaveStatus('Saved');
+
+      await updateContent(JSON.stringify(json));
+    },
+    2000
+  );
 
   const initialContentJson = initialContent ? JSON.parse(initialContent) : null;
 
@@ -127,19 +144,31 @@ export const MarkdownEditor = ({
   };
 
   return (
-    <div 
+    <div
       className={cn(
-        "relative w-full h-full",
-        readOnly ? "cursor-default" : "cursor-text",
+        'relative w-full h-full',
+        readOnly ? 'cursor-default' : 'cursor-text',
         className
       )}
       onClick={handleContainerClick}
     >
       <div className="flex absolute right-0 top-0 z-10 mb-5 gap-2">
-        {!hideSaveStatus && ( <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">{saveStatus}</div> )}
-        {!hideWordCount && ( <div className={charsCount ? "rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground" : "hidden"}>
-          {charsCount} Words
-        </div> )}
+        {!hideSaveStatus && (
+          <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">
+            {saveStatus}
+          </div>
+        )}
+        {!hideWordCount && (
+          <div
+            className={
+              charsCount
+                ? 'rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground'
+                : 'hidden'
+            }
+          >
+            {charsCount} Words
+          </div>
+        )}
       </div>
       <EditorRoot>
         <EditorContent
@@ -150,19 +179,20 @@ export const MarkdownEditor = ({
           editable={!readOnly}
           editorProps={{
             handleDOMEvents: {
-              keydown: (_view, event) => handleCommandNavigation(event),
+              keydown: (_view, event) => handleCommandNavigation(event)
             },
-            handlePaste: (view, event) => handleImagePaste(view, event, uploadFn),
-            handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
+            handlePaste: (view, event) =>
+              handleImagePaste(view, event, uploadFn),
+            handleDrop: (view, event, _slice, moved) =>
+              handleImageDrop(view, event, moved, uploadFn),
             attributes: {
-              class:
-                `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full prose-p:my-1 prose-p:leading-tight`,
-            },
+              class: `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full prose-p:my-1 prose-p:leading-tight`
+            }
           }}
           onUpdate={({ editor }) => {
             if (!readOnly) {
               debouncedUpdates(editor);
-              setSaveStatus("Unsaved");
+              setSaveStatus('Unsaved');
             }
           }}
           onCreate={({ editor }) => {
@@ -173,7 +203,9 @@ export const MarkdownEditor = ({
           {!readOnly && (
             <>
               <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-muted bg-background px-1 py-2 shadow-md transition-all">
-                <EditorCommandEmpty className="px-2 text-muted-foreground">No results</EditorCommandEmpty>
+                <EditorCommandEmpty className="px-2 text-muted-foreground">
+                  No results
+                </EditorCommandEmpty>
                 <EditorCommandList>
                   {suggestionItems.map((item) => (
                     <EditorCommandItem
@@ -187,7 +219,9 @@ export const MarkdownEditor = ({
                       </div>
                       <div>
                         <p className="font-medium">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.description}
+                        </p>
                       </div>
                     </EditorCommandItem>
                   ))}

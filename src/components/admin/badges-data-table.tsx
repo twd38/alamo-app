@@ -1,53 +1,58 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Search, Plus, Trash2, MoreHorizontal } from 'lucide-react'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, Plus, Trash2, MoreHorizontal } from 'lucide-react';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  TableRow
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { AccessBadgeWithRelations } from '@/lib/queries'
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { AccessBadgeWithRelations } from '@/lib/queries';
 
 interface BadgesDataTableProps {
-  badges: AccessBadgeWithRelations[]
-  onCreateBadge: () => void
-  onDeleteBadge: (badgeId: string) => void
-  isLoading: boolean
+  badges: AccessBadgeWithRelations[];
+  onCreateBadge: () => void;
+  onDeleteBadge: (badgeId: string) => void;
+  isLoading: boolean;
 }
 
-export function BadgesDataTable({ 
-  badges, 
-  onCreateBadge, 
+export function BadgesDataTable({
+  badges,
+  onCreateBadge,
   onDeleteBadge,
-  isLoading 
+  isLoading
 }: BadgesDataTableProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter badges based on search query
-  const filteredBadges = badges.filter(badge =>
-    badge.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    badge.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    badge.id.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredBadges = badges.filter(
+    (badge) =>
+      badge.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      badge.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      badge.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDeleteClick = (badgeId: string, userName?: string) => {
-    if (window.confirm(`Are you sure you want to delete the badge for ${userName || 'this user'}? This action cannot be undone.`)) {
-      onDeleteBadge(badgeId)
+    if (
+      window.confirm(
+        `Are you sure you want to delete the badge for ${userName || 'this user'}? This action cannot be undone.`
+      )
+    ) {
+      onDeleteBadge(badgeId);
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -113,7 +118,7 @@ export function BadgesDataTable({
           </Table>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -151,8 +156,13 @@ export function BadgesDataTable({
           <TableBody>
             {filteredBadges.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  {searchQuery ? 'No badges found matching your search.' : 'No badges found.'}
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  {searchQuery
+                    ? 'No badges found matching your search.'
+                    : 'No badges found.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -166,7 +176,9 @@ export function BadgesDataTable({
                           {badge.user?.name?.charAt(0)?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="font-medium">{badge.user?.name || 'Unknown'}</div>
+                      <div className="font-medium">
+                        {badge.user?.name || 'Unknown'}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -193,7 +205,9 @@ export function BadgesDataTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => handleDeleteClick(badge.id, badge.user?.name)}
+                          onClick={() =>
+                            handleDeleteClick(badge.id, badge.user?.name)
+                          }
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -209,5 +223,5 @@ export function BadgesDataTable({
         </Table>
       </div>
     </div>
-  )
-} 
+  );
+}

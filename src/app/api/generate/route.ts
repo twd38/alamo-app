@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY || ''
 });
 
 export const runtime = 'edge';
@@ -18,13 +18,14 @@ export async function POST(req: Request) {
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful AI writing assistant. You help users improve their writing by providing suggestions and edits.',
+          content:
+            'You are a helpful AI writing assistant. You help users improve their writing by providing suggestions and edits.'
         },
         {
           role: 'user',
-          content: `Task: ${option}\nCommand: ${command}\nText: ${prompt}`,
-        },
-      ],
+          content: `Task: ${option}\nCommand: ${command}\nText: ${prompt}`
+        }
+      ]
     });
 
     return new Response(response.toReadableStream());
@@ -35,4 +36,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-} 
+}

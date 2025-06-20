@@ -17,7 +17,7 @@ import { updateKanbanSection } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 
 const columnSchema = z.object({
-  name: z.string().min(1, 'Column name is required'),
+  name: z.string().min(1, 'Column name is required')
 });
 
 type FormValues = z.infer<typeof columnSchema>;
@@ -35,19 +35,24 @@ export default function EditColumnDialog({
   isOpen,
   onClose
 }: EditColumnDialogProps) {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm<FormValues>({
     resolver: zodResolver(columnSchema),
     defaultValues: {
-      name: columnName,
+      name: columnName
     }
   });
 
   const onSubmit = async (data: FormValues) => {
     try {
       const result = await updateKanbanSection(columnId, {
-        name: data.name,
+        name: data.name
       });
-      
+
       if (result.success) {
         toast.success('Column updated successfully');
         onClose();
@@ -72,7 +77,7 @@ export default function EditColumnDialog({
               <Label htmlFor="name">Column Name</Label>
               <Input
                 id="name"
-                className='h-10'
+                className="h-10"
                 placeholder="Column Name"
                 {...register('name')}
               />
@@ -81,12 +86,16 @@ export default function EditColumnDialog({
               )}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+            >
               Save Changes
             </Button>
           </DialogFooter>
@@ -94,4 +103,4 @@ export default function EditColumnDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}

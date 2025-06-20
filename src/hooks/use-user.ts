@@ -16,4 +16,4 @@ export function useUser() {
     isLoading: status === 'loading',
     isAuthenticated: status === 'authenticated'
   };
-} 
+}

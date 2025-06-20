@@ -1,8 +1,8 @@
 module.exports = {
   experimental: {
     serverActions: {
-      bodySizeLimit: '20mb',
-    },
+      bodySizeLimit: '20mb'
+    }
   },
   transpilePackages: ['three'],
   images: {
@@ -31,7 +31,7 @@ module.exports = {
         protocol: 'https',
         hostname: 'api.zoneomics.com',
         pathname: '/**'
-      },
+      }
     ]
-  },
-}
+  }
+};

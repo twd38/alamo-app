@@ -1,62 +1,63 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Edit2, MoreHorizontal } from 'lucide-react'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Search, Plus, Edit2, MoreHorizontal } from 'lucide-react';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  TableRow
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 interface User {
-  id: string
-  name: string
-  email: string
-  image?: string | null
-  createdAt: Date
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
+  createdAt: Date;
   userRoles: Array<{
     role: {
-      id: string
-      name: string
-      description?: string | null
-    }
-  }>
+      id: string;
+      name: string;
+      description?: string | null;
+    };
+  }>;
 }
 
 interface UsersDataTableProps {
-  users: User[]
-  onCreateUser: () => void
-  onEditUser: (user: User) => void
-  isLoading: boolean
+  users: User[];
+  onCreateUser: () => void;
+  onEditUser: (user: User) => void;
+  isLoading: boolean;
 }
 
-export function UsersDataTable({ 
-  users, 
-  onCreateUser, 
-  onEditUser, 
-  isLoading 
+export function UsersDataTable({
+  users,
+  onCreateUser,
+  onEditUser,
+  isLoading
 }: UsersDataTableProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter users based on search query
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (isLoading) {
     return (
@@ -115,7 +116,7 @@ export function UsersDataTable({
           </Table>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -150,8 +151,13 @@ export function UsersDataTable({
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  {searchQuery
+                    ? 'No users found matching your search.'
+                    : 'No users found.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -175,7 +181,11 @@ export function UsersDataTable({
                     <div className="flex flex-wrap gap-1">
                       {user.userRoles.length > 0 ? (
                         user.userRoles.map((userRole) => (
-                          <Badge key={userRole.role.id} variant="secondary" className="text-xs">
+                          <Badge
+                            key={userRole.role.id}
+                            variant="secondary"
+                            className="text-xs"
+                          >
                             {userRole.role.name}
                           </Badge>
                         ))
@@ -192,7 +202,11 @@ export function UsersDataTable({
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -215,5 +229,5 @@ export function UsersDataTable({
         </Table>
       </div>
     </div>
-  )
-} 
+  );
+}

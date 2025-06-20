@@ -22,8 +22,8 @@ import { ConfirmDeleteAlert } from '@/components/confirm-delete-alert';
 import { deleteBoard } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { UserAccessList } from '@/components/user-access-list';
-import data from '@emoji-mart/data'
-import Picker from '@emoji-mart/react'
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 type BoardWithRelations = Board & {
   createdBy: User;
@@ -31,7 +31,7 @@ type BoardWithRelations = Board & {
 };
 
 type TopBarProps = {
-  activeBoard: BoardWithRelations | "my-tasks";
+  activeBoard: BoardWithRelations | 'my-tasks';
   boards: BoardWithRelations[];
 };
 
@@ -40,14 +40,14 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const isMyTasks = activeBoard === "my-tasks";
+  const isMyTasks = activeBoard === 'my-tasks';
 
-  const boardId = isMyTasks ? "my-tasks" : activeBoard.id;
+  const boardId = isMyTasks ? 'my-tasks' : activeBoard.id;
   const creator = isMyTasks ? null : activeBoard.createdBy;
   const collaborators = isMyTasks ? [] : activeBoard.collaborators;
   const isPrivate = isMyTasks ? true : activeBoard.private;
-  const icon = isMyTasks ? "📚" : activeBoard.icon;
-  const name = isMyTasks ? "My Tasks" : activeBoard.name;
+  const icon = isMyTasks ? '📚' : activeBoard.icon;
+  const name = isMyTasks ? 'My Tasks' : activeBoard.name;
 
   const privateBoards = boards
     .filter((board) => board.private)
@@ -78,7 +78,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
               variant="ghost"
               className="gap-2 focus-visible:ring-0 px-2 max-h-8"
             >
-              {icon && <span className='text-lg'>{icon}</span>}
+              {icon && <span className="text-lg">{icon}</span>}
               {name} <ChevronDownIcon className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -133,7 +133,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuItem
               className="text-muted-foreground"
               onClick={() => setIsOpen(true)}
@@ -151,7 +151,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
             isPublic={!isPrivate}
           />
         )}
-        { !isMyTasks && (
+        {!isMyTasks && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -180,7 +180,7 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
         boardId={boardId}
         boardName={name}
         isPrivate={isPrivate}
-        collaboratorIds={collaborators.map(c => c.id)}
+        collaboratorIds={collaborators.map((c) => c.id)}
         icon={icon || undefined}
       />
       <ConfirmDeleteAlert

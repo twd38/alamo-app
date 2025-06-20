@@ -1,19 +1,19 @@
-"use client"
+'use client';
 
-import { useState, useRef } from "react"
-import { Card, CardHeader } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { createTask, updateDataAndRevalidate } from "@/lib/actions"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
-import { Status } from "@prisma/client"
-import type { FocusEvent } from "react"
-import { Calendar } from "lucide-react"
+import { useState, useRef } from 'react';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { createTask, updateDataAndRevalidate } from '@/lib/actions';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
+import { Status } from '@prisma/client';
+import type { FocusEvent } from 'react';
+import { Calendar } from 'lucide-react';
 
 interface TaskCardCreateProps {
-  columnId: string
-  boardId: string
-  onCancel: () => void
+  columnId: string;
+  boardId: string;
+  onCancel: () => void;
 }
 
 /**
@@ -22,56 +22,60 @@ interface TaskCardCreateProps {
  * is created in the database if a non-empty title was entered; otherwise the
  * card is dismissed without creating anything.
  */
-export function TaskCardCreate({ columnId, boardId, onCancel }: TaskCardCreateProps) {
-  const [title, setTitle] = useState<string>("")
-  const inputRef = useRef<HTMLInputElement>(null)
-  const router = useRouter()
-  const cardRef = useRef<HTMLDivElement>(null)
+export function TaskCardCreate({
+  columnId,
+  boardId,
+  onCancel
+}: TaskCardCreateProps) {
+  const [title, setTitle] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const reset = () => {
-    setTitle("")
-    onCancel()
-  }
+    setTitle('');
+    onCancel();
+  };
 
   const createNewTask = async () => {
-    const trimmed = title.trim()
+    const trimmed = title.trim();
     if (!trimmed) {
-      reset()
-      return
+      reset();
+      return;
     }
 
     try {
       const result = await createTask({
         name: trimmed,
-        taskNumber: "", // generated elsewhere if needed
-        status: "TODO",
+        taskNumber: '', // generated elsewhere if needed
+        status: 'TODO',
         priority: 0,
         dueDate: new Date(),
-        description: "{}", // empty serialized markdown
-        createdById: "", // server will infer the user from the session
+        description: '{}', // empty serialized markdown
+        createdById: '', // server will infer the user from the session
         assignees: [],
         kanbanSectionId: columnId,
         boardId,
         taskOrder: 0,
         files: [],
-        tags: [],
-      })
+        tags: []
+      });
 
       if (!result?.success) {
-        toast.error("Failed to create task")
+        toast.error('Failed to create task');
       } else {
-        toast.success("Task created")
+        toast.success('Task created');
       }
     } catch (err) {
-      console.error("Error creating task", err)
-      toast.error("Error creating task")
+      console.error('Error creating task', err);
+      toast.error('Error creating task');
     } finally {
       // Ensure UI stays in sync
-      await updateDataAndRevalidate("/production")
-      router.refresh()
-      reset()
+      await updateDataAndRevalidate('/production');
+      router.refresh();
+      reset();
     }
-  }
+  };
 
   /**
    * Run when the input loses focus.  We defer the check by one tick to allow
@@ -82,22 +86,22 @@ export function TaskCardCreate({ columnId, boardId, onCancel }: TaskCardCreatePr
   const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
     // Defer so document.activeElement is updated.
     setTimeout(() => {
-      const activeEl = document.activeElement as HTMLElement | null
+      const activeEl = document.activeElement as HTMLElement | null;
       if (!cardRef.current?.contains(activeEl)) {
-        createNewTask()
+        createNewTask();
       }
-    }, 0)
-  }
+    }, 0);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       // Prevent form submission inside DnD context.
-      e.preventDefault()
-      inputRef.current?.blur()
-    } else if (e.key === "Escape") {
-      reset()
+      e.preventDefault();
+      inputRef.current?.blur();
+    } else if (e.key === 'Escape') {
+      reset();
     }
-  }
+  };
 
   return (
     <Card ref={cardRef} className="cursor-default ">
@@ -121,5 +125,5 @@ export function TaskCardCreate({ columnId, boardId, onCancel }: TaskCardCreatePr
         </div> */}
       </CardHeader>
     </Card>
-  )
-} 
+  );
+}

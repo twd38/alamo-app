@@ -1,116 +1,131 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, Upload, X } from 'lucide-react'
-import { createUser, updateUser, getAllRoles } from '@/lib/admin-actions'
-import { assignUserRole, removeUserRole } from '@/lib/rbac-actions'
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, Upload, X } from 'lucide-react';
+import { createUser, updateUser, getAllRoles } from '@/lib/admin-actions';
+import { assignUserRole, removeUserRole } from '@/lib/rbac-actions';
 
 interface User {
-  id: string
-  name: string
-  email: string
-  image?: string | null
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
   userRoles: Array<{
     role: {
-      id: string
-      name: string
-      description?: string | null
-    }
-  }>
+      id: string;
+      name: string;
+      description?: string | null;
+    };
+  }>;
 }
 
 interface Role {
-  id: string
-  name: string
-  description?: string | null
+  id: string;
+  name: string;
+  description?: string | null;
 }
 
 interface UserDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  user: User | null
-  onUserSaved: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  user: User | null;
+  onUserSaved: () => void;
 }
 
-export function UserDialog({ isOpen, onClose, user, onUserSaved }: UserDialogProps) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [image, setImage] = useState('')
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function UserDialog({
+  isOpen,
+  onClose,
+  user,
+  onUserSaved
+}: UserDialogProps) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [image, setImage] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isEditing = !!user
+  const isEditing = !!user;
 
   // Get all available roles
   const { data: rolesResult } = useQuery({
     queryKey: ['admin-roles'],
-    queryFn: getAllRoles,
-  })
+    queryFn: getAllRoles
+  });
 
-  const roles = (rolesResult?.success ? rolesResult.data || [] : []) as Role[]
+  const roles = (rolesResult?.success ? rolesResult.data || [] : []) as Role[];
 
   // Reset form when dialog opens/closes or user changes
   useEffect(() => {
     if (isOpen) {
       if (user) {
-        setName(user.name)
-        setEmail(user.email)
-        setImage(user.image || '')
-        setSelectedRoles(user.userRoles.map(ur => ur.role.id))
+        setName(user.name);
+        setEmail(user.email);
+        setImage(user.image || '');
+        setSelectedRoles(user.userRoles.map((ur) => ur.role.id));
       } else {
-        setName('')
-        setEmail('')
-        setImage('')
-        setSelectedRoles([])
+        setName('');
+        setEmail('');
+        setImage('');
+        setSelectedRoles([]);
       }
     }
-  }, [isOpen, user])
+  }, [isOpen, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    setIsSubmitting(true);
 
     try {
       if (isEditing) {
         // Update existing user
         const result = await updateUser(user.id, {
           name,
-          image: image || null,
-        })
+          image: image || null
+        });
 
         if (!result.success) {
-          console.error('Failed to update user:', result.error)
-          setIsSubmitting(false)
-          return
+          console.error('Failed to update user:', result.error);
+          setIsSubmitting(false);
+          return;
         }
 
         // Handle role changes
-        const currentRoleIds = user.userRoles.map(ur => ur.role.id)
-        const rolesToAdd = selectedRoles.filter(roleId => !currentRoleIds.includes(roleId))
-        const rolesToRemove = currentRoleIds.filter(roleId => !selectedRoles.includes(roleId))
+        const currentRoleIds = user.userRoles.map((ur) => ur.role.id);
+        const rolesToAdd = selectedRoles.filter(
+          (roleId) => !currentRoleIds.includes(roleId)
+        );
+        const rolesToRemove = currentRoleIds.filter(
+          (roleId) => !selectedRoles.includes(roleId)
+        );
 
         // Add new roles
         for (const roleId of rolesToAdd) {
-          const role = roles.find((r: Role) => r.id === roleId)
+          const role = roles.find((r: Role) => r.id === roleId);
           if (role) {
-            await assignUserRole(user.id, role.name)
+            await assignUserRole(user.id, role.name);
           }
         }
 
         // Remove old roles
         for (const roleId of rolesToRemove) {
-          const role = roles.find((r: Role) => r.id === roleId)
+          const role = roles.find((r: Role) => r.id === roleId);
           if (role) {
-            await removeUserRole(user.id, role.name)
+            await removeUserRole(user.id, role.name);
           }
         }
       } else {
@@ -118,49 +133,47 @@ export function UserDialog({ isOpen, onClose, user, onUserSaved }: UserDialogPro
         const result = await createUser({
           name,
           email,
-          image: image || null,
-        })
+          image: image || null
+        });
 
         if (!result.success) {
-          console.error('Failed to create user:', result.error)
-          setIsSubmitting(false)
-          return
+          console.error('Failed to create user:', result.error);
+          setIsSubmitting(false);
+          return;
         }
 
         // Assign roles to new user
         if (result.data) {
           for (const roleId of selectedRoles) {
-            const role = roles.find((r: Role) => r.id === roleId)
+            const role = roles.find((r: Role) => r.id === roleId);
             if (role) {
-              await assignUserRole(result.data.id, role.name)
+              await assignUserRole(result.data.id, role.name);
             }
           }
         }
       }
 
-      onUserSaved()
+      onUserSaved();
     } catch (error) {
-      console.error('Error saving user:', error)
+      console.error('Error saving user:', error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleRoleToggle = (roleId: string) => {
-    setSelectedRoles(prev =>
+    setSelectedRoles((prev) =>
       prev.includes(roleId)
-        ? prev.filter(id => id !== roleId)
+        ? prev.filter((id) => id !== roleId)
         : [...prev, roleId]
-    )
-  }
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit User' : 'Create User'}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit User' : 'Create User'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -223,7 +236,10 @@ export function UserDialog({ isOpen, onClose, user, onUserSaved }: UserDialogPro
                       checked={selectedRoles.includes(role.id)}
                       onCheckedChange={() => handleRoleToggle(role.id)}
                     />
-                    <Label htmlFor={`role-${role.id}`} className="flex-1 cursor-pointer">
+                    <Label
+                      htmlFor={`role-${role.id}`}
+                      className="flex-1 cursor-pointer"
+                    >
                       <div className="font-medium">{role.name}</div>
                       {role.description && (
                         <div className="text-xs text-muted-foreground">
@@ -241,13 +257,18 @@ export function UserDialog({ isOpen, onClose, user, onUserSaved }: UserDialogPro
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !name.trim() || !email.trim()}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button
+              type="submit"
+              disabled={isSubmitting || !name.trim() || !email.trim()}
+            >
+              {isSubmitting && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
               {isEditing ? 'Update User' : 'Create User'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

@@ -1,4 +1,4 @@
-import { Session } from 'next-auth'
+import { Session } from 'next-auth';
 
 /**
  * Check if user has a specific permission using session data
@@ -10,26 +10,26 @@ export function hasPermissionInSession(
   resourceId?: string
 ): boolean {
   if (!session?.user?.permissions) {
-    return false
+    return false;
   }
 
-  return session.user.permissions.some(p => {
+  return session.user.permissions.some((p) => {
     // Check permission name matches
     if (p.name !== permission) {
-      return false
+      return false;
     }
 
     // If no resource specified, check for global permission
     if (!resourceType && !resourceId) {
-      return !p.resourceType && !p.resourceId
+      return !p.resourceType && !p.resourceId;
     }
 
     // If resource specified, check for exact match or global permission
     return (
       (!p.resourceType && !p.resourceId) || // Global permission
       (p.resourceType === resourceType && p.resourceId === resourceId) // Resource-specific permission
-    )
-  })
+    );
+  });
 }
 
 /**
@@ -42,26 +42,26 @@ export function hasRoleInSession(
   resourceId?: string
 ): boolean {
   if (!session?.user?.roles) {
-    return false
+    return false;
   }
 
-  return session.user.roles.some(r => {
+  return session.user.roles.some((r) => {
     // Check role name matches
     if (r.name !== roleName) {
-      return false
+      return false;
     }
 
     // If no resource specified, check for global role
     if (!resourceType && !resourceId) {
-      return !r.resourceType && !r.resourceId
+      return !r.resourceType && !r.resourceId;
     }
 
     // If resource specified, check for exact match or global role
     return (
       (!r.resourceType && !r.resourceId) || // Global role
       (r.resourceType === resourceType && r.resourceId === resourceId) // Resource-specific role
-    )
-  })
+    );
+  });
 }
 
 /**
@@ -69,10 +69,10 @@ export function hasRoleInSession(
  */
 export function getSessionPermissions(session: Session | null): string[] {
   if (!session?.user?.permissions) {
-    return []
+    return [];
   }
 
-  return session.user.permissions.map(p => p.name)
+  return session.user.permissions.map((p) => p.name);
 }
 
 /**
@@ -80,10 +80,10 @@ export function getSessionPermissions(session: Session | null): string[] {
  */
 export function getSessionRoles(session: Session | null): string[] {
   if (!session?.user?.roles) {
-    return []
+    return [];
   }
 
-  return session.user.roles.map(r => r.name)
+  return session.user.roles.map((r) => r.name);
 }
 
 /**
@@ -93,9 +93,9 @@ export function hasAnyPermissionInSession(
   session: Session | null,
   permissions: string[]
 ): boolean {
-  return permissions.some(permission => 
+  return permissions.some((permission) =>
     hasPermissionInSession(session, permission)
-  )
+  );
 }
 
 /**
@@ -105,7 +105,7 @@ export function hasAllPermissionsInSession(
   session: Session | null,
   permissions: string[]
 ): boolean {
-  return permissions.every(permission => 
+  return permissions.every((permission) =>
     hasPermissionInSession(session, permission)
-  )
-} 
+  );
+}

@@ -9,41 +9,41 @@ export interface Lot {
   depthFt: number;
   heightLimitFt: number | null;
   farLimit: number | null;
-  coverageLimit: number | null;   // decimal (0‑1) or null
+  coverageLimit: number | null; // decimal (0‑1) or null
   unitLimit: number | null;
-  parkingMinPerUnit: number;      // e.g. 1.0
+  parkingMinPerUnit: number; // e.g. 1.0
   setbacks: Setbacks;
-  landCost: number;               // $ – optional but handy for pro‑forma
+  landCost: number; // $ – optional but handy for pro‑forma
 }
 
 export interface SchemeTemplate {
-  name: "Rowhouses" | "DuplexRear" | "TriplexStack" | "Apt5Story";
+  name: 'Rowhouses' | 'DuplexRear' | 'TriplexStack' | 'Apt5Story';
   minLotAreaSqFt: number;
   minLotWidthFt: number;
   typicalStories: number;
-  baseUnits: number;              // units BEFORE yield scaling
-  footprintPerUnitSqFt: number;   // finished floorplate per unit
+  baseUnits: number; // units BEFORE yield scaling
+  footprintPerUnitSqFt: number; // finished floorplate per unit
   parkingPerUnit: number;
-  constCostPerGfa: number;        // $/ft² (hard)
+  constCostPerGfa: number; // $/ft² (hard)
   salePriceOrRentPerUnit: number; // $ (sale) or $/yr (rent)
 }
 
 export interface FeasibilityResult {
   feasible: boolean;
-  blocking: string[];             // empty → feasible
+  blocking: string[]; // empty → feasible
 }
 
 export interface YieldResult {
   units: number;
   stories: number;
-  gfa: number;                    // gross floor area ft²
+  gfa: number; // gross floor area ft²
   stalls: number;
-  coverageUsed: number;           // 0‑1
-  farUsed: number;                // decimal FAR
+  coverageUsed: number; // 0‑1
+  farUsed: number; // decimal FAR
 }
 
 export interface FinanceResult {
-  profit: number;                 // $ (before tax)
-  irr: number;                    // decimal
-  residualLandValue: number;      // $ (what you *could* pay for land)
+  profit: number; // $ (before tax)
+  irr: number; // decimal
+  residualLandValue: number; // $ (what you *could* pay for land)
 }

@@ -1,18 +1,21 @@
-'use client'
-import { useDroppable } from "@dnd-kit/core"
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { TaskCard } from "./task-card"
-import { Button } from "src/components/ui/button"
-import { MoreHorizontal, Edit, Trash, Plus } from "lucide-react"
-import { Task, User, TaskTag } from "@prisma/client"
+'use client';
+import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  SortableContext,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { TaskCard } from './task-card';
+import { Button } from 'src/components/ui/button';
+import { MoreHorizontal, Edit, Trash, Plus } from 'lucide-react';
+import { Task, User, TaskTag } from '@prisma/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "src/components/ui/dropdown-menu"
+  DropdownMenuTrigger
+} from 'src/components/ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
 import { deleteKanbanSection } from '@/lib/actions';
@@ -22,27 +25,42 @@ import { TaskCardCreate } from './task-card-create';
 // export const dynamic = 'force-dynamic';
 
 interface KanbanColumnProps {
-  id: string
-  name: string
+  id: string;
+  name: string;
   tasks: (Task & {
     assignees: User[];
     createdBy: User;
     files: any[];
     tags: TaskTag[];
-  })[]
-  handleAddTask?: () => void
-  boardId?: string
-  showCreateCard?: boolean
-  onCancelCreate?: () => void
+  })[];
+  handleAddTask?: () => void;
+  boardId?: string;
+  showCreateCard?: boolean;
+  onCancelCreate?: () => void;
 }
 
-export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCreateCard, onCancelCreate }: KanbanColumnProps) {
+export function KanbanColumn({
+  id,
+  name,
+  tasks,
+  handleAddTask,
+  boardId,
+  showCreateCard,
+  onCancelCreate
+}: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: name });
-  const { attributes, listeners, setNodeRef: setSortableNodeRef, transform, transition, isDragging } = useSortable({ 
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
     id: name,
     data: {
       type: 'column',
-      tasks,
+      tasks
     }
   });
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -51,12 +69,12 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : 1
   };
 
   const closeDeleteAlert = () => {
     setDeleteAlertOpen(false);
-  }
+  };
 
   // Function to open the delete alert
   const openDeleteAlert = () => {
@@ -66,7 +84,7 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
   // Function to handle the delete action
   const handleDeleteColumn = async () => {
     console.log(`Deleting column with id: ${id}`);
-    try{
+    try {
       await deleteKanbanSection(id);
       toast.success('Column deleted');
       setDeleteAlertOpen(false);
@@ -90,7 +108,7 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
   return (
     <div className="dark:bg-gray-800 rounded-lg">
       <div
-        ref={node => {
+        ref={(node) => {
           setNodeRef(node);
           setSortableNodeRef(node);
         }}
@@ -115,13 +133,22 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
                   </div>
                 )} */}
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2" onClick={handleAddTask}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 -mr-2"
+                onClick={handleAddTask}
+              >
                 <Plus className="h-4 w-4" />
               </Button>
               <div data-no-dnd="true">
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 -mr-2"
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -130,7 +157,11 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
                       <Edit className="mr-2 h-4 w-4" />
                       Rename column
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={openDeleteAlert} className="text-red-600" data-no-dnd>
+                    <DropdownMenuItem
+                      onClick={openDeleteAlert}
+                      className="text-red-600"
+                      data-no-dnd
+                    >
                       <Trash className="mr-2 h-4 w-4" />
                       Delete column
                     </DropdownMenuItem>
@@ -142,14 +173,21 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
           <div className="p-2 flex-1 overflow-hidden">
             {showCreateCard && boardId && (
               <div className="space-y-2 mb-2">
-                <TaskCardCreate columnId={id} boardId={boardId} onCancel={onCancelCreate || (() => {})} />
+                <TaskCardCreate
+                  columnId={id}
+                  boardId={boardId}
+                  onCancel={onCancelCreate || (() => {})}
+                />
               </div>
             )}
-            <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={tasks.map((task) => task.id)}
+              strategy={verticalListSortingStrategy}
+            >
               <div className="space-y-2 h-full overflow-y-auto">
-                {tasks.map((task) => (
+                {tasks.map((task) =>
                   task ? <TaskCard key={task.id} task={task} /> : null
-                ))}
+                )}
               </div>
             </SortableContext>
           </div>
@@ -170,6 +208,5 @@ export function KanbanColumn({ id, name, tasks, handleAddTask, boardId, showCrea
         />
       </div>
     </div>
-  )
+  );
 }
-

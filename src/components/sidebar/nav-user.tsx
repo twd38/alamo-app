@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import {
   BadgeCheck,
@@ -7,15 +7,11 @@ import {
   LogOut,
   Moon,
   Settings,
-  Sun,
-} from "lucide-react"
-import Link from "next/link"
+  Sun
+} from 'lucide-react';
+import Link from 'next/link';
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "src/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from 'src/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,38 +19,38 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "src/components/ui/dropdown-menu"
+  DropdownMenuTrigger
+} from 'src/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
-} from "src/components/ui/sidebar"
-import { signOut } from "next-auth/react"
-import { useTheme } from "next-themes"
-import { BadgeQRDialog } from './badge-qr-dialog'
-import { PermissionGate } from '@/components/rbac/permission-gate'
-import { PERMISSIONS } from '@/lib/rbac'
+  useSidebar
+} from 'src/components/ui/sidebar';
+import { signOut } from 'next-auth/react';
+import { useTheme } from 'next-themes';
+import { BadgeQRDialog } from './badge-qr-dialog';
+import { PermissionGate } from '@/components/rbac/permission-gate';
+import { PERMISSIONS } from '@/lib/rbac';
 
 export function NavUser({
   user,
-  badgeId,
+  badgeId
 }: {
   user: {
-    name?: string
-    email?: string
-    image?: string
-  }
-  badgeId: string
+    name?: string;
+    email?: string;
+    image?: string;
+  };
+  badgeId: string;
 }) {
-  const { isMobile } = useSidebar()
-  const { theme, setTheme } = useTheme()
-  const isDarkMode = theme === "dark"
+  const { isMobile } = useSidebar();
+  const { theme, setTheme } = useTheme();
+  const isDarkMode = theme === 'dark';
 
   const toggleDarkMode = () => {
-    setTheme(isDarkMode ? "light" : "dark")
-  }
+    setTheme(isDarkMode ? 'light' : 'dark');
+  };
 
   return (
     <SidebarMenu>
@@ -78,7 +74,7 @@ export function NavUser({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
@@ -97,7 +93,10 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <div className="w-full">
-                <BadgeQRDialog badgeId={badgeId} className="w-full justify-start p-0 h-auto font-normal" />
+                <BadgeQRDialog
+                  badgeId={badgeId}
+                  className="w-full justify-start p-0 h-auto font-normal"
+                />
               </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -119,14 +118,21 @@ export function NavUser({
                 Notifications
               </DropdownMenuItem>
               <DropdownMenuItem onClick={toggleDarkMode}>
-                {isDarkMode ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                {isDarkMode ? (
+                  <Sun className="h-4 w-4 mr-2" />
+                ) : (
+                  <Moon className="h-4 w-4 mr-2" />
+                )}
                 <span>Theme</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" onClick={async () => {
-              await signOut()
-            }}>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={async () => {
+                await signOut();
+              }}
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Log out
             </DropdownMenuItem>
@@ -134,5 +140,5 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

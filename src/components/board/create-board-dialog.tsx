@@ -1,10 +1,16 @@
-"use client"
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { createBoard } from '@/lib/actions';
@@ -21,7 +27,7 @@ const boardSchema = z.object({
   boardName: z.string().min(1, 'Board name is required'),
   isPrivate: z.boolean().default(false),
   collaboratorIds: z.array(z.string()).optional().default([]),
-  icon: z.string().optional(),
+  icon: z.string().optional()
 });
 
 type FormValues = z.infer<typeof boardSchema>;
@@ -31,18 +37,28 @@ interface CreateBoardDialogProps {
   onClose: () => void;
 }
 
-export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialogProps) {
+export default function CreateBoardDialog({
+  isOpen,
+  onClose
+}: CreateBoardDialogProps) {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<FormValues>({
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    setValue,
+    watch
+  } = useForm<FormValues>({
     resolver: zodResolver(boardSchema),
     defaultValues: {
       boardName: '',
       isPrivate: false,
       collaboratorIds: [],
-      icon: undefined,
+      icon: undefined
     }
   });
 
@@ -58,9 +74,9 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
         const currentUser = await getUser();
         // Filter out the current user
         const filteredUsers = fetchedUsers.filter(
-          user => user.id !== currentUser?.id
+          (user) => user.id !== currentUser?.id
         ) as User[];
-        
+
         setUsers(filteredUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -68,7 +84,7 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
         setLoading(false);
       }
     }
-    
+
     if (isOpen) {
       fetchUsers();
       reset();
@@ -82,7 +98,9 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
 
   const handleCollaboratorsChange = (selectedIds: string | string[]) => {
     // Ensure we're setting an array of string IDs
-    const ids = Array.isArray(selectedIds) ? selectedIds : [selectedIds].filter(Boolean);
+    const ids = Array.isArray(selectedIds)
+      ? selectedIds
+      : [selectedIds].filter(Boolean);
     setValue('collaboratorIds', ids);
   };
 
@@ -97,9 +115,9 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
         name: data.boardName,
         isPrivate: data.isPrivate,
         collaboratorIds: data.collaboratorIds,
-        icon: data.icon,
+        icon: data.icon
       });
-      
+
       if (result.success && result.data) {
         toast.success('Board created successfully');
         reset();
@@ -131,23 +149,27 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
                 </div>
                 <Input
                   id="boardName"
-                  className='h-10'
+                  className="h-10"
                   placeholder="My New Board"
                   {...register('boardName')}
                 />
               </div>
               {errors.boardName && (
-                <p className="text-sm text-red-500">{errors.boardName.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.boardName.message}
+                </p>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-2 pt-2">
-              <Checkbox 
-                id="isPrivate" 
+              <Checkbox
+                id="isPrivate"
                 checked={isPrivate}
                 onCheckedChange={handleCheckboxChange}
               />
-              <Label htmlFor="isPrivate">Private board (only visible to you and collaborators)</Label>
+              <Label htmlFor="isPrivate">
+                Private board (only visible to you and collaborators)
+              </Label>
             </div>
 
             {isPrivate && (
@@ -156,7 +178,7 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
                 {loading ? (
                   <p className="text-sm text-gray-500">Loading users...</p>
                 ) : (
-                  <UserSelect 
+                  <UserSelect
                     users={users}
                     value={collaboratorIds}
                     onChange={handleCollaboratorsChange}
@@ -170,7 +192,7 @@ export default function CreateBoardDialog({ isOpen, onClose }: CreateBoardDialog
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

@@ -15,6 +15,7 @@ We've implemented a comprehensive Role-Based Access Control (RBAC) system for th
 The RBAC system adds the following tables:
 
 ### Core Tables
+
 - `Role`: Defines roles (e.g., admin, operator, manager)
 - `Permission`: Defines specific permissions (e.g., "boards:create", "work_orders:read")
 - `UserRole`: Assigns roles to users (globally or for specific resources)
@@ -22,6 +23,7 @@ The RBAC system adds the following tables:
 - `RolePermission`: Maps which permissions each role has
 
 ### Key Features
+
 - **Global vs Resource-Specific**: Roles and permissions can be assigned globally or for specific resources
 - **Permission Hierarchy**: Role permissions + direct permissions + ownership/collaboration rules
 - **Temporal Controls**: Roles and permissions can have expiration dates
@@ -29,28 +31,30 @@ The RBAC system adds the following tables:
 
 ## Built-in Roles
 
-| Role | Description | Key Permissions |
-|------|-------------|-----------------|
-| `super_admin` | Complete system access | All permissions |
-| `admin` | Administrative access | User management, most resources |
-| `manager` | Management oversight | Boards, tasks, work orders, basic parts |
-| `production_supervisor` | Production management | Work orders, work instructions, inventory |
-| `operator` | Production worker | Execute work instructions, clock in/out |
-| `quality_inspector` | Quality control | Approve work instructions, inspect work |
-| `inventory_clerk` | Inventory management | Parts, inventory, orders |
-| `viewer` | Read-only access | View most resources |
-| `board_collaborator` | Board collaboration | Board-specific collaboration rights |
+| Role                    | Description            | Key Permissions                           |
+| ----------------------- | ---------------------- | ----------------------------------------- |
+| `super_admin`           | Complete system access | All permissions                           |
+| `admin`                 | Administrative access  | User management, most resources           |
+| `manager`               | Management oversight   | Boards, tasks, work orders, basic parts   |
+| `production_supervisor` | Production management  | Work orders, work instructions, inventory |
+| `operator`              | Production worker      | Execute work instructions, clock in/out   |
+| `quality_inspector`     | Quality control        | Approve work instructions, inspect work   |
+| `inventory_clerk`       | Inventory management   | Parts, inventory, orders                  |
+| `viewer`                | Read-only access       | View most resources                       |
+| `board_collaborator`    | Board collaboration    | Board-specific collaboration rights       |
 
 ## Permission Structure
 
 Permissions follow the format `resource:action`. Examples:
 
 ### System Permissions
+
 - `system:admin` - Full system administration
 - `system:user_management` - Manage users
 - `system:role_management` - Manage roles and permissions
 
 ### Resource Permissions
+
 - `boards:create`, `boards:read`, `boards:update`, `boards:delete`
 - `work_orders:create`, `work_orders:start`, `work_orders:complete`
 - `parts:create`, `parts:manage_inventory`
@@ -61,10 +65,12 @@ Permissions follow the format `resource:action`. Examples:
 ### 1. Basic Permission Checking
 
 ```typescript
-import { currentUserHasPermission, PERMISSIONS } from '@/lib/rbac'
+import { currentUserHasPermission, PERMISSIONS } from '@/lib/rbac';
 
 // Check if current user can create work orders
-const canCreate = await currentUserHasPermission(PERMISSIONS.WORK_ORDERS.CREATE)
+const canCreate = await currentUserHasPermission(
+  PERMISSIONS.WORK_ORDERS.CREATE
+);
 
 if (canCreate) {
   // Show create button
@@ -74,30 +80,30 @@ if (canCreate) {
 ### 2. Resource-Specific Permission Checking
 
 ```typescript
-import { canAccessResource, PERMISSIONS } from '@/lib/rbac'
+import { canAccessResource, PERMISSIONS } from '@/lib/rbac';
 
 // Check if user can update a specific board
 const canEdit = await canAccessResource(
-  userId, 
-  PERMISSIONS.BOARDS.UPDATE, 
-  'board', 
+  userId,
+  PERMISSIONS.BOARDS.UPDATE,
+  'board',
   boardId
-)
+);
 ```
 
 ### 3. Server Action Integration
 
 ```typescript
-import { requirePermission, PERMISSIONS } from '@/lib/rbac'
+import { requirePermission, PERMISSIONS } from '@/lib/rbac';
 
 export async function createWorkOrder(data: WorkOrderData) {
   try {
     // This will throw if user doesn't have permission
-    const userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE)
-    
+    const userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE);
+
     // Continue with work order creation...
   } catch (error) {
-    return { success: false, error: 'Insufficient permissions' }
+    return { success: false, error: 'Insufficient permissions' };
   }
 }
 ```
@@ -105,16 +111,16 @@ export async function createWorkOrder(data: WorkOrderData) {
 ### 4. Managing User Roles
 
 ```typescript
-import { assignUserRole, removeUserRole, ROLES } from '@/lib/rbac-actions'
+import { assignUserRole, removeUserRole, ROLES } from '@/lib/rbac-actions';
 
 // Assign a global role to a user
-await assignUserRole(userId, ROLES.OPERATOR)
+await assignUserRole(userId, ROLES.OPERATOR);
 
 // Assign a resource-specific role
-await assignResourceRole(userId, ROLES.BOARD_COLLABORATOR, 'board', boardId)
+await assignResourceRole(userId, ROLES.BOARD_COLLABORATOR, 'board', boardId);
 
 // Remove a role
-await removeUserRole(userId, ROLES.OPERATOR)
+await removeUserRole(userId, ROLES.OPERATOR);
 ```
 
 ## Access Control Hierarchy
@@ -130,19 +136,25 @@ The system checks permissions in this order:
 ## Setup Instructions
 
 ### 1. Run the Migration
+
 The RBAC tables are already created via the migration:
+
 ```bash
 npx prisma migrate dev --name rbac_system
 ```
 
 ### 2. Seed the System
+
 Populate roles and permissions:
+
 ```bash
 npx tsx scripts/seed-rbac.ts
 ```
 
 ### 3. Initialize Admin User
+
 Grant super admin role to the first user:
+
 ```bash
 npx tsx scripts/init-admin.ts your-email@example.com
 ```
@@ -152,26 +164,30 @@ npx tsx scripts/init-admin.ts your-email@example.com
 To integrate RBAC into existing actions:
 
 ### ✅ Server Actions
+
 Replace manual auth checks:
 
 **Before:**
+
 ```typescript
-const session = await auth()
-const userId = session?.user?.id
+const session = await auth();
+const userId = session?.user?.id;
 
 if (!userId) {
-  return { success: false, error: 'Not authenticated' }
+  return { success: false, error: 'Not authenticated' };
 }
 ```
 
 **After:**
-```typescript
-import { requirePermission, PERMISSIONS } from '@/lib/rbac'
 
-const userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE)
+```typescript
+import { requirePermission, PERMISSIONS } from '@/lib/rbac';
+
+const userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE);
 ```
 
 ### ✅ Component Visibility
+
 Hide/show UI elements based on permissions:
 
 ```typescript
@@ -179,7 +195,7 @@ import { currentUserHasPermission, PERMISSIONS } from '@/lib/rbac'
 
 export async function WorkOrderHeader() {
   const canCreate = await currentUserHasPermission(PERMISSIONS.WORK_ORDERS.CREATE)
-  
+
   return (
     <div>
       {canCreate && <CreateWorkOrderButton />}
@@ -189,26 +205,28 @@ export async function WorkOrderHeader() {
 ```
 
 ### ✅ Resource-Specific Checks
+
 For resources with ownership/collaboration:
 
 ```typescript
-import { canAccessResource, PERMISSIONS } from '@/lib/rbac'
+import { canAccessResource, PERMISSIONS } from '@/lib/rbac';
 
 const canEdit = await canAccessResource(
   userId,
   PERMISSIONS.BOARDS.UPDATE,
   'board',
   boardId
-)
+);
 ```
 
 ## Advanced Features
 
 ### Temporary Permissions
+
 Grant time-limited access:
 
 ```typescript
-import { grantPermission } from '@/lib/rbac'
+import { grantPermission } from '@/lib/rbac';
 
 await grantPermission(
   userId,
@@ -217,28 +235,31 @@ await grantPermission(
   resourceType,
   resourceId,
   new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-)
+);
 ```
 
 ### Permission Auditing
+
 Track who has what permissions:
 
 ```typescript
-import { getUserResourcePermissions } from '@/lib/rbac-actions'
+import { getUserResourcePermissions } from '@/lib/rbac-actions';
 
-const permissions = await getUserResourcePermissions(userId, 'board', boardId)
+const permissions = await getUserResourcePermissions(userId, 'board', boardId);
 // Returns: { rolePermissions, directPermissions, roles }
 ```
 
 ### Custom Permission Checks
+
 For complex business logic:
 
 ```typescript
-import { hasPermission, isResourceOwner } from '@/lib/rbac'
+import { hasPermission, isResourceOwner } from '@/lib/rbac';
 
-const canApprove = await hasPermission(userId, PERMISSIONS.WORK_INSTRUCTIONS.APPROVE) ||
-  (await isResourceOwner(userId, 'work_instruction', instructionId) && 
-   await hasPermission(userId, PERMISSIONS.WORK_INSTRUCTIONS.UPDATE))
+const canApprove =
+  (await hasPermission(userId, PERMISSIONS.WORK_INSTRUCTIONS.APPROVE)) ||
+  ((await isResourceOwner(userId, 'work_instruction', instructionId)) &&
+    (await hasPermission(userId, PERMISSIONS.WORK_INSTRUCTIONS.UPDATE)));
 ```
 
 ## Security Best Practices
@@ -252,29 +273,34 @@ const canApprove = await hasPermission(userId, PERMISSIONS.WORK_INSTRUCTIONS.APP
 ## Testing RBAC
 
 ### Unit Tests
+
 Test permission checking logic:
 
 ```typescript
-import { hasPermission } from '@/lib/rbac'
+import { hasPermission } from '@/lib/rbac';
 
 test('operator can start work orders', async () => {
-  const canStart = await hasPermission(operatorUserId, PERMISSIONS.WORK_ORDERS.START)
-  expect(canStart).toBe(true)
-})
+  const canStart = await hasPermission(
+    operatorUserId,
+    PERMISSIONS.WORK_ORDERS.START
+  );
+  expect(canStart).toBe(true);
+});
 ```
 
 ### Integration Tests
+
 Test complete workflows:
 
 ```typescript
 test('operator workflow', async () => {
   // Assign operator role
-  await assignUserRole(userId, ROLES.OPERATOR)
-  
+  await assignUserRole(userId, ROLES.OPERATOR);
+
   // Test work order operations
-  const result = await startWorkOrder(workOrderId)
-  expect(result.success).toBe(true)
-})
+  const result = await startWorkOrder(workOrderId);
+  expect(result.success).toBe(true);
+});
 ```
 
 ## Migration from Existing Code
@@ -291,16 +317,19 @@ The system is backward compatible. Existing ownership checks will continue to wo
 ### Common Issues
 
 **"Insufficient permissions" errors:**
+
 - Check if user has the required role
 - Verify role has the required permission
 - Check for deny permissions overriding grants
 
 **Resource-specific access not working:**
+
 - Ensure resource type/ID are correct
 - Verify ownership/collaboration relationships
 - Check both global and resource-specific permissions
 
 **Performance concerns:**
+
 - RBAC checks are optimized with proper indexing
 - Consider caching for frequently-checked permissions
 - Use bulk permission checks when possible
@@ -309,13 +338,18 @@ The system is backward compatible. Existing ownership checks will continue to wo
 
 ```typescript
 // Get all user permissions
-const permissions = await getUserPermissions(userId)
+const permissions = await getUserPermissions(userId);
 
 // Check specific permission with details
-const hasAccess = await canAccessResource(userId, permission, resourceType, resourceId)
+const hasAccess = await canAccessResource(
+  userId,
+  permission,
+  resourceType,
+  resourceId
+);
 
 // Get user's roles
-const roles = await prisma.userRole.findMany({ where: { userId } })
+const roles = await prisma.userRole.findMany({ where: { userId } });
 ```
 
-This RBAC system provides enterprise-grade access control while remaining flexible and easy to use. Start with the built-in roles and gradually customize as your needs evolve. 
+This RBAC system provides enterprise-grade access control while remaining flexible and easy to use. Start with the built-in roles and gradually customize as your needs evolve.

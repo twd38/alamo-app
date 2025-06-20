@@ -1,4 +1,4 @@
-import { FilterItem } from "@/components/filter-popover"
+import { FilterItem } from '@/components/filter-popover';
 
 /**
  * Apply filter conditions to a data item
@@ -13,63 +13,62 @@ export function applyFilters<T extends Record<string, any>>(
   fieldMap: Record<string, string | ((item: T) => any)>
 ): boolean {
   // If no filters, return all items
-  if (!filters || filters.length === 0) return true
+  if (!filters || filters.length === 0) return true;
 
   // Check if item matches all filters (AND logic)
   return filters.every((filter) => {
-    const { type, operator, value } = filter
-    
+    const { type, operator, value } = filter;
+
     // Skip empty filters
-    if (!value.trim()) return true
+    if (!value.trim()) return true;
 
     // Convert value to lowercase for case-insensitive comparison
-    const filterValue = value.toLowerCase().trim()
-    
+    const filterValue = value.toLowerCase().trim();
+
     // Get the item field value based on the type mapping
-    const field = fieldMap[type]
-    if (!field) return true
-    
+    const field = fieldMap[type];
+    if (!field) return true;
+
     // Get the item value using the field getter (function or property path)
-    const itemValue = typeof field === 'function' 
-      ? field(item) 
-      : getNestedValue(item, field)
-    
+    const itemValue =
+      typeof field === 'function' ? field(item) : getNestedValue(item, field);
+
     // If the value is an array, check any of its items match
     if (Array.isArray(itemValue)) {
       const stringValues = itemValue
-        .map(v => String(v).toLowerCase())
-        .filter(Boolean)
-        
+        .map((v) => String(v).toLowerCase())
+        .filter(Boolean);
+
       switch (operator) {
-        case "is":
-          return stringValues.some(v => v === filterValue)
-        case "is not":
-          return !stringValues.some(v => v === filterValue)
-        case "contains":
-          return stringValues.some(v => v.includes(filterValue))
-        case "does not contain":
-          return !stringValues.some(v => v.includes(filterValue))
+        case 'is':
+          return stringValues.some((v) => v === filterValue);
+        case 'is not':
+          return !stringValues.some((v) => v === filterValue);
+        case 'contains':
+          return stringValues.some((v) => v.includes(filterValue));
+        case 'does not contain':
+          return !stringValues.some((v) => v.includes(filterValue));
         default:
-          return true
+          return true;
       }
-    } 
-    
-    // For string or number values
-    const stringValue = String(itemValue || "").toLowerCase()
-    
-    switch (operator) {
-      case "is":
-        return stringValue === filterValue
-      case "is not":
-        return stringValue !== filterValue
-      case "contains":
-        return stringValue.includes(filterValue)
-      case "does not contain":
-        return !stringValue.includes(filterValue)
-      default:
-        return true
     }
-  })
+
+    // For string or number values
+    const stringValue = String(itemValue || '').toLowerCase();
+
+    switch (operator) {
+      case 'is':
+        return stringValue === filterValue;
+      case 'is not':
+        return stringValue !== filterValue;
+      case 'contains':
+        return stringValue.includes(filterValue);
+      case 'does not contain':
+        return !stringValue.includes(filterValue);
+      default:
+        return true;
+    }
+  });
 }
 
 /**
@@ -79,7 +78,7 @@ export function applyFilters<T extends Record<string, any>>(
  * @returns The value at the path or undefined
  */
 function getNestedValue(obj: Record<string, any>, path: string): any {
-  return path.split('.').reduce((o, p) => o?.[p], obj)
+  return path.split('.').reduce((o, p) => o?.[p], obj);
 }
 
 /**
@@ -90,7 +89,7 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
 export function createFieldMapper<T extends Record<string, any>>(
   mapping: Record<string, string | ((item: T) => any)>
 ): (filterType: string) => string | ((item: T) => any) {
-  return (filterType: string) => mapping[filterType] || filterType
+  return (filterType: string) => mapping[filterType] || filterType;
 }
 
 /**
@@ -101,5 +100,6 @@ export function createFieldMapper<T extends Record<string, any>>(
 export function createFilterFn<T extends Record<string, any>>(
   fieldMap: Record<string, string | ((item: T) => any)>
 ): (item: T, filters: FilterItem[]) => boolean {
-  return (item: T, filters: FilterItem[]) => applyFilters(item, filters, fieldMap)
-} 
+  return (item: T, filters: FilterItem[]) =>
+    applyFilters(item, filters, fieldMap);
+}
