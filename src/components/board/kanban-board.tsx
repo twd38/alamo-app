@@ -10,7 +10,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { updateKanbanSectionKanbanOrder, moveTask, reorderTasks } from '@/lib/actions'
 import { useOptimistic } from 'react'
 import { toast } from 'react-hot-toast'
-import { MouseSensor, KeyboardSensor } from '@/lib/dnd-sensors'
+import { MouseSensor, KeyboardSensor, TouchSensor } from '@/lib/dnd-sensors'
 import TaskDetail from '@/components/board/task-detail';
 import { useAtom } from 'jotai';
 import { taskModal, filterStateAtom, FilterType } from '@/components/board/utils';
@@ -350,6 +350,15 @@ export function KanbanBoard({
       options: {
         activationConstraint: {
           distance: 10,
+        },
+      },
+    },
+    {
+      sensor: TouchSensor,
+      options: {
+        activationConstraint: {
+          delay: 200,
+          tolerance: 6,
         },
       },
     },
