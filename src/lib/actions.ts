@@ -31,6 +31,7 @@ import { SCHEMES } from '@/lib/site-engine/templates';
 import type { Lot } from '@/lib/site-engine/types';
 import { assumptions } from '@/lib/config'; // centralised assumptions
 import { notify } from './notification-service';
+import { convertStepFileToGltf } from './cad-actions';
 
 export async function updateDataAndRevalidate(path: string) {
   revalidatePath(path); // Revalidate the specific path
@@ -2472,5 +2473,187 @@ export async function getStepExecutionStatus(workOrderId: string) {
   } catch (error) {
     console.error('Error getting step execution status:', error);
     return { success: false, error: 'Failed to get step execution status' };
+  }
+}
+
+/**
+ * Add STEP file to a part with automatic GLTF conversion
+ * This action:
+ * 1. Accepts a .stp or .step file
+ * 2. Converts it to GLTF using Zoo API
+ * 3. Uploads both files to R2
+ * 4. Creates File records and updates Part with references
+ */
+export async function addStepFileWithGltfConversion({
+  partId,
+  stepFile
+}: {
+  partId: string;
+  stepFile: File;
+}): Promise<{
+  success: boolean;
+  data?: {
+    cadFile: Prisma.FileCreateInput;
+    gltfFile: Prisma.FileCreateInput;
+    updatedPart: Part;
+  };
+  error?: string;
+}> {
+  try {
+    // Validate input file is a STEP file
+    const isValidStepFile =
+      stepFile.name.toLowerCase().endsWith('.step') ||
+      stepFile.name.toLowerCase().endsWith('.stp');
+
+    if (!isValidStepFile) {
+      return {
+        success: false,
+        error: 'Invalid file type. Please provide a STEP (.step or .stp) file.'
+      };
+    }
+
+    // Verify part exists
+    const existingPart = await prisma.part.findUnique({
+      where: { id: partId }
+    });
+
+    if (!existingPart) {
+      return {
+        success: false,
+        error: 'Part not found'
+      };
+    }
+
+    console.log(`Processing STEP file ${stepFile.name} for part ${partId}`);
+
+    // Convert STEP file to GLTF using Zoo API
+    const conversionResult = await convertStepFileToGltf(stepFile);
+
+    if (
+      !conversionResult.success ||
+      !conversionResult.data ||
+      !conversionResult.fileName
+    ) {
+      return {
+        success: false,
+        error: `STEP to GLTF conversion failed: ${conversionResult.error}`
+      };
+    }
+
+    // Upload original STEP file to R2
+    const stepFileUpload = await getUploadUrl(
+      stepFile.name,
+      stepFile.type || 'application/octet-stream',
+      'parts/cad'
+    );
+
+    const stepUploadResponse = await fetch(stepFileUpload.url, {
+      method: 'PUT',
+      body: stepFile,
+      headers: {
+        'Content-Type': stepFile.type || 'application/octet-stream'
+      }
+    });
+
+    if (!stepUploadResponse.ok) {
+      return {
+        success: false,
+        error: 'Failed to upload STEP file to storage'
+      };
+    }
+
+    // Upload converted GLTF file to R2
+    const gltfFileUpload = await getUploadUrl(
+      conversionResult.fileName,
+      'model/gltf+json',
+      'parts/gltf'
+    );
+
+    const gltfUploadResponse = await fetch(gltfFileUpload.url, {
+      method: 'PUT',
+      body: conversionResult.data,
+      headers: {
+        'Content-Type': 'model/gltf+json'
+      }
+    });
+
+    if (!gltfUploadResponse.ok) {
+      return {
+        success: false,
+        error: 'Failed to upload GLTF file to storage'
+      };
+    }
+
+    // Create file records in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create STEP file record
+      const cadFileRecord = await tx.file.create({
+        data: {
+          url: stepFileUpload.publicUrl,
+          key: stepFileUpload.key,
+          name: stepFile.name,
+          type: stepFile.type || 'application/octet-stream',
+          size: stepFile.size,
+          partId: partId
+        }
+      });
+
+      // Create GLTF file record
+      const gltfFileRecord = await tx.file.create({
+        data: {
+          url: gltfFileUpload.publicUrl,
+          key: gltfFileUpload.key,
+          name: conversionResult.fileName!,
+          type: 'model/gltf+json',
+          size: conversionResult.data!.length,
+          partId: partId
+        }
+      });
+
+      return {
+        cadFile: cadFileRecord,
+        gltfFile: gltfFileRecord
+      };
+    });
+
+    // Update part with CAD and GLTF file references outside transaction
+    const updatedPart = await prisma.part.update({
+      where: { id: partId },
+      data: {
+        // @ts-ignore - cadFileId and gltfFileId exist in schema but types may be outdated
+        cadFileId: result.cadFile.id,
+        // @ts-ignore - cadFileId and gltfFileId exist in schema but types may be outdated
+        gltfFileId: result.gltfFile.id
+      }
+    });
+
+    console.log(`Successfully processed STEP file for part ${partId}:`, {
+      cadFileId: result.cadFile.id,
+      gltfFileId: result.gltfFile.id
+    });
+
+    // Revalidate the part page
+    revalidatePath(`/parts/library/${partId}`);
+
+    return {
+      success: true,
+      data: {
+        cadFile: result.cadFile,
+        gltfFile: result.gltfFile,
+        updatedPart
+      }
+    };
+  } catch (error) {
+    console.error('Error adding STEP file with GLTF conversion:', error);
+
+    let errorMessage = 'Failed to process STEP file';
+    if (error instanceof Error) {
+      errorMessage = `${errorMessage}: ${error.message}`;
+    }
+
+    return {
+      success: false,
+      error: errorMessage
+    };
   }
 }

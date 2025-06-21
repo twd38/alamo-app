@@ -262,7 +262,9 @@ export async function getPart(partId: string) {
         include: {
           part: true
         }
-      }
+      },
+      cadFile: true,
+      gltfFile: true
     }
   });
 }

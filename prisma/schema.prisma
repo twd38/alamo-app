@@ -96,6 +96,8 @@ model File {
   step            WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
   task            Task?                      @relation(fields: [taskId], references: [id])
   partImagePart   Part?                      @relation("PartImage")
+  partCADFile     Part?                      @relation("PartCADFile")
+  partGLTFFile    Part?                      @relation("PartGLTFFile")
   action          WorkInstructionStepAction? @relation("ActionUpload")
   actionExecution StepActionExecution?       @relation("ActionExecutionUpload")
 }
@@ -229,6 +231,8 @@ model Part {
   name             String                 @default("")
   description      String                 @default("")
   partImageId      String?                @unique
+  cadFileId        String?                @unique
+  gltfFileId       String?                @unique
   partRevision     String                 @default("A")
   trackingType     TrackingType           @default(SERIAL)
   partType         PartType               @default(RAW_000)
@@ -248,6 +252,8 @@ model Part {
   parentVersion    Part?                  @relation("PartVersions", fields: [parentVersionId], references: [id])
   childVersions    Part[]                 @relation("PartVersions")
   partImage        File?                  @relation("PartImage", fields: [partImageId], references: [id])
+  cadFile          File?                  @relation("PartCADFile", fields: [cadFileId], references: [id])
+  gltfFile         File?                  @relation("PartGLTFFile", fields: [gltfFileId], references: [id])
   workInstructions WorkInstruction[]
   workOrders       WorkOrder[]
 

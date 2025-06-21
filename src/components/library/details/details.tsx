@@ -10,6 +10,7 @@ import PartFiles from '@/components/library/details/files';
 import { updatePart } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
+import StepFile from '@/components/library/details/step-file';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
   include: { part: true };
@@ -25,6 +26,8 @@ type PartWithAllNested = Prisma.PartGetPayload<{
         part: true;
       };
     };
+    cadFile: true;
+    gltfFile: true;
   };
 }>;
 
@@ -105,7 +108,7 @@ const Details = ({ part }: PartDetailsProps) => {
     <PageContainer>
       <div className="grid grid-cols-2 gap-4">
         {/* Part Details */}
-        <Card className="col-span-2">
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle className="text-lg">Part Details</CardTitle>
           </CardHeader>
@@ -114,6 +117,14 @@ const Details = ({ part }: PartDetailsProps) => {
               <p>{part?.description}</p>
             </div>
           </CardContent>
+        </Card>
+        {/* Step File Upload/View */}
+        <Card className="col-span-1 p-6">
+          <StepFile
+            cadFile={part.cadFile}
+            gltfFile={part.gltfFile}
+            partId={part.id}
+          />
         </Card>
         {/* Bill of Materials */}
         <Card className="col-span-2">
