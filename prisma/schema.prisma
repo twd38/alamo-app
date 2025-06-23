@@ -39,6 +39,9 @@ model User {
   userPermissions       UserPermission[]
   assignedRoles         UserRole[]           @relation("AssignedRoles")
   assignedPermissions   UserPermission[]     @relation("AssignedPermissions")
+  
+  // Comments relationship
+  comments              Comment[]            @relation("CommentAuthor")
 }
 
 model Account {
@@ -89,12 +92,14 @@ model File {
   partId          String?
   instructionId   String?
   stepId          String?
+  commentId       String?
   key             String                     @default("")
   instruction     WorkInstruction?           @relation("InstructionFiles", fields: [instructionId], references: [id])
   workOrder       WorkOrder?                 @relation(fields: [workOrderId], references: [id])
   part            Part?                      @relation("PartFiles", fields: [partId], references: [id])
   step            WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
   task            Task?                      @relation(fields: [taskId], references: [id])
+  comment         Comment?                   @relation("CommentFiles", fields: [commentId], references: [id])
   partImagePart   Part?                      @relation("PartImage")
   partCADFile     Part?                      @relation("PartCADFile")
   partGLTFFile    Part?                      @relation("PartGLTFFile")
@@ -711,4 +716,36 @@ model UserPermission {
   @@index([userId])
   @@index([permissionId])
   @@index([resourceType, resourceId])
+}
+
+model Comment {
+  id          String               @id @default(cuid())
+  content     String
+  authorId    String
+  entityType  CommentableEntityType
+  entityId    String
+  parentId    String?              // For threaded comments/replies
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  deletedAt   DateTime?            // Soft delete
+  
+  author      User                 @relation("CommentAuthor", fields: [authorId], references: [id])
+  parent      Comment?             @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[]            @relation("CommentReplies")
+  files       File[]               @relation("CommentFiles")
+  
+  @@index([entityType, entityId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+enum CommentableEntityType {
+  WORK_ORDER
+  TASK
+  PART
+  WORK_INSTRUCTION
+  WORK_INSTRUCTION_STEP
+  BOARD
+  EPIC
 }

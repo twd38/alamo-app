@@ -1076,3 +1076,76 @@ export type AccessBadgeWithRelations = Prisma.PromiseReturnType<
 export type UserWithoutBadge = Prisma.PromiseReturnType<
   typeof getUsersWithoutBadges
 >[0];
+
+/**
+ * Get comments for a specific entity (query version for client components)
+ */
+export async function getEntityComments(entityType: string, entityId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return [];
+  }
+
+  return await prisma.comment.findMany({
+    where: {
+      entityType: entityType as any,
+      entityId,
+      parentId: null,
+      deletedAt: null
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true
+        }
+      },
+      files: true,
+      replies: {
+        where: {
+          deletedAt: null
+        },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          files: true
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+}
+
+/**
+ * Get comment count for an entity
+ */
+export async function getEntityCommentCount(
+  entityType: string,
+  entityId: string
+) {
+  try {
+    return await prisma.comment.count({
+      where: {
+        entityType: entityType as any,
+        entityId,
+        deletedAt: null
+      }
+    });
+  } catch (error) {
+    console.error('Error counting comments:', error);
+    return 0;
+  }
+}

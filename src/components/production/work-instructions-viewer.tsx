@@ -80,7 +80,7 @@ export function WorkInstructionsViewer({
       {/* Left – Step list */}
       <ResizablePanel
         defaultSize={25}
-        minSize={20}
+        minSize={1}
         maxSize={40}
         className="justify-between border-r"
       >
@@ -137,7 +137,7 @@ export function WorkInstructionsViewer({
       <ResizablePanel
         defaultSize={55}
         minSize={40}
-        maxSize={70}
+        // maxSize={80}
         className="h-full m-2 mx-2 bg-transparent"
       >
         <Card className="h-full">
@@ -176,7 +176,7 @@ export function WorkInstructionsViewer({
       {/* Right – Sidebar with Actions, Comments, Files */}
       <ResizablePanel
         defaultSize={25}
-        minSize={20}
+        minSize={1}
         maxSize={40}
         className="border-l flex flex-col justify-between"
       >

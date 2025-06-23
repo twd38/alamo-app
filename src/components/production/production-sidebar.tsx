@@ -13,6 +13,7 @@ import { getWorkOrder } from '@/lib/queries';
 import { completeStepExecution } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Comments } from '@/components/comments';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
@@ -235,7 +236,7 @@ function ProductionActions({
   );
 }
 
-// Placeholder component for Comments
+// Comments component for production steps
 function ProductionComments({
   step
 }: {
@@ -250,13 +251,11 @@ function ProductionComments({
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-4">
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-          <p>Comments functionality coming soon</p>
-        </div>
-      </div>
-    </div>
+    <Comments
+      entityType="WORK_INSTRUCTION_STEP"
+      entityId={step.id}
+      className="h-full"
+    />
   );
 }
 
