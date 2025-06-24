@@ -179,8 +179,8 @@ export function ProductionSidebar({
               </Button>
             </div>
           </TabsContent>
-          <TabsContent value="comments" className="mt-0 min-h-0 flex flex-col">
-            <ProductionComments step={step} />
+          <TabsContent value="comments" className="mt-0 min-h-0 h-full">
+            <ProductionComments step={step} workOrderId={workOrder?.id} />
           </TabsContent>
           <TabsContent value="files" className="mt-0 flex-1 min-h-0">
             <ProductionFiles step={step} />
@@ -244,9 +244,11 @@ function ProductionActions({
 
 // Comments component for production steps
 function ProductionComments({
-  step
+  step,
+  workOrderId
 }: {
   step: WorkInstructionStepWithActions | null;
+  workOrderId?: string;
 }) {
   if (!step) {
     return (
@@ -260,7 +262,7 @@ function ProductionComments({
     <Comments
       entityType="WORK_INSTRUCTION_STEP"
       entityId={step.id}
-      className="h-full"
+      entityUrl={`/production/${workOrderId}?step=${step.id}&tab=comments`}
     />
   );
 }

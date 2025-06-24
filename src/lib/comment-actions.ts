@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { CommentableEntityType } from '@prisma/client';
 import { z } from 'zod';
 import { getUploadUrl } from '@/lib/r2';
+import { notify } from '@/lib/notification-service';
 
 // Validation schemas
 const createCommentSchema = z.object({
@@ -14,9 +15,11 @@ const createCommentSchema = z.object({
     .min(1, 'Comment content is required')
     .max(5000, 'Comment content is too long'),
   entityType: z.nativeEnum(CommentableEntityType),
+  entityUrl: z.string().optional(),
   entityId: z.string().min(1, 'Entity ID is required'),
   parentId: z.string().optional(),
-  files: z.array(z.any()).optional() // Files will be validated separately
+  files: z.array(z.any()).optional(), // Files will be validated separately
+  mentionedUserIds: z.array(z.string()).optional().default([]) // Array of mentioned user IDs
 });
 
 const updateCommentSchema = z.object({
@@ -136,6 +139,7 @@ export async function createComment(input: CreateCommentInput): Promise<{
         entityId: validatedData.entityId,
         parentId: validatedData.parentId || null,
         authorId: session.user.id,
+        mentionedUserIds: validatedData.mentionedUserIds || [], // TODO: Add back when Prisma types are updated
         ...(uploadedFiles.length > 0 && {
           files: {
             create: uploadedFiles
@@ -154,6 +158,29 @@ export async function createComment(input: CreateCommentInput): Promise<{
         files: true
       }
     });
+
+    // Send notifications to mentioned users
+    const mentionedUserIds = validatedData.mentionedUserIds || [];
+    if (mentionedUserIds.length > 0) {
+      try {
+        const author = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { name: true }
+        });
+        const authorName = author?.name || 'Someone';
+
+        const appUrl = process.env.DOMAIN;
+        const message = `${authorName} mentioned you in a <${appUrl}${validatedData.entityUrl}|comment>.`;
+
+        await notify({
+          recipientIds: mentionedUserIds,
+          message
+        });
+      } catch (error) {
+        console.error('Error sending mention notifications:', error);
+        // Don't fail the comment creation if notifications fail
+      }
+    }
 
     // Revalidate relevant paths
     revalidateEntityPath(validatedData.entityType, validatedData.entityId);
@@ -496,6 +523,30 @@ async function verifyEntityExists(
 /**
  * Revalidate cache paths for a specific entity
  */
+/**
+ * Get a display name for the entity type
+ */
+function getEntityDisplayName(entityType: CommentableEntityType): string {
+  switch (entityType) {
+    case CommentableEntityType.WORK_ORDER:
+      return 'a work order';
+    case CommentableEntityType.TASK:
+      return 'a task';
+    case CommentableEntityType.PART:
+      return 'a part';
+    case CommentableEntityType.WORK_INSTRUCTION:
+      return 'a work instruction';
+    case CommentableEntityType.WORK_INSTRUCTION_STEP:
+      return 'a work instruction step';
+    case CommentableEntityType.BOARD:
+      return 'a board';
+    case CommentableEntityType.EPIC:
+      return 'an epic';
+    default:
+      return 'an item';
+  }
+}
+
 function revalidateEntityPath(
   entityType: CommentableEntityType,
   entityId: string

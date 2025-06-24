@@ -9,12 +9,14 @@ import { CommentableEntityType } from '@prisma/client';
 interface CommentsProps {
   entityType: CommentableEntityType;
   entityId: string;
+  entityUrl?: string;
   className?: string;
 }
 
 export function Comments({
   entityType,
   entityId,
+  entityUrl,
   className = ''
 }: CommentsProps) {
   const [comments, setComments] = useState<any[]>([]);
@@ -43,8 +45,8 @@ export function Comments({
 
   return (
     <div className={`h-full flex flex-col ${className}`}>
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 flex flex-col justify-between min-h-0">
+        <div className="overflow-y-auto p-4 space-y-4">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="text-muted-foreground">Loading comments...</div>
@@ -69,6 +71,7 @@ export function Comments({
           <CommentInput
             entityType={entityType}
             entityId={entityId}
+            entityUrl={entityUrl}
             onCommentCreated={handleCommentCreated}
           />
         </div>

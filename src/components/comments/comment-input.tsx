@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { TipTapTextEditor } from '@/components/ui/tiptap-text-editor';
+import { TipTapTextEditor } from '@/components/tiptap-text-editor';
 import { useUser } from '@/hooks/use-user';
 import { createComment } from '@/lib/comment-actions';
 import { CommentableEntityType } from '@prisma/client';
@@ -12,6 +12,7 @@ import { Paperclip } from 'lucide-react';
 interface CommentInputProps {
   entityType: CommentableEntityType;
   entityId: string;
+  entityUrl?: string;
   placeholder?: string;
   onCommentCreated?: () => void;
   className?: string;
@@ -20,6 +21,7 @@ interface CommentInputProps {
 export function CommentInput({
   entityType,
   entityId,
+  entityUrl,
   placeholder = 'Write a comment...',
   onCommentCreated,
   className = ''
@@ -29,6 +31,7 @@ export function CommentInput({
   const [key, setKey] = useState(0); // Force re-render to clear editor
   const [isLoading, setIsLoading] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const { user } = useUser();
 
   // Helper to check if content is empty (handles HTML content)
@@ -53,7 +56,9 @@ export function CommentInput({
         content: content.trim(),
         entityType,
         entityId,
-        files: filesToUpload
+        entityUrl,
+        files: filesToUpload,
+        mentionedUserIds
       });
 
       if (result.success) {
@@ -84,6 +89,10 @@ export function CommentInput({
     }
   };
 
+  const handleMention = (mentionedUserIds: string[]) => {
+    setMentionedUserIds(mentionedUserIds);
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -108,6 +117,8 @@ export function CommentInput({
         className="border-0 ring-0 focus-within:ring-0"
         minHeight="60px"
         hideToolbar={true}
+        enableMentions={true}
+        onMention={handleMention}
         customToolbar={(editor) => (
           <Button
             type="button"

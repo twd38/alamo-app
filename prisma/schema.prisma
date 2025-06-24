@@ -719,15 +719,16 @@ model UserPermission {
 }
 
 model Comment {
-  id          String               @id @default(cuid())
-  content     String
-  authorId    String
-  entityType  CommentableEntityType
-  entityId    String
-  parentId    String?              // For threaded comments/replies
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  deletedAt   DateTime?            // Soft delete
+  id              String               @id @default(cuid())
+  content         String
+  authorId        String
+  entityType      CommentableEntityType
+  entityId        String
+  parentId        String?              // For threaded comments/replies
+  mentionedUserIds String[]            // Array of user IDs mentioned in the comment
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  deletedAt       DateTime?            // Soft delete
   
   author      User                 @relation("CommentAuthor", fields: [authorId], references: [id])
   parent      Comment?             @relation("CommentReplies", fields: [parentId], references: [id])
