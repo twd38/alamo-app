@@ -134,52 +134,58 @@ export function ProductionSidebar({
               </TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="actions" className="mt-0 flex-1 min-h-0">
+          <TabsContent
+            value="actions"
+            className="mt-0 flex-1 min-h-0 flex flex-col justify-between"
+          >
             <ProductionActions
               step={step}
               workOrder={workOrder}
               stepExecution={stepExecution}
               isWorkOrderInProgress={isWorkOrderInProgress}
             />
+            <div className="border-t border-inherit px-4 py-4 flex-shrink-0">
+              {!isWorkOrderInProgress && (
+                <div className="mb-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                  Work order must be started to complete steps
+                </div>
+              )}
+              {isStepCompleted && (
+                <div className="mb-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                  Step completed
+                </div>
+              )}
+              {!allActionsCompleted &&
+                isWorkOrderInProgress &&
+                !isStepCompleted && (
+                  <div className="mb-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                    Complete{' '}
+                    {requiredActions.length - completedRequiredActions.length}{' '}
+                    more required actions
+                  </div>
+                )}
+              <Button
+                variant="default"
+                className="w-full"
+                disabled={!canCompleteStep || isCompleting}
+                onClick={handleCompleteStep}
+              >
+                <CircleCheck className="w-4 h-4 mr-2" />
+                {isCompleting
+                  ? 'Completing...'
+                  : isStepCompleted
+                    ? 'Step Completed'
+                    : 'Complete Step'}
+              </Button>
+            </div>
           </TabsContent>
-          <TabsContent value="comments" className="mt-0 flex-1 min-h-0">
+          <TabsContent value="comments" className="mt-0 min-h-0 flex flex-col">
             <ProductionComments step={step} />
           </TabsContent>
           <TabsContent value="files" className="mt-0 flex-1 min-h-0">
             <ProductionFiles step={step} />
           </TabsContent>
         </Tabs>
-      </div>
-      <div className="border-t border-inherit px-4 py-4 flex-shrink-0">
-        {!isWorkOrderInProgress && (
-          <div className="mb-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
-            Work order must be started to complete steps
-          </div>
-        )}
-        {isStepCompleted && (
-          <div className="mb-2 text-sm text-green-600 bg-green-50 p-2 rounded">
-            Step completed
-          </div>
-        )}
-        {!allActionsCompleted && isWorkOrderInProgress && !isStepCompleted && (
-          <div className="mb-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
-            Complete {requiredActions.length - completedRequiredActions.length}{' '}
-            more required actions
-          </div>
-        )}
-        <Button
-          variant="default"
-          className="w-full"
-          disabled={!canCompleteStep || isCompleting}
-          onClick={handleCompleteStep}
-        >
-          <CircleCheck className="w-4 h-4 mr-2" />
-          {isCompleting
-            ? 'Completing...'
-            : isStepCompleted
-              ? 'Step Completed'
-              : 'Complete Step'}
-        </Button>
       </div>
     </div>
   );
@@ -214,7 +220,7 @@ function ProductionActions({
   }
 
   return (
-    <div className="h-full overflow-y-auto p-4 space-y-4">
+    <div className="overflow-y-auto p-4 space-y-4">
       {step.actions.map((action) => {
         // Find the action execution for this action
         const actionExecution = stepExecution?.actionExecutions.find(
