@@ -145,7 +145,15 @@ export function renderMentionList() {
             setIsLoading(false);
           }
         }
-        fetchUsers();
+
+        // Debounce the search by 200ms
+        const timeoutId = setTimeout(() => {
+          fetchUsers();
+        }, 200);
+
+        return () => {
+          clearTimeout(timeoutId);
+        };
       }, [props.query]);
 
       if (isLoading) {

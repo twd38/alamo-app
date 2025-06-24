@@ -21,12 +21,6 @@ export async function getUsersForMention(
   limit: number = 10
 ): Promise<{ success: boolean; data: MentionUser[]; error?: string }> {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return { success: false, data: [], error: 'Not authenticated' };
-    }
-
     const whereClause = query
       ? {
           OR: [

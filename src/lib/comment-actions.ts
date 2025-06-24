@@ -169,7 +169,7 @@ export async function createComment(input: CreateCommentInput): Promise<{
         });
         const authorName = author?.name || 'Someone';
 
-        const appUrl = process.env.DOMAIN;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
         const message = `${authorName} mentioned you in a <${appUrl}${validatedData.entityUrl}|comment>.`;
 
         await notify({

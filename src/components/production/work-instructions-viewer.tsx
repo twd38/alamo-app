@@ -12,10 +12,11 @@ import {
   ResizablePanel,
   ResizableHandle
 } from '@/components/ui/resizable';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WorkInstructionStep, ActionType } from '@prisma/client';
 import { ProductionSidebar } from './production-sidebar';
 import { getWorkOrder } from '@/lib/queries';
+import { useSearchParams } from 'next/navigation';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
@@ -49,6 +50,7 @@ export function WorkInstructionsViewer({
   className
 }: WorkInstructionsViewerProps) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   // Auto-select first step when component mounts
   useState(() => {
@@ -56,6 +58,14 @@ export function WorkInstructionsViewer({
       setSelectedStepId(steps[0].id);
     }
   });
+
+  useEffect(() => {
+    // If URL has a step query param, use that to select the step
+    const stepId = searchParams.get('step');
+    if (stepId) {
+      setSelectedStepId(stepId);
+    }
+  }, [searchParams]);
 
   const selectedStep = selectedStepId
     ? steps.find((step) => step.id === selectedStepId) || null

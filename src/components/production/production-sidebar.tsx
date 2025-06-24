@@ -12,8 +12,9 @@ import { CircleCheck } from 'lucide-react';
 import { getWorkOrder } from '@/lib/queries';
 import { completeStepExecution } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Comments } from '@/components/comments';
+import { useSearchParams } from 'next/navigation';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
@@ -48,6 +49,17 @@ export function ProductionSidebar({
 }: ProductionSidebarProps) {
   const router = useRouter();
   const [isCompleting, setIsCompleting] = useState(false);
+  const [activeTab, setActiveTab] = useState('actions');
+  const searchParams = useSearchParams();
+
+  console.log('activeTab', activeTab);
+  useEffect(() => {
+    // If URL has a tab query param, set the active tab
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const isWorkOrderInProgress =
     workOrder?.status === WorkOrderStatus.IN_PROGRESS;
@@ -111,7 +123,11 @@ export function ProductionSidebar({
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 flex flex-col min-h-0">
-        <Tabs defaultValue="actions" className="flex flex-col h-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex flex-col h-full"
+        >
           <div className="border-b flex-shrink-0">
             <TabsList className="w-full justify-start h-12 p-0 bg-transparent border-b-0">
               <TabsTrigger
