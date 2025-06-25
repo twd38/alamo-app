@@ -89,9 +89,6 @@ function GLTFModel({
     if (model) {
       model.scene.traverse((child: any) => {
         if (child.isMesh) {
-          console.log('GLTF: Applying grey material to mesh:', child.name);
-          console.log('GLTF: Original material:', child.material);
-
           // Override any existing material with our grey material
           child.material = new THREE.MeshStandardMaterial({
             color: 0x666666, // Medium grey
@@ -100,8 +97,6 @@ function GLTFModel({
             transparent: false,
             opacity: 1.0
           });
-
-          console.log('GLTF: New material applied:', child.material);
 
           // Enable shadows
           child.castShadow = true;

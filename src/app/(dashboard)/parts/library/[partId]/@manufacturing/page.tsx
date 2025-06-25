@@ -388,7 +388,7 @@ const WorkInstructionContent = ({
     } finally {
       setIsSaving(false);
     }
-  }, 2000);
+  }, 500);
 
   // Handle instructions update separately
   const handleInstructionsChange = (content: string) => {
@@ -449,7 +449,7 @@ const WorkInstructionContent = ({
             </div>
           </CardHeader>
           <CardContent className="h-[calc(100%-5rem)]">
-            <div className="h-full">
+            <div className="h-full overflow-y-scroll scrollbar-hide">
               <MarkdownEditor
                 key={step.id}
                 initialContent={
