@@ -173,6 +173,12 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
               {workOrder.partQty}
             </p>
           </div>
+
+          <div className="flex items-center ml-8 py-2 px-4 rounded-md border border-red-500">
+            <h1 className="text-xl font-bold text-red-500 ">
+              Qty: {workOrder.partQty}
+            </h1>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
