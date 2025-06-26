@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import {
   WorkInstructionStep,
   ActionType,
-  WorkOrderStatus
+  WorkOrderStatus,
+  WorkOrderWorkInstructionStep,
+  WorkOrderWorkInstructionStepAction
 } from '@prisma/client';
 import { ProductionActionItem } from './actions';
 import { CircleCheck } from 'lucide-react';
 import { getWorkOrder } from '@/lib/queries';
-import { completeStepExecution } from '@/lib/actions';
+import { completeWorkOrderWorkInstructionStep } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Comments } from '@/components/comments';
@@ -18,26 +20,12 @@ import { useSearchParams } from 'next/navigation';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
-type WorkInstructionStepAction = {
-  id: string;
-  stepId: string;
-  actionType: ActionType;
-  description: string;
-  targetValue: number | null;
-  unit: string | null;
-  tolerance: number | null;
-  signoffRoles: string[];
-  isRequired: boolean;
-  uploadedFileId: string | null;
-  notes: string | null;
-};
-
-type WorkInstructionStepWithActions = WorkInstructionStep & {
-  actions: WorkInstructionStepAction[];
+type WorkOrderInstructionStepWithActions = WorkOrderWorkInstructionStep & {
+  actions: WorkOrderWorkInstructionStepAction[];
 };
 
 interface ProductionSidebarProps {
-  step: WorkInstructionStepWithActions | null;
+  step: WorkOrderInstructionStepWithActions | null;
   workOrder: WorkOrder;
   onStepCompleted?: (stepId: string) => void;
 }
@@ -64,31 +52,31 @@ export function ProductionSidebar({
   const isWorkOrderInProgress =
     workOrder?.status === WorkOrderStatus.IN_PROGRESS;
 
-  // Check if step is completed by looking at step execution status
-  const stepExecution = step
-    ? workOrder?.stepExecutions?.find(
-        (se) => se.workInstructionStep.id === step.id
-      )
-    : null;
+  // Find the corresponding work order step (execution tracking is embedded)
+  const workOrderStep = step;
 
-  const isStepCompleted = stepExecution?.status === 'COMPLETED';
+  const isStepCompleted = workOrderStep?.status === 'COMPLETED';
 
   // Check if all required actions are completed
   const requiredActions =
     step?.actions.filter((action) => action.isRequired) || [];
+
+  // Find completed required actions by checking the work order step actions
   const completedRequiredActions =
-    stepExecution?.actionExecutions.filter(
-      (ae) =>
-        requiredActions.some(
-          (ra) => ra.id === ae.workInstructionStepActionId
-        ) && ae.completedAt
-    ) || [];
+    workOrderStep?.actions?.filter((workOrderAction) => {
+      // Find all steps with completedAt
+      const completedAt = workOrderAction.completedAt;
+      return completedAt;
+    }) || [];
 
   // If there are no required actions, the step can be completed immediately
   // If there are required actions, all of them must be completed
   const allActionsCompleted =
     requiredActions.length === 0 ||
     completedRequiredActions.length === requiredActions.length;
+
+  console.log('completedRequiredActions', completedRequiredActions);
+  console.log('allActionsCompleted', allActionsCompleted);
 
   const canCompleteStep =
     isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
@@ -98,7 +86,7 @@ export function ProductionSidebar({
 
     setIsCompleting(true);
     try {
-      const result = await completeStepExecution({
+      const result = await completeWorkOrderWorkInstructionStep({
         workOrderId: workOrder.id,
         stepId: step.id
       });
@@ -157,7 +145,7 @@ export function ProductionSidebar({
             <ProductionActions
               step={step}
               workOrder={workOrder}
-              stepExecution={stepExecution}
+              workOrderStep={workOrderStep}
               isWorkOrderInProgress={isWorkOrderInProgress}
             />
             <div className="border-t border-inherit px-4 py-4 flex-shrink-0">
@@ -211,12 +199,12 @@ export function ProductionSidebar({
 function ProductionActions({
   step,
   workOrder,
-  stepExecution,
+  workOrderStep,
   isWorkOrderInProgress
 }: {
-  step: WorkInstructionStepWithActions | null;
+  step: WorkOrderInstructionStepWithActions | null;
   workOrder: WorkOrder;
-  stepExecution: any;
+  workOrderStep: any;
   isWorkOrderInProgress: boolean;
 }) {
   if (!step || !workOrder) {
@@ -237,23 +225,19 @@ function ProductionActions({
 
   return (
     <div className="overflow-y-auto p-4 space-y-4">
-      {step.actions.map((action) => {
-        // Find the action execution for this action
-        const actionExecution = stepExecution?.actionExecutions.find(
-          (ae: any) => ae.workInstructionStepActionId === action.id
-        );
-
-        return (
-          <ProductionActionItem
-            key={action.id}
-            action={action}
-            workOrderId={workOrder.id}
-            stepId={step.id}
-            actionExecution={actionExecution}
-            disabled={!isWorkOrderInProgress}
-          />
-        );
-      })}
+      {workOrderStep?.actions?.map(
+        (workOrderAction: WorkOrderWorkInstructionStepAction) => {
+          return (
+            <ProductionActionItem
+              key={workOrderAction.id}
+              action={workOrderAction}
+              workOrderId={workOrder.id}
+              stepId={workOrderStep.id}
+              disabled={!isWorkOrderInProgress}
+            />
+          );
+        }
+      )}
     </div>
   );
 }
@@ -263,7 +247,7 @@ function ProductionComments({
   step,
   workOrderId
 }: {
-  step: WorkInstructionStepWithActions | null;
+  step: WorkOrderInstructionStepWithActions | null;
   workOrderId?: string;
 }) {
   if (!step) {
@@ -287,7 +271,7 @@ function ProductionComments({
 function ProductionFiles({
   step
 }: {
-  step: WorkInstructionStepWithActions | null;
+  step: WorkOrderInstructionStepWithActions | null;
 }) {
   if (!step) {
     return (

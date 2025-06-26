@@ -104,7 +104,8 @@ model File {
   partCADFile     Part?                      @relation("PartCADFile")
   partGLTFFile    Part?                      @relation("PartGLTFFile")
   action          WorkInstructionStepAction? @relation("ActionUpload")
-  actionExecution StepActionExecution?       @relation("ActionExecutionUpload")
+  workOrderAction WorkOrderWorkInstructionStepAction? @relation("WorkOrderActionUpload")
+  workOrderActionExecution WorkOrderWorkInstructionStepAction? @relation("ActionExecutionFileUpload")
 }
 
 model WorkOrder {
@@ -124,8 +125,8 @@ model WorkOrder {
   notes           String?
   timeTaken       Int?                     @default(0) // Time taken in milliseconds
   clockInEntries  ClockInEntry[]
-  stepExecutions  WorkOrderStepExecution[]
   timeEntries     WorkOrderTimeEntry[]
+  workInstruction WorkOrderWorkInstruction?
 }
 
 model WorkOrderAssignee {
@@ -333,6 +334,7 @@ model WorkInstruction {
   childVersions         WorkInstruction?      @relation("WorkInstructionVersions")
   part                  Part                  @relation(fields: [partId], references: [id])
   steps                 WorkInstructionStep[]
+  workOrderInstructions WorkOrderWorkInstruction[] @relation("WorkOrderInstructionSource")
 }
 
 model WorkInstructionStep {
@@ -348,7 +350,7 @@ model WorkInstructionStep {
   images              File[]                      @relation("StepImages")
   workInstruction     WorkInstruction             @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
   actions             WorkInstructionStepAction[]
-  stepExecutions      WorkOrderStepExecution[]
+  workOrderSteps      WorkOrderWorkInstructionStep[] @relation("WorkOrderStepSource")
 }
 
 model WorkInstructionStepAction {
@@ -365,7 +367,82 @@ model WorkInstructionStepAction {
   actionType       ActionType
   step             WorkInstructionStep   @relation(fields: [stepId], references: [id], onDelete: Cascade)
   uploadedFile     File?                 @relation("ActionUpload", fields: [uploadedFileId], references: [id])
-  actionExecutions StepActionExecution[]
+  workOrderActions WorkOrderWorkInstructionStepAction[] @relation("WorkOrderActionSource")
+}
+
+// Work Order-specific Work Instructions (snapshots)
+model WorkOrderWorkInstruction {
+  id                      String                        @id @default(uuid())
+  workOrderId             String                        @unique
+  originalInstructionId   String?                       // Reference to source WorkInstruction
+  title                   String
+  description             String?
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+  
+  // Relationships
+  workOrder               WorkOrder                     @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  originalInstruction     WorkInstruction?              @relation("WorkOrderInstructionSource", fields: [originalInstructionId], references: [id])
+  steps                   WorkOrderWorkInstructionStep[]
+}
+
+model WorkOrderWorkInstructionStep {
+  id                        String                              @id @default(uuid())
+  workOrderInstructionId    String
+  originalStepId            String?                             // Reference to source WorkInstructionStep
+  stepNumber                Int
+  title                     String
+  instructions              String
+  estimatedLabourTime       Int
+  requiredTools             String[]
+  createdAt                 DateTime                            @default(now())
+  updatedAt                 DateTime                            @updatedAt
+  
+  // Execution tracking (embedded)
+  startedAt                 DateTime?
+  completedAt               DateTime?
+  timeTaken                 Int?                                // Time taken in seconds
+  status                    StepExecutionStatus                 @default(PENDING)
+  activeWorkers             Int                                 @default(0) // Track number of active workers on this step
+  
+  // Relationships
+  workOrderInstruction      WorkOrderWorkInstruction            @relation(fields: [workOrderInstructionId], references: [id], onDelete: Cascade)
+  originalStep              WorkInstructionStep?                @relation("WorkOrderStepSource", fields: [originalStepId], references: [id])
+  actions                   WorkOrderWorkInstructionStepAction[]
+  
+  @@index([workOrderInstructionId])
+}
+
+model WorkOrderWorkInstructionStepAction {
+  id                    String                @id @default(uuid())
+  stepId                String
+  originalActionId      String?               // Reference to source WorkInstructionStepAction
+  description           String
+  notes                 String?
+  isRequired            Boolean               @default(true)
+  signoffRoles          String[]
+  targetValue           Float?
+  tolerance             Float?
+  unit                  String?
+  uploadedFileId        String?               @unique
+  actionType            ActionType
+  
+  // Execution tracking (embedded)
+  executedNumberValue   Float?                // For VALUE_INPUT actions
+  executedBooleanValue  Boolean?              // For CHECKBOX actions
+  executedStringValue   String?               // For future text-based actions
+  executionNotes        String?
+  completedAt           DateTime?
+  completedBy           String?
+  executionFileId       String?               @unique
+  
+  // Relationships
+  step                  WorkOrderWorkInstructionStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  originalAction        WorkInstructionStepAction?   @relation("WorkOrderActionSource", fields: [originalActionId], references: [id])
+  uploadedFile          File?                        @relation("WorkOrderActionUpload", fields: [uploadedFileId], references: [id])
+  executionFile         File?                        @relation("ActionExecutionFileUpload", fields: [executionFileId], references: [id])
+  
+  @@index([stepId])
 }
 
 model Order {
@@ -573,36 +650,7 @@ model WorkOrderTimeEntry {
   @@index([userId])
 }
 
-model WorkOrderStepExecution {
-  id                    String                @id @default(uuid())
-  workOrderId           String
-  workInstructionStepId String
-  completedAt           DateTime?
-  timeTaken             Int? // Time taken in seconds
-  status                StepExecutionStatus   @default(PENDING)
-  workOrder             WorkOrder             @relation(fields: [workOrderId], references: [id])
-  workInstructionStep   WorkInstructionStep   @relation(fields: [workInstructionStepId], references: [id])
-  actionExecutions      StepActionExecution[]
-  activeWorkers         Int                   @default(0) // Track number of active workers on this step
 
-  @@unique([workOrderId, workInstructionStepId])
-}
-
-model StepActionExecution {
-  id                          String                    @id @default(uuid())
-  workOrderStepExecutionId    String
-  workInstructionStepActionId String
-  value                       Float?
-  notes                       String?
-  completedAt                 DateTime?
-  completedBy                 String?
-  uploadedFileId              String?                   @unique
-  workOrderStepExecution      WorkOrderStepExecution    @relation(fields: [workOrderStepExecutionId], references: [id])
-  workInstructionStepAction   WorkInstructionStepAction @relation(fields: [workInstructionStepActionId], references: [id])
-  uploadedFile                File?                     @relation("ActionExecutionUpload", fields: [uploadedFileId], references: [id])
-
-  @@unique([workOrderStepExecutionId, workInstructionStepActionId])
-}
 
 enum StepExecutionStatus {
   PENDING

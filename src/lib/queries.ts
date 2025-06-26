@@ -339,27 +339,22 @@ export async function getWorkOrder(workOrderId: string) {
     },
     include: {
       part: {
-        include: {
-          workInstructions: {
-            include: {
-              steps: {
-                include: {
-                  actions: {
-                    include: {
-                      actionExecutions: true
-                    }
-                  }
-                },
-                orderBy: {
-                  stepNumber: 'asc'
-                }
-              }
-            }
-          }
+        select: {
+          id: true,
+          partNumber: true,
+          name: true,
+          description: true,
+          partType: true,
+          trackingType: true,
+          unit: true
         }
       },
       createdBy: true,
-      assignees: true,
+      assignees: {
+        include: {
+          user: true
+        }
+      },
       clockInEntries: {
         where: {
           clockOutTime: null // Only get users who are currently clocked in
@@ -369,22 +364,19 @@ export async function getWorkOrder(workOrderId: string) {
         }
       },
       timeEntries: true,
-      stepExecutions: {
+      workInstruction: {
         include: {
-          workInstructionStep: {
-            select: {
-              id: true,
-              stepNumber: true
-            }
-          },
-          actionExecutions: {
+          steps: {
             include: {
-              workInstructionStepAction: {
-                select: {
-                  id: true,
-                  isRequired: true
+              actions: {
+                include: {
+                  uploadedFile: true,
+                  executionFile: true
                 }
               }
+            },
+            orderBy: {
+              stepNumber: 'asc'
             }
           }
         }

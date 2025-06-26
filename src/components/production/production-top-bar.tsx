@@ -53,7 +53,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  const steps = workOrder.part.workInstructions[0].steps;
+  const steps = workOrder.workInstruction?.steps || [];
 
   const workOrderStatus = workOrder.status;
 
@@ -169,8 +169,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
           <div className="">
             <h1 className="text-xl font-bold">{workOrder.part.name}</h1>
             <p className="text-sm opacity-90">
-              {workOrder.part.partNumber}/{workOrder.part.partRevision} • Qty:{' '}
-              {workOrder.partQty}
+              {workOrder.part.partNumber} • Qty: {workOrder.partQty}
             </p>
           </div>
 

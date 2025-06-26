@@ -16,13 +16,26 @@ const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
     return <div>Work order not found</div>;
   }
 
-  const workInstructions = workOrder.part?.workInstructions?.[0];
+  const workInstructions = workOrder.workInstruction;
   const steps = workInstructions?.steps || [];
+
+  // Type mapping for compatibility (temporary solution)
+  const mappedSteps = steps.map((step) => ({
+    ...step,
+    workInstructionId: step.workOrderInstructionId, // Map to expected field
+    actions: step.actions.map((action) => ({
+      ...action,
+      stepId: action.stepId
+    }))
+  }));
 
   return (
     <div className="max-h-screen">
       <ProductionTopBar workOrder={workOrder} />
-      <WorkInstructionsViewer steps={steps} workOrder={workOrder} />
+      <WorkInstructionsViewer
+        steps={mappedSteps as any}
+        workOrder={workOrder}
+      />
     </div>
   );
 };

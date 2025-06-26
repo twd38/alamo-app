@@ -14,35 +14,14 @@ import {
   Camera,
   Check
 } from 'lucide-react';
-import { ActionType } from '@prisma/client';
+import { ActionType, WorkOrderWorkInstructionStepAction } from '@prisma/client';
 import { completeStepAction } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 
-type WorkInstructionStepAction = {
-  id: string;
-  stepId: string;
-  actionType: ActionType;
-  description: string;
-  targetValue: number | null;
-  unit: string | null;
-  tolerance: number | null;
-  signoffRoles: string[];
-  isRequired: boolean;
-  uploadedFileId: string | null;
-  notes: string | null;
-};
-
 interface ProductionActionItemProps {
-  action: WorkInstructionStepAction;
+  action: WorkOrderWorkInstructionStepAction;
   workOrderId: string;
   stepId: string;
-  actionExecution?: {
-    value: number | null;
-    notes: string | null;
-    completedAt: Date | null;
-    completedBy: string | null;
-    uploadedFileId: string | null;
-  };
   disabled?: boolean;
 }
 
@@ -50,23 +29,22 @@ export function ProductionActionItem({
   action,
   workOrderId,
   stepId,
-  actionExecution,
   disabled = false
 }: ProductionActionItemProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isCompleted = !!actionExecution?.completedAt;
+  const isCompleted = !!action.completedAt;
 
   const handleActionUpdate = async (value: any, notes?: string) => {
     setIsSubmitting(true);
     try {
       const result = await completeStepAction({
         workOrderId,
-        stepId,
-        actionId: action.id,
-        value,
-        notes
+        workOrderInstructionStepActionId: action.id,
+        value: value,
+        notes: notes || action.executionNotes || undefined,
+        uploadedFileId: action.executionFileId || undefined
       });
 
       if (result.success) {
@@ -113,7 +91,6 @@ export function ProductionActionItem({
             action={action}
             onUpdate={handleActionUpdate}
             disabled={disabled}
-            actionExecution={actionExecution}
           />
         );
       case ActionType.CHECKBOX:
@@ -122,7 +99,6 @@ export function ProductionActionItem({
             action={action}
             onUpdate={handleActionUpdate}
             disabled={disabled}
-            actionExecution={actionExecution}
           />
         );
       case ActionType.SIGNOFF:
@@ -131,7 +107,6 @@ export function ProductionActionItem({
             action={action}
             onUpdate={handleActionUpdate}
             disabled={disabled}
-            actionExecution={actionExecution}
           />
         );
       case ActionType.UPLOAD_IMAGE:
@@ -140,7 +115,6 @@ export function ProductionActionItem({
             action={action}
             onUpdate={handleActionUpdate}
             disabled={disabled}
-            actionExecution={actionExecution}
           />
         );
       default:
@@ -191,11 +165,11 @@ export function ProductionActionItem({
 
       {renderActionInput()}
 
-      {/* {isCompleted && actionExecution?.notes && (
+      {/* {isCompleted && action.executionNotes && (
                 <div className="text-sm text-green-700 bg-green-100 p-2 rounded border border-green-200">
                     <div className="flex items-center mb-1">
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Previous Notes: {actionExecution.notes}
+                        Previous Notes: {action.executionNotes}
                     </div>
                 </div>
             )} */}
@@ -207,22 +181,14 @@ export function ProductionActionItem({
 function ValueInputAction({
   action,
   onUpdate,
-  disabled = false,
-  actionExecution
+  disabled = false
 }: {
-  action: WorkInstructionStepAction;
+  action: WorkOrderWorkInstructionStepAction;
   onUpdate: (value: any, notes?: string) => void;
   disabled?: boolean;
-  actionExecution?: {
-    value: number | null;
-    notes: string | null;
-    completedAt: Date | null;
-    completedBy: string | null;
-    uploadedFileId: string | null;
-  };
 }) {
   const [inputValue, setInputValue] = useState<string>(
-    actionExecution?.value?.toString() || ''
+    action.executedNumberValue?.toString() || ''
   );
   const [notes, setNotes] = useState<string>('');
 
@@ -287,9 +253,9 @@ function ValueInputAction({
             size="sm"
             onClick={handleSubmit}
             disabled={!inputValue || !isValid || disabled}
-            variant={actionExecution?.value ? 'outline' : 'default'}
+            variant={action.executedNumberValue ? 'outline' : 'default'}
           >
-            {actionExecution?.value ? 'Update' : 'Submit'}
+            {action.executedNumberValue ? 'Update' : 'Submit'}
           </Button>
         </div>
         {errorMessage && (
@@ -309,27 +275,20 @@ function ValueInputAction({
 function CheckboxAction({
   action,
   onUpdate,
-  disabled = false,
-  actionExecution
+  disabled = false
 }: {
-  action: WorkInstructionStepAction;
+  action: WorkOrderWorkInstructionStepAction;
   onUpdate: (value: any, notes?: string) => void;
   disabled?: boolean;
-  actionExecution?: {
-    value: number | null;
-    notes: string | null;
-    completedAt: Date | null;
-    completedBy: string | null;
-    uploadedFileId: string | null;
-  };
 }) {
   const [isChecked, setIsChecked] = useState<boolean>(
-    actionExecution?.value === 1 || false
+    action.executedBooleanValue || false
   );
 
   const handleCheckboxChange = (checked: boolean) => {
+    console.log('checked', checked);
     setIsChecked(checked);
-    onUpdate(checked ? 1 : 0);
+    onUpdate(checked);
   };
 
   return (
@@ -356,21 +315,13 @@ function CheckboxAction({
 function SignoffAction({
   action,
   onUpdate,
-  disabled = false,
-  actionExecution
+  disabled = false
 }: {
-  action: WorkInstructionStepAction;
+  action: WorkOrderWorkInstructionStepAction;
   onUpdate: (value: any, notes?: string) => void;
   disabled?: boolean;
-  actionExecution?: {
-    value: number | null;
-    notes: string | null;
-    completedAt: Date | null;
-    completedBy: string | null;
-    uploadedFileId: string | null;
-  };
 }) {
-  const isSignedOff = actionExecution?.value === 1;
+  const isSignedOff = action.executedBooleanValue === true;
 
   const handleSignoff = () => {
     onUpdate(1, 'Signed off');
@@ -400,22 +351,14 @@ function SignoffAction({
 function UploadImageAction({
   action,
   onUpdate,
-  disabled = false,
-  actionExecution
+  disabled = false
 }: {
-  action: WorkInstructionStepAction;
+  action: WorkOrderWorkInstructionStepAction;
   onUpdate: (value: any, notes?: string) => void;
   disabled?: boolean;
-  actionExecution?: {
-    value: number | null;
-    notes: string | null;
-    completedAt: Date | null;
-    completedBy: string | null;
-    uploadedFileId: string | null;
-  };
 }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const hasUploadedFile = !!actionExecution?.uploadedFileId;
+  const hasUploadedFile = !!action.executionFileId;
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
