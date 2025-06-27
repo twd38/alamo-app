@@ -23,7 +23,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { updateTask } from '@/lib/actions';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { taskModal } from './utils';

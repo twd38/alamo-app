@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserAvatarList } from '@/components/user-avatar-list';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { AlertCircle, LogIn, LogOut } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -29,11 +29,9 @@ interface ClockInModalProps {
   disabled?: boolean;
 }
 
-export function ClockInModal({
-  workOrderId,
-  clockedInUsers,
-  disabled = false
-}: ClockInModalProps) {
+export function ClockInModal(props: ClockInModalProps) {
+  const { workOrderId, clockedInUsers, disabled = false } = props;
+
   const [open, setOpen] = useState(false);
   const [scannedUsers, setScannedUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);

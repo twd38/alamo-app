@@ -1,7 +1,7 @@
 import 'src/styles/global.css';
 import { ThemeProvider } from 'src/components/providers/theme-provider';
 import { Analytics } from '@vercel/analytics/react';
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 
 export const metadata = {
   title: 'Alamo',
@@ -24,7 +24,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <Toaster />
+          <Toaster richColors />
         </ThemeProvider>
       </body>
       <Analytics />

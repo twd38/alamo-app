@@ -38,6 +38,7 @@ import { UserSelect } from '@/components/user-select';
 import { getAllUsers } from '@/lib/queries';
 import { WorkOrderStatus, type User } from '@prisma/client';
 import { createWorkOrder } from '@/lib/actions';
+import { toast } from 'sonner';
 
 // -----------------------------------------------------------------------------
 // Validation schema & types
@@ -135,9 +136,11 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
           console.log('Work order created', result.data);
           form.reset();
           setOpen(false);
+          toast.success('Work order created');
         } else {
           // eslint-disable-next-line no-console
           console.error(result?.error);
+          toast.error(result?.error ?? 'Failed to create work order');
         }
       } catch (err) {
         // eslint-disable-next-line no-console

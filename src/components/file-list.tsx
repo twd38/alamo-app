@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, X } from 'lucide-react';
 import { File as FileIcon } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
 import { File } from '@prisma/client';
 import { getFileUrlFromUnsignedUrl } from '@/lib/actions';

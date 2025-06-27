@@ -1,5 +1,5 @@
 import { createImageUpload } from 'novel';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { getPresignedUploadUrl, getFileUrl } from '@/lib/actions';
 
 const onUpload = (file: File) => {

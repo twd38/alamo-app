@@ -3,8 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { CircleCheck } from 'lucide-react';
 import { Clock } from 'lucide-react';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import {
@@ -13,29 +11,18 @@ import {
   ResizableHandle
 } from '@/components/ui/resizable';
 import { useState, useEffect } from 'react';
-import { WorkInstructionStep, ActionType } from '@prisma/client';
+import {
+  WorkOrderWorkInstructionStep,
+  WorkOrderWorkInstructionStepAction
+} from '@prisma/client';
 import { ProductionSidebar } from './production-sidebar';
 import { getWorkOrder } from '@/lib/queries';
 import { useSearchParams } from 'next/navigation';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
-type WorkInstructionStepAction = {
-  id: string;
-  stepId: string;
-  actionType: ActionType;
-  description: string;
-  targetValue: number | null;
-  unit: string | null;
-  tolerance: number | null;
-  signoffRoles: string[];
-  isRequired: boolean;
-  uploadedFileId: string | null;
-  notes: string | null;
-};
-
-type WorkInstructionStepWithActions = WorkInstructionStep & {
-  actions: WorkInstructionStepAction[];
+type WorkInstructionStepWithActions = WorkOrderWorkInstructionStep & {
+  actions: WorkOrderWorkInstructionStepAction[];
 };
 
 interface WorkInstructionsViewerProps {
@@ -44,11 +31,8 @@ interface WorkInstructionsViewerProps {
   className?: string;
 }
 
-export function WorkInstructionsViewer({
-  steps,
-  workOrder,
-  className
-}: WorkInstructionsViewerProps) {
+export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
+  const { steps, workOrder } = props;
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const searchParams = useSearchParams();
 

@@ -40,6 +40,7 @@ export interface ButtonProps
   asChild?: boolean;
   formAction?: any;
   isLoading?: boolean;
+  isLoadingText?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -50,6 +51,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       size,
       asChild = false,
       isLoading = false,
+      isLoadingText = 'Saving...',
       children,
       ...props
     },
@@ -64,7 +66,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...{' '}
+            <Loader2 className="h-4 w-4 animate-spin mr-2" /> {isLoadingText}
           </>
         ) : (
           children

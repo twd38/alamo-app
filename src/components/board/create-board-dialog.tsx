@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { createBoard } from '@/lib/actions';
 import { getAllUsers, getUser } from '@/lib/queries';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';

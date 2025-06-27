@@ -33,6 +33,8 @@ import { assumptions } from '@/lib/config'; // centralised assumptions
 import { notify } from './notification-service';
 import { convertStepFileToGltf } from './cad-actions';
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
 export async function updateDataAndRevalidate(path: string) {
   revalidatePath(path); // Revalidate the specific path
   return { message: 'Data updated and cache revalidated' };
@@ -609,7 +611,7 @@ export async function updateTask(
           actorName = actor?.name ?? undefined;
         }
 
-        const message = `${actorName ?? 'Someone'} assigned you to task <https://alamo.americanhousing.co/board/${result.boardId}?taskId=${result.id}|${result.name}>.`;
+        const message = `${actorName ?? 'Someone'} assigned you to task <${appUrl}/board/${result.boardId}?taskId=${result.id}|${result.name}>.`;
         await notify({
           recipientIds: addedIds,
           message: message
@@ -1621,142 +1623,299 @@ export async function createWorkOrder({
   notes?: string;
 }) {
   try {
-    // Import RBAC functions
-    const { requirePermission, PERMISSIONS } = await import('@/lib/rbac');
+    // Validate input parameters
+    if (!partId?.trim()) {
+      return { success: false, error: 'Part ID is required' };
+    }
 
-    // Check permission to create work orders
-    const userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE);
+    if (partQty <= 0) {
+      return { success: false, error: 'Part quantity must be greater than 0' };
+    }
+
+    if (!operation?.trim()) {
+      return { success: false, error: 'Operation description is required' };
+    }
+
+    // Import RBAC functions
+    let userId: string;
+    try {
+      const { requirePermission, PERMISSIONS } = await import('@/lib/rbac');
+      userId = await requirePermission(PERMISSIONS.WORK_ORDERS.CREATE);
+    } catch (rbacError) {
+      console.error('RBAC authorization failed:', rbacError);
+      if (
+        rbacError instanceof Error &&
+        rbacError.message.includes('permission')
+      ) {
+        return {
+          success: false,
+          error: 'You do not have permission to create work orders'
+        };
+      }
+      return { success: false, error: 'Authorization failed' };
+    }
 
     // Helper to generate incremental WO number e.g. WO-000123
-    const generateWorkOrderNumber = async () => {
-      const lastWO = await prisma.workOrder.findFirst({
-        orderBy: {
-          workOrderNumber: 'desc'
-        },
-        select: {
-          workOrderNumber: true
-        }
-      });
+    const generateWorkOrderNumber = async (): Promise<string> => {
+      try {
+        const lastWO = await prisma.workOrder.findFirst({
+          orderBy: {
+            workOrderNumber: 'desc'
+          },
+          select: {
+            workOrderNumber: true
+          }
+        });
 
-      const lastSeq = lastWO?.workOrderNumber?.replace(/[^0-9]/g, '') || '0';
-      const nextSeq = String(Number(lastSeq) + 1).padStart(6, '0');
-      return `WO-${nextSeq}`;
+        const lastSeq = lastWO?.workOrderNumber?.replace(/[^0-9]/g, '') || '0';
+        const nextSeq = String(Number(lastSeq) + 1).padStart(6, '0');
+        return `WO-${nextSeq}`;
+      } catch (error) {
+        console.error('Error generating work order number:', error);
+        throw new Error('Failed to generate work order number');
+      }
     };
 
-    const workOrderNumber = await generateWorkOrderNumber();
+    let workOrderNumber: string;
+    try {
+      workOrderNumber = await generateWorkOrderNumber();
+    } catch (error) {
+      console.error('Work order number generation failed:', error);
+      return { success: false, error: 'Failed to generate work order number' };
+    }
 
     // Get part with work instructions to create snapshots
-    const part = await prisma.part.findUnique({
-      where: { id: partId },
-      include: {
-        workInstructions: {
-          include: {
-            steps: {
-              include: {
-                actions: true
-              },
-              orderBy: { stepNumber: 'asc' }
+    let part: any;
+    try {
+      part = await prisma.part.findUnique({
+        where: { id: partId },
+        include: {
+          workInstructions: {
+            include: {
+              steps: {
+                include: {
+                  actions: true
+                },
+                orderBy: { stepNumber: 'asc' }
+              }
             }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error fetching part:', error);
+      return { success: false, error: 'Failed to fetch part information' };
+    }
 
     if (!part) {
       return { success: false, error: 'Part not found' };
     }
 
-    // Use transaction to ensure all data is created atomically
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Create the work order
-      const workOrderData: Prisma.WorkOrderUncheckedCreateInput = {
-        id: undefined, // let Prisma generate cuid
-        workOrderNumber,
-        operation,
-        status,
-        dueDate: dueDate ?? null,
-        createdById: userId,
-        partId,
-        partQty,
-        notes,
-        deletedOn: null,
-        assignees: {
-          create: assigneeIds.map((uid) => ({ userId: uid }))
-        }
-      };
-
-      const workOrder = await tx.workOrder.create({
-        data: workOrderData,
-        include: {
-          assignees: true
-        }
-      });
-
-      // 2. Create work order instruction snapshot (take the first instruction if multiple exist)
-      const firstInstruction = part.workInstructions[0];
-      if (firstInstruction) {
-        // Create work order instruction
-        const workOrderInstruction = await tx.workOrderWorkInstruction.create({
-          data: {
-            workOrderId: workOrder.id,
-            originalInstructionId: firstInstruction.id,
-            title: firstInstruction.title,
-            description: firstInstruction.description,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
+    // Validate assignee user IDs exist if provided
+    if (assigneeIds.length > 0) {
+      try {
+        const users = await prisma.user.findMany({
+          where: { id: { in: assigneeIds } },
+          select: { id: true }
         });
 
-        // Create work order instruction steps
-        for (const step of firstInstruction.steps) {
-          const workOrderStep = await tx.workOrderWorkInstructionStep.create({
-            data: {
-              workOrderInstructionId: workOrderInstruction.id,
-              originalStepId: step.id,
-              stepNumber: step.stepNumber,
-              title: step.title,
-              instructions: step.instructions,
-              estimatedLabourTime: step.estimatedLabourTime,
-              requiredTools: step.requiredTools,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              // Initialize execution state
-              status: 'PENDING',
-              activeWorkers: 0
+        const foundUserIds = users.map((u) => u.id);
+        const invalidUserIds = assigneeIds.filter(
+          (id) => !foundUserIds.includes(id)
+        );
+
+        if (invalidUserIds.length > 0) {
+          return {
+            success: false,
+            error: `Invalid assignee user IDs: ${invalidUserIds.join(', ')}`
+          };
+        }
+      } catch (error) {
+        console.error('Error validating assignee IDs:', error);
+        return {
+          success: false,
+          error: 'Failed to validate assignee user IDs'
+        };
+      }
+    }
+
+    // Use transaction to ensure all data is created atomically
+    let result: any;
+    try {
+      result = await prisma.$transaction(
+        async (tx) => {
+          // 1. Create the work order
+          const workOrderData: Prisma.WorkOrderUncheckedCreateInput = {
+            id: undefined, // let Prisma generate cuid
+            workOrderNumber,
+            operation,
+            status,
+            dueDate: dueDate ?? null,
+            createdById: userId,
+            partId,
+            partQty,
+            notes,
+            deletedOn: null,
+            assignees: {
+              create: assigneeIds.map((uid) => ({ userId: uid }))
+            }
+          };
+
+          const workOrder = await tx.workOrder.create({
+            data: workOrderData,
+            include: {
+              assignees: true
             }
           });
 
-          // Create work order instruction step actions
-          for (const action of step.actions) {
-            await tx.workOrderWorkInstructionStepAction.create({
-              data: {
-                stepId: workOrderStep.id,
-                originalActionId: action.id,
-                description: action.description,
-                notes: action.notes,
-                isRequired: action.isRequired,
-                signoffRoles: action.signoffRoles,
-                targetValue: action.targetValue,
-                tolerance: action.tolerance,
-                unit: action.unit,
-                uploadedFileId: action.uploadedFileId,
-                actionType: action.actionType
-                // Execution fields start as null (not executed yet)
+          // 2. Create work order instruction snapshot (take the first instruction if multiple exist)
+          const firstInstruction = part.workInstructions[0];
+          if (firstInstruction) {
+            try {
+              // Create work order instruction
+              const workOrderInstruction =
+                await tx.workOrderWorkInstruction.create({
+                  data: {
+                    workOrderId: workOrder.id,
+                    originalInstructionId: firstInstruction.id,
+                    title: firstInstruction.title,
+                    description: firstInstruction.description,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  }
+                });
+
+              // Create work order instruction steps
+              for (const step of firstInstruction.steps) {
+                const workOrderStep =
+                  await tx.workOrderWorkInstructionStep.create({
+                    data: {
+                      workOrderInstructionId: workOrderInstruction.id,
+                      originalStepId: step.id,
+                      stepNumber: step.stepNumber,
+                      title: step.title,
+                      instructions: step.instructions,
+                      estimatedLabourTime: step.estimatedLabourTime,
+                      requiredTools: step.requiredTools,
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                      // Initialize execution state
+                      status: 'PENDING',
+                      activeWorkers: 0
+                    }
+                  });
+
+                // Create work order instruction step actions
+                for (const action of step.actions) {
+                  await tx.workOrderWorkInstructionStepAction.create({
+                    data: {
+                      stepId: workOrderStep.id,
+                      originalActionId: action.id,
+                      description: action.description,
+                      notes: action.notes,
+                      isRequired: action.isRequired,
+                      signoffRoles: action.signoffRoles,
+                      targetValue: action.targetValue,
+                      tolerance: action.tolerance,
+                      unit: action.unit,
+                      uploadedFileId: action.uploadedFileId,
+                      actionType: action.actionType
+                      // Execution fields start as null (not executed yet)
+                    }
+                  });
+                }
               }
-            });
+            } catch (instructionError) {
+              console.error(
+                'Error creating work instruction snapshots:',
+                instructionError
+              );
+              throw new Error('Failed to create work instruction snapshots');
+            }
           }
+
+          return workOrder;
+        },
+        {
+          timeout: 30000, // 30 second timeout for complex transactions
+          maxWait: 5000 // Maximum time to wait for a transaction slot
+        }
+      );
+    } catch (transactionError) {
+      console.error('Transaction failed:', transactionError);
+
+      if (transactionError instanceof Error) {
+        if (transactionError.message.includes('timeout')) {
+          return {
+            success: false,
+            error: 'Work order creation timed out. Please try again.'
+          };
+        }
+        if (transactionError.message.includes('Unique constraint')) {
+          return {
+            success: false,
+            error: 'Work order number already exists. Please try again.'
+          };
+        }
+        if (transactionError.message.includes('Foreign key constraint')) {
+          return {
+            success: false,
+            error: 'Invalid reference data. Please check your inputs.'
+          };
         }
       }
 
-      return workOrder;
-    });
+      return {
+        success: false,
+        error: 'Failed to create work order in database'
+      };
+    }
+
+    // Send notifications to assigned users (non-blocking)
+    if (assigneeIds.length > 0) {
+      try {
+        await notify({
+          recipientIds: assigneeIds,
+          message: `You have been assigned a new Work order: <${appUrl}/production/${result.id}|${result.workOrderNumber}>`
+        });
+      } catch (notificationError) {
+        // Log notification errors but don't fail the entire operation
+        console.error(
+          'Failed to send work order assignment notifications:',
+          notificationError
+        );
+        // Could optionally store notification failures for retry later
+      }
+    }
 
     // Revalidate production page so new WO shows up
-    revalidatePath('/production');
+    try {
+      revalidatePath('/production');
+    } catch (revalidationError) {
+      console.error('Failed to revalidate production page:', revalidationError);
+      // This is not critical, so we don't fail the operation
+    }
 
     return { success: true, data: result };
   } catch (error) {
-    console.error('Error creating work order:', error);
+    console.error('Unexpected error creating work order:', error);
+
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('connect')) {
+        return {
+          success: false,
+          error: 'Database connection failed. Please try again.'
+        };
+      }
+      if (error.message.includes('timeout')) {
+        return {
+          success: false,
+          error: 'Operation timed out. Please try again.'
+        };
+      }
+    }
+
     return { success: false, error: 'Failed to create work order' };
   }
 }

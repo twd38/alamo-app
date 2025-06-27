@@ -3,7 +3,7 @@ import { twMerge } from 'tailwind-merge';
 import { Status, PartType, Color } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { floor } from 'lodash';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

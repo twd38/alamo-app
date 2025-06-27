@@ -19,7 +19,7 @@ import {
 import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
 import { deleteKanbanSection } from '@/lib/actions';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import EditColumnDialog from './edit-column-dialog';
 import { TaskCardCreate } from './task-card-create';
 // export const dynamic = 'force-dynamic';
@@ -83,7 +83,6 @@ export function KanbanColumn({
 
   // Function to handle the delete action
   const handleDeleteColumn = async () => {
-    console.log(`Deleting column with id: ${id}`);
     try {
       await deleteKanbanSection(id);
       toast.success('Column deleted');

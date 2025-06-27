@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { updateKanbanSection } from '@/lib/actions';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const columnSchema = z.object({
   name: z.string().min(1, 'Column name is required')

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Paperclip, X, File as FileIcon, Image, Download } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { FileDisplay } from '@/components/ui/file-display';

@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { UserSelect } from '@/components/user-select';
 import { updateBoard } from '@/lib/actions';
 import { getAllUsers, getUser } from '@/lib/queries';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { User } from '@prisma/client';
 import EmojiPicker from '@/components/emoji-picker';
 

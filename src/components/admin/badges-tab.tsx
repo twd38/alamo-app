@@ -13,7 +13,7 @@ import { getAllAccessBadges, getUsersWithoutBadges } from '@/lib/queries';
 import { deleteAccessBadge } from '@/lib/admin-actions';
 import { BadgesDataTable } from './badges-data-table';
 import { CreateBadgeDialog } from './create-badge-dialog';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export function BadgesTab() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);

@@ -12,7 +12,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { File as PrismaFile } from '@prisma/client';
 import ThreeDViewer from '@/components/three-d-viewer';
 import useSWR from 'swr';

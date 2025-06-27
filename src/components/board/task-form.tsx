@@ -68,7 +68,7 @@ import {
 import { useState } from 'react';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { getStatusConfig, formatFileSize } from '@/lib/utils';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import STLViewer from '@/components/stl-viewer';
 import { generateRandomColor } from '@/lib/utils';
 import {

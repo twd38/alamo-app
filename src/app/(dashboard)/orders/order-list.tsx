@@ -24,7 +24,7 @@ import {
   Trash2,
   AlertCircle
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { signOut } from 'next-auth/react';
 import { format } from 'date-fns';
 import useSWR from 'swr';

@@ -1,9 +1,8 @@
 'use client';
 
-import { cn } from 'src/lib/utils';
+import { useState } from 'react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -11,11 +10,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from 'src/components/ui/alert-dialog';
+import { Button } from 'src/components/ui/button';
 
 interface DeleteAlertProps {
   isOpen: boolean;
   onCloseAction: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   resourceName: string;
 }
 
@@ -25,11 +25,15 @@ export function DeleteAlert({
   onConfirm,
   resourceName
 }: DeleteAlertProps) {
-  //   console.log(isOpen)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleConfirm = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleConfirm = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    onConfirm();
+    setIsSubmitting(true);
+    await onConfirm();
+    onCloseAction();
+
+    setIsSubmitting(false);
   };
 
   return (
@@ -47,16 +51,16 @@ export function DeleteAlert({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel data-no-dnd>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className={cn(
-              'bg-red-600 hover:bg-red-700 focus:ring-red-500',
-              'text-white font-semibold'
-            )}
+          <Button
+            variant="destructive"
             data-no-dnd
             onClick={handleConfirm}
+            disabled={isSubmitting}
+            isLoading={isSubmitting}
+            isLoadingText="Deleting..."
           >
             Delete
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

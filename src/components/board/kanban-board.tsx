@@ -18,7 +18,7 @@ import {
   reorderTasks
 } from '@/lib/actions';
 import { useOptimistic } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { MouseSensor, KeyboardSensor, TouchSensor } from '@/lib/dnd-sensors';
 import TaskDetail from '@/components/board/task-detail';
 import { useAtom } from 'jotai';

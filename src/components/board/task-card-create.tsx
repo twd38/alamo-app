@@ -5,7 +5,7 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createTask, updateDataAndRevalidate } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Status } from '@prisma/client';
 import type { FocusEvent } from 'react';
 import { Calendar } from 'lucide-react';
