@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useRef, useState, useCallback } from 'react';
+import React, { Suspense, useRef, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import {
   OrbitControls,
@@ -26,6 +26,9 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
+
+// Global cache for loaded models to prevent reloading
+const modelCache = new Map<string, any>();
 
 interface ThreeDViewerProps {
   /** URL of the 3D file to display */
@@ -72,31 +75,160 @@ function LoadingFallback() {
 }
 
 // Individual model components for each file type
-function GLTFModel({
-  fileUrl,
-  onLoad,
-  onError
-}: {
-  fileUrl: string;
-  onLoad?: (model: any) => void;
-  onError?: (error: Error) => void;
-}) {
-  const modelRef = useRef<THREE.Group>(null);
-  const model = useLoader(GLTFLoader, fileUrl);
+const GLTFModel = React.memo(
+  ({
+    fileUrl,
+    onLoad,
+    onError
+  }: {
+    fileUrl: string;
+    onLoad?: (model: any) => void;
+    onError?: (error: Error) => void;
+  }) => {
+    const modelRef = useRef<THREE.Group>(null);
 
-  // Apply grey material and wireframe to GLTF models
-  React.useEffect(() => {
-    if (model) {
-      model.scene.traverse((child: any) => {
+    // Check cache first, then load if not cached
+    const model = useMemo(() => {
+      if (modelCache.has(fileUrl)) {
+        const cachedModel = modelCache.get(fileUrl);
+        console.log('Using cached GLTF model:', fileUrl);
+        return cachedModel;
+      }
+      return null;
+    }, [fileUrl]);
+
+    const loadedModel = useLoader(GLTFLoader, fileUrl);
+    const finalModel = model || loadedModel;
+
+    if (!finalModel) return null;
+
+    return (
+      <group ref={modelRef}>
+        <primitive object={finalModel.scene} />
+      </group>
+    );
+  }
+);
+
+const STLModel = React.memo(
+  ({
+    fileUrl,
+    onLoad,
+    onError
+  }: {
+    fileUrl: string;
+    onLoad?: (model: any) => void;
+    onError?: (error: Error) => void;
+  }) => {
+    const modelRef = useRef<THREE.Group>(null);
+
+    // Check cache first
+    const cachedModel = useMemo(() => {
+      if (modelCache.has(fileUrl)) {
+        console.log('Using cached STL model:', fileUrl);
+        return modelCache.get(fileUrl);
+      }
+      return null;
+    }, [fileUrl]);
+
+    const geometry = useLoader(STLLoader, fileUrl);
+
+    const model = useMemo(() => {
+      if (cachedModel) return cachedModel;
+
+      const greyMaterial = new THREE.MeshStandardMaterial({
+        color: 0x666666, // Medium grey for good visibility
+        roughness: 0.6,
+        metalness: 0.1,
+        transparent: false,
+        opacity: 1.0
+      });
+
+      console.log('STL: Creating mesh with grey material:', greyMaterial);
+
+      const mesh = new THREE.Mesh(geometry, greyMaterial);
+
+      // Create edges for wireframe lines
+      const edges = new THREE.EdgesGeometry(geometry);
+      const edgesMaterial = new THREE.LineBasicMaterial({
+        color: 0x000000,
+        linewidth: 1
+      });
+      const wireframe = new THREE.LineSegments(edges, edgesMaterial);
+
+      // Enable shadows
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      // Create a group containing both mesh and wireframe
+      const group = new THREE.Group();
+      group.add(mesh);
+      group.add(wireframe);
+
+      const model = { scene: group };
+
+      // Cache the model
+      modelCache.set(fileUrl, model);
+
+      return model;
+    }, [geometry, cachedModel, fileUrl]);
+
+    React.useEffect(() => {
+      if (model && onLoad) {
+        console.log('STL model loaded successfully:', model);
+        onLoad(model);
+      }
+    }, [model, onLoad]);
+
+    return (
+      <group ref={modelRef}>
+        <primitive object={model.scene} />
+      </group>
+    );
+  }
+);
+
+const OBJModel = React.memo(
+  ({
+    fileUrl,
+    onLoad,
+    onError
+  }: {
+    fileUrl: string;
+    onLoad?: (model: any) => void;
+    onError?: (error: Error) => void;
+  }) => {
+    const modelRef = useRef<THREE.Group>(null);
+
+    // Check cache first
+    const cachedModel = useMemo(() => {
+      if (modelCache.has(fileUrl)) {
+        console.log('Using cached OBJ model:', fileUrl);
+        return modelCache.get(fileUrl);
+      }
+      return null;
+    }, [fileUrl]);
+
+    const object = useLoader(OBJLoader, fileUrl);
+
+    const model = useMemo(() => {
+      if (cachedModel) return cachedModel;
+
+      // Apply material to OBJ models for better visibility
+      object.traverse((child: any) => {
         if (child.isMesh) {
-          // Override any existing material with our grey material
+          console.log('OBJ: Applying grey material to mesh:', child.name);
+          console.log('OBJ: Original material:', child.material);
+
           child.material = new THREE.MeshStandardMaterial({
-            color: 0x666666, // Medium grey
+            color: 0x666666, // Medium grey for good visibility
             roughness: 0.6,
             metalness: 0.1,
             transparent: false,
             opacity: 1.0
           });
+
+          console.log('OBJ: New material applied:', child.material);
 
           // Enable shadows
           child.castShadow = true;
@@ -113,136 +245,28 @@ function GLTFModel({
         }
       });
 
-      if (onLoad) {
-        console.log('GLTF model loaded successfully:', model);
+      const model = { scene: object };
+
+      // Cache the model
+      modelCache.set(fileUrl, model);
+
+      return model;
+    }, [object, cachedModel, fileUrl]);
+
+    React.useEffect(() => {
+      if (model && onLoad) {
+        console.log('OBJ model loaded successfully:', model);
         onLoad(model);
       }
-    }
-  }, [model, onLoad]);
+    }, [model, onLoad]);
 
-  return (
-    <group ref={modelRef}>
-      <primitive object={model.scene} />
-    </group>
-  );
-}
-
-function STLModel({
-  fileUrl,
-  onLoad,
-  onError
-}: {
-  fileUrl: string;
-  onLoad?: (model: any) => void;
-  onError?: (error: Error) => void;
-}) {
-  const modelRef = useRef<THREE.Group>(null);
-  const geometry = useLoader(STLLoader, fileUrl);
-  const greyMaterial = new THREE.MeshStandardMaterial({
-    color: 0x666666, // Medium grey for good visibility
-    roughness: 0.6,
-    metalness: 0.1,
-    transparent: false,
-    opacity: 1.0
-  });
-
-  console.log('STL: Creating mesh with grey material:', greyMaterial);
-
-  const mesh = new THREE.Mesh(geometry, greyMaterial);
-
-  // Create edges for wireframe lines
-  const edges = new THREE.EdgesGeometry(geometry);
-  const edgesMaterial = new THREE.LineBasicMaterial({
-    color: 0x000000,
-    linewidth: 1
-  });
-  const wireframe = new THREE.LineSegments(edges, edgesMaterial);
-
-  // Enable shadows
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-
-  // Create a group containing both mesh and wireframe
-  const group = new THREE.Group();
-  group.add(mesh);
-  group.add(wireframe);
-
-  const model = { scene: group };
-
-  React.useEffect(() => {
-    if (onLoad) {
-      console.log('STL model loaded successfully:', model);
-      onLoad(model);
-    }
-  }, [onLoad]);
-
-  return (
-    <group ref={modelRef}>
-      <primitive object={group} />
-    </group>
-  );
-}
-
-function OBJModel({
-  fileUrl,
-  onLoad,
-  onError
-}: {
-  fileUrl: string;
-  onLoad?: (model: any) => void;
-  onError?: (error: Error) => void;
-}) {
-  const modelRef = useRef<THREE.Group>(null);
-  const object = useLoader(OBJLoader, fileUrl);
-
-  // Apply material to OBJ models for better visibility
-  React.useEffect(() => {
-    object.traverse((child: any) => {
-      if (child.isMesh) {
-        console.log('OBJ: Applying grey material to mesh:', child.name);
-        console.log('OBJ: Original material:', child.material);
-
-        child.material = new THREE.MeshStandardMaterial({
-          color: 0x666666, // Medium grey for good visibility
-          roughness: 0.6,
-          metalness: 0.1,
-          transparent: false,
-          opacity: 1.0
-        });
-
-        console.log('OBJ: New material applied:', child.material);
-
-        // Enable shadows
-        child.castShadow = true;
-        child.receiveShadow = true;
-
-        // Add wireframe edges
-        const edges = new THREE.EdgesGeometry(child.geometry);
-        const edgesMaterial = new THREE.LineBasicMaterial({
-          color: 0x000000,
-          linewidth: 1
-        });
-        const wireframe = new THREE.LineSegments(edges, edgesMaterial);
-        child.parent.add(wireframe);
-      }
-    });
-  }, [object]);
-
-  const model = { scene: object };
-
-  React.useEffect(() => {
-    if (onLoad) {
-      console.log('OBJ model loaded successfully:', model);
-      onLoad(model);
-    }
-  }, [onLoad]);
-
-  return (
-    <group ref={modelRef}>
-      <primitive object={object} />
-    </group>
-  );
-}
+    return (
+      <group ref={modelRef}>
+        <primitive object={model.scene} />
+      </group>
+    );
+  }
+);
 
 // Error boundary component for 3D models
 class ModelErrorBoundary extends React.Component<
@@ -427,231 +451,236 @@ function ControlButtons({
 }
 
 // Main 3D Viewer component
-const ThreeDViewer: React.FC<ThreeDViewerProps> = ({
-  fileUrl,
-  fileType,
-  className,
-  width = '100%',
-  height = '400px',
-  showControls = true,
-  showGrid = true,
-  backgroundColor = '#f8f9fa',
-  cameraPosition = [5, 5, 5],
-  autoRotate = false,
-  environment = 'studio',
-  onLoad,
-  onError
-}) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isValidatingUrl, setIsValidatingUrl] = useState(true);
-  const controlsRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+const ThreeDViewer = React.memo<ThreeDViewerProps>(
+  ({
+    fileUrl,
+    fileType = 'gltf',
+    className,
+    width = '100%',
+    height = '400px',
+    showControls = true,
+    showGrid = true,
+    backgroundColor = '#f8f9fa',
+    cameraPosition = [5, 5, 5],
+    autoRotate = false,
+    environment = 'studio',
+    onLoad,
+    onError
+  }) => {
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isValidatingUrl, setIsValidatingUrl] = useState(true);
+    const controlsRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-  console.log('ThreeDViewer - fileUrl:', fileUrl);
-  console.log('ThreeDViewer - fileType:', fileType);
+    console.log('ThreeDViewer - fileUrl:', fileUrl);
+    console.log('ThreeDViewer - fileType:', fileType);
 
-  const handleError = useCallback(
-    (error: Error) => {
-      console.error('ThreeDViewer Error:', error);
-      setError(error.message);
-      if (onError) {
-        onError(error);
+    const handleError = useCallback(
+      (error: Error) => {
+        console.error('ThreeDViewer Error:', error);
+        setError(error.message);
+        if (onError) {
+          onError(error);
+        }
+      },
+      [onError]
+    );
+
+    // Skip URL validation since CORS will be handled by the 3D loader
+    React.useEffect(() => {
+      if (!fileUrl) {
+        setError('No file URL provided');
+        setIsValidatingUrl(false);
+        return;
       }
-    },
-    [onError]
-  );
 
-  // Skip URL validation since CORS will be handled by the 3D loader
-  React.useEffect(() => {
-    if (!fileUrl) {
-      setError('No file URL provided');
+      console.log('Skipping URL validation - will be handled by 3D loader');
       setIsValidatingUrl(false);
-      return;
-    }
+    }, [fileUrl]);
 
-    console.log('Skipping URL validation - will be handled by 3D loader');
-    setIsValidatingUrl(false);
-  }, [fileUrl]);
-
-  const handleReset = useCallback(() => {
-    if (controlsRef.current) {
-      controlsRef.current.reset();
-    }
-  }, []);
-
-  const handleZoomIn = useCallback(() => {
-    if (controlsRef.current) {
-      controlsRef.current.dollyIn(1.2);
-      controlsRef.current.update();
-    }
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    if (controlsRef.current) {
-      controlsRef.current.dollyOut(1.2);
-      controlsRef.current.update();
-    }
-  }, []);
-
-  const handleResetView = useCallback(() => {
-    if (controlsRef.current) {
-      controlsRef.current.object.position.set(...cameraPosition);
-      controlsRef.current.target.set(0, 0, 0);
-      controlsRef.current.update();
-    }
-  }, [cameraPosition]);
-
-  const handleToggleFullscreen = useCallback(() => {
-    if (!isFullscreen) {
-      if (containerRef.current?.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-        setIsFullscreen(true);
+    const handleReset = useCallback(() => {
+      if (controlsRef.current) {
+        controlsRef.current.reset();
       }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
+    }, []);
+
+    const handleZoomIn = useCallback(() => {
+      if (controlsRef.current) {
+        controlsRef.current.dollyIn(0.8);
+        controlsRef.current.update();
       }
-    }
-  }, [isFullscreen]);
+    }, []);
 
-  // Listen for fullscreen changes
-  React.useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
+    const handleZoomOut = useCallback(() => {
+      if (controlsRef.current) {
+        controlsRef.current.dollyIn(1.2);
+        controlsRef.current.update();
+      }
+    }, []);
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
+    const handleResetView = useCallback(() => {
+      if (controlsRef.current) {
+        controlsRef.current.object.position.set(...cameraPosition);
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+    }, [cameraPosition]);
 
-  if (error) {
-    return (
-      <div
-        className={cn(
-          'flex items-center justify-center rounded-lg border border-red-200 bg-red-50',
-          className
-        )}
-        style={{ width, height }}
-      >
-        <div className="flex flex-col items-center gap-2 text-red-600">
-          <AlertTriangle className="h-8 w-8" />
-          <div className="text-sm font-medium">Failed to load 3D model</div>
-          <div className="text-xs text-center max-w-xs">{error}</div>
-          <div className="text-xs text-center text-muted-foreground mt-2">
-            Check browser console for more details
+    const handleToggleFullscreen = useCallback(() => {
+      if (!isFullscreen) {
+        if (containerRef.current?.requestFullscreen) {
+          containerRef.current.requestFullscreen();
+          setIsFullscreen(true);
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+          setIsFullscreen(false);
+        }
+      }
+    }, [isFullscreen]);
+
+    // Listen for fullscreen changes
+    React.useEffect(() => {
+      const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
+      };
+
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      return () => {
+        document.removeEventListener(
+          'fullscreenchange',
+          handleFullscreenChange
+        );
+      };
+    }, []);
+
+    if (error) {
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center rounded-lg border border-red-200 bg-red-50',
+            className
+          )}
+          style={{ width, height }}
+        >
+          <div className="flex flex-col items-center gap-2 text-red-600">
+            <AlertTriangle className="h-8 w-8" />
+            <div className="text-sm font-medium">Failed to load 3D model</div>
+            <div className="text-xs text-center max-w-xs">{error}</div>
+            <div className="text-xs text-center text-muted-foreground mt-2">
+              Check browser console for more details
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (isValidatingUrl) {
+    if (isValidatingUrl) {
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center rounded-lg border',
+            className
+          )}
+          style={{ width, height }}
+        >
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="text-sm">Validating file access...</div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
+        ref={containerRef}
         className={cn(
-          'flex items-center justify-center rounded-lg border',
+          'relative rounded-lg border overflow-hidden',
+          isFullscreen && 'h-screen w-screen',
           className
         )}
-        style={{ width, height }}
+        style={isFullscreen ? {} : { width, height }}
       >
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <div className="text-sm">Validating file access...</div>
-        </div>
+        <Canvas
+          camera={{ position: cameraPosition, fov: 75 }}
+          style={{ background: backgroundColor }}
+          gl={{ antialias: true, alpha: true }}
+          shadows
+        >
+          {/* Lighting */}
+          <ambientLight intensity={0.5} />
+          <directionalLight
+            position={[10, 10, 5]}
+            intensity={1.0}
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+          />
+          <directionalLight position={[-10, -10, -5]} intensity={0.3} />
+          <directionalLight position={[0, 10, 0]} intensity={0.2} />
+
+          {/* Environment */}
+          <Environment preset={environment} />
+
+          {/* Grid */}
+          {showGrid && (
+            <Grid
+              position={[0, -1, 0]}
+              args={[20, 20]}
+              cellSize={1}
+              cellThickness={0.5}
+              sectionSize={5}
+              sectionThickness={1}
+              fadeDistance={25}
+              cellColor="#cccccc"
+              sectionColor="#999999"
+            />
+          )}
+
+          {/* Controls */}
+          <OrbitControls
+            ref={controlsRef}
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
+            autoRotate={autoRotate}
+            autoRotateSpeed={2}
+            dampingFactor={0.05}
+            enableDamping={true}
+          />
+
+          {/* Model */}
+          <Suspense fallback={<LoadingFallback />}>
+            <Center>
+              <Bounds fit clip observe margin={1.2}>
+                <Model
+                  fileUrl={fileUrl}
+                  fileType={fileType}
+                  onLoad={onLoad}
+                  onError={handleError}
+                />
+              </Bounds>
+            </Center>
+          </Suspense>
+        </Canvas>
+
+        {/* Control buttons */}
+        {showControls && (
+          <ControlButtons
+            onReset={handleReset}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onResetView={handleResetView}
+            onToggleFullscreen={handleToggleFullscreen}
+            isFullscreen={isFullscreen}
+          />
+        )}
       </div>
     );
   }
-
-  return (
-    <div
-      ref={containerRef}
-      className={cn(
-        'relative rounded-lg border overflow-hidden',
-        isFullscreen && 'h-screen w-screen',
-        className
-      )}
-      style={isFullscreen ? {} : { width, height }}
-    >
-      <Canvas
-        camera={{ position: cameraPosition, fov: 75 }}
-        style={{ background: backgroundColor }}
-        gl={{ antialias: true, alpha: true }}
-        shadows
-      >
-        {/* Lighting */}
-        <ambientLight intensity={0.5} />
-        <directionalLight
-          position={[10, 10, 5]}
-          intensity={1.0}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-        />
-        <directionalLight position={[-10, -10, -5]} intensity={0.3} />
-        <directionalLight position={[0, 10, 0]} intensity={0.2} />
-
-        {/* Environment */}
-        <Environment preset={environment} />
-
-        {/* Grid */}
-        {showGrid && (
-          <Grid
-            position={[0, -1, 0]}
-            args={[20, 20]}
-            cellSize={1}
-            cellThickness={0.5}
-            sectionSize={5}
-            sectionThickness={1}
-            fadeDistance={25}
-            cellColor="#cccccc"
-            sectionColor="#999999"
-          />
-        )}
-
-        {/* Controls */}
-        <OrbitControls
-          ref={controlsRef}
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          autoRotate={autoRotate}
-          autoRotateSpeed={2}
-          dampingFactor={0.05}
-          enableDamping={true}
-        />
-
-        {/* Model */}
-        <Suspense fallback={<LoadingFallback />}>
-          <Center>
-            <Bounds fit clip observe margin={1.2}>
-              <Model
-                fileUrl={fileUrl}
-                fileType={fileType}
-                onLoad={onLoad}
-                onError={handleError}
-              />
-            </Bounds>
-          </Center>
-        </Suspense>
-      </Canvas>
-
-      {/* Control buttons */}
-      {showControls && (
-        <ControlButtons
-          onReset={handleReset}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onResetView={handleResetView}
-          onToggleFullscreen={handleToggleFullscreen}
-          isFullscreen={isFullscreen}
-        />
-      )}
-    </div>
-  );
-};
+);
 
 export default ThreeDViewer;

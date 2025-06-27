@@ -1,6 +1,7 @@
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import { getWorkOrdersPaginated, getWorkOrdersCount } from '@/lib/queries';
 import PageContainer from '@/components/page-container';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkOrdersDataTable } from '@/components/production/work-orders-datatable';
 
 interface ProductionPageProps {
@@ -35,7 +36,17 @@ const ProductionPage = async (props: ProductionPageProps) => {
     <div className="h-full bg-zinc-50 dark:bg-zinc-900">
       <BasicTopBar />
       <PageContainer>
-        <WorkOrdersDataTable workOrders={workOrders} totalCount={totalCount} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Work Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WorkOrdersDataTable
+              workOrders={workOrders}
+              totalCount={totalCount}
+            />
+          </CardContent>
+        </Card>
       </PageContainer>
     </div>
   );

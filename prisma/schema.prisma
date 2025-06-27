@@ -611,6 +611,7 @@ enum ActionType {
   UPLOAD_IMAGE
   SIGNOFF
   CHECKBOX
+  QUANTITY_INPUT
 }
 
 enum InstructionStatus {
@@ -649,8 +650,6 @@ model WorkOrderTimeEntry {
   @@index([workOrderId])
   @@index([userId])
 }
-
-
 
 enum StepExecutionStatus {
   PENDING

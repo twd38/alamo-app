@@ -372,16 +372,17 @@ export async function getWorkOrder(workOrderId: string) {
     },
     include: {
       part: {
-        select: {
-          id: true,
-          partNumber: true,
-          name: true,
-          description: true,
-          partType: true,
-          trackingType: true,
-          unit: true
+        include: {
+          bomParts: {
+            include: {
+              part: true
+            }
+          },
+          cadFile: true,
+          gltfFile: true
         }
       },
+      files: true,
       createdBy: true,
       assignees: {
         include: {

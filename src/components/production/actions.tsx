@@ -72,6 +72,8 @@ export function ProductionActionItem({
     switch (action.actionType) {
       case ActionType.VALUE_INPUT:
         return <Hash className="h-4 w-4 text-blue-500" />;
+      case 'QUANTITY_INPUT' as ActionType:
+        return <Hash className="h-4 w-4 text-green-500" />;
       case ActionType.SIGNOFF:
         return <UserCheck className="h-4 w-4 text-purple-500" />;
       case ActionType.CHECKBOX:
@@ -88,6 +90,14 @@ export function ProductionActionItem({
       case ActionType.VALUE_INPUT:
         return (
           <ValueInputAction
+            action={action}
+            onUpdate={handleActionUpdate}
+            disabled={disabled}
+          />
+        );
+      case 'QUANTITY_INPUT' as ActionType:
+        return (
+          <QuantityInputAction
             action={action}
             onUpdate={handleActionUpdate}
             disabled={disabled}
@@ -410,6 +420,117 @@ function UploadImageAction({
         <Camera className="h-4 w-4 mr-2" />
         {hasUploadedFile ? 'Re-upload Image' : 'Upload Image'}
       </Button>
+    </div>
+  );
+}
+
+// Quantity Input Action Component - specifically for work order quantity validation
+function QuantityInputAction({
+  action,
+  onUpdate,
+  disabled = false
+}: {
+  action: WorkOrderWorkInstructionStepAction;
+  onUpdate: (value: any, notes?: string) => void;
+  disabled?: boolean;
+}) {
+  const [inputValue, setInputValue] = useState<string>(
+    action.executedNumberValue?.toString() || ''
+  );
+  const [notes, setNotes] = useState<string>('');
+
+  const targetQuantity = action.targetValue || 1;
+
+  // Validation logic for exact quantity match
+  const getValidationStatus = () => {
+    if (!inputValue || inputValue.trim() === '') {
+      return { isValid: true, errorMessage: null };
+    }
+
+    const value = parseFloat(inputValue);
+    if (isNaN(value)) {
+      return { isValid: false, errorMessage: 'Please enter a valid number' };
+    }
+
+    // For quantity input, we require exact match
+    if (value !== targetQuantity) {
+      return {
+        isValid: false,
+        errorMessage: `Quantity must exactly match ${targetQuantity} ${action.unit || 'pieces'}`
+      };
+    }
+
+    return { isValid: true, errorMessage: null };
+  };
+
+  const { isValid, errorMessage } = getValidationStatus();
+
+  const handleSubmit = () => {
+    const value = parseFloat(inputValue);
+    if (isNaN(value) || !isValid) return;
+
+    onUpdate(value, notes);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label
+          htmlFor={`quantity-${action.id}`}
+          className="text-sm font-medium text-green-700"
+        >
+          Input Quantity {action.unit && `(${action.unit})`}
+        </Label>
+        <div className="text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
+          <div className="flex items-center">
+            <Hash className="h-4 w-4 mr-1" />
+            <span className="font-medium">
+              Required: {targetQuantity} {action.unit || 'pieces'}
+            </span>
+          </div>
+        </div>
+        <div className="flex space-x-2 items-center">
+          <Input
+            id={`quantity-${action.id}`}
+            type="number"
+            inputSize="md"
+            placeholder={`Enter exactly ${targetQuantity}`}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className={`flex-1 ${errorMessage ? 'border-red-500 focus:border-red-500' : 'border-green-300 focus:border-green-500'}`}
+            disabled={disabled}
+          />
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!inputValue || !isValid || disabled}
+            variant={action.executedNumberValue ? 'outline' : 'default'}
+            className={
+              action.executedNumberValue
+                ? ''
+                : 'bg-green-600 hover:bg-green-700'
+            }
+          >
+            {action.executedNumberValue ? 'Update' : 'Submit'}
+          </Button>
+        </div>
+        {errorMessage && (
+          <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+            <div className="flex items-center">
+              <span className="font-medium">⚠️</span>
+              <span className="ml-2">{errorMessage}</span>
+            </div>
+          </div>
+        )}
+        {isValid && inputValue && parseFloat(inputValue) === targetQuantity && (
+          <div className="text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
+            <div className="flex items-center">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              <span className="font-medium">Quantity matches requirement!</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

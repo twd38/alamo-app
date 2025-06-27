@@ -26,7 +26,8 @@ import {
   ClipboardCheck,
   Upload,
   TextCursorInput,
-  CheckSquare
+  CheckSquare,
+  Hash
 } from 'lucide-react';
 
 // Helper function to format action type text
@@ -40,6 +41,7 @@ const formatActionType = (type: string): string => {
 // Map action types to their respective icons
 const actionTypeIcons = {
   [ActionType.VALUE_INPUT]: TextCursorInput,
+  [ActionType.QUANTITY_INPUT]: Hash,
   [ActionType.UPLOAD_IMAGE]: Upload,
   [ActionType.SIGNOFF]: ClipboardCheck,
   [ActionType.CHECKBOX]: CheckSquare
@@ -91,6 +93,10 @@ interface DynamicActionFormProps {
     stepId: string,
     data: ActionData
   ) => Promise<{ success: boolean }>;
+  workOrder?: {
+    id: string;
+    partQty: number;
+  };
 }
 
 export function DynamicActionForm({
@@ -98,7 +104,8 @@ export function DynamicActionForm({
   action,
   onActionSaved,
   updateAction,
-  createAction
+  createAction,
+  workOrder
 }: DynamicActionFormProps) {
   const form = useForm<ActionFormData>({
     resolver: zodResolver(actionFormSchema),
@@ -170,6 +177,21 @@ export function DynamicActionForm({
     return () => subscription.unsubscribe();
   }, [form, debouncedSave]);
 
+  // Effect to auto-set target value for QUANTITY_INPUT actions
+  useEffect(() => {
+    if (actionType === ActionType.QUANTITY_INPUT && workOrder) {
+      form.setValue('targetValue', workOrder.partQty);
+      form.setValue('unit', 'pieces');
+      form.setValue('tolerance', 0); // Exact match required
+      if (!form.getValues('description')) {
+        form.setValue(
+          'description',
+          `Input quantity (${workOrder.partQty} pieces)`
+        );
+      }
+    }
+  }, [actionType, workOrder, form]);
+
   return (
     <Form {...form}>
       <form className="space-y-4 p-4 border rounded-lg">
@@ -186,6 +208,15 @@ export function DynamicActionForm({
                   if (
                     field.value === ActionType.VALUE_INPUT &&
                     value !== ActionType.VALUE_INPUT
+                  ) {
+                    form.setValue('targetValue', undefined);
+                    form.setValue('unit', undefined);
+                    form.setValue('tolerance', undefined);
+                  }
+                  // Clear quantity-specific fields if changing away from QUANTITY_INPUT
+                  if (
+                    field.value === ActionType.QUANTITY_INPUT &&
+                    value !== ActionType.QUANTITY_INPUT
                   ) {
                     form.setValue('targetValue', undefined);
                     form.setValue('unit', undefined);
@@ -310,6 +341,70 @@ export function DynamicActionForm({
                 )}
               />
             </div>
+          </div>
+        )}
+
+        {actionType === ActionType.QUANTITY_INPUT && (
+          <div className="space-y-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <h4 className="text-sm font-medium text-blue-700">
+              Quantity Input Settings
+            </h4>
+
+            {workOrder ? (
+              <div className="space-y-2">
+                <div className="text-sm text-blue-600">
+                  This action will require input of exactly{' '}
+                  <strong>{workOrder.partQty} pieces</strong> to match the work
+                  order quantity.
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="targetValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          value={field.value?.toString() ?? ''}
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      </FormControl>
+                      <div className="text-xs text-gray-500">
+                        Automatically set to match work order quantity
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value ?? ''}
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      </FormControl>
+                      <div className="text-xs text-gray-500">
+                        Automatically set to "pieces"
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : (
+              <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                ⚠️ Quantity input will use quantity value from work order.
+              </div>
+            )}
           </div>
         )}
 

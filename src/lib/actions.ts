@@ -2140,6 +2140,155 @@ export async function createWorkOrder({
   }
 }
 
+export async function updateWorkOrder({
+  workOrderId,
+  dueDate,
+  partQty,
+  assigneeIds,
+  notes,
+  operation
+}: {
+  workOrderId: string;
+  dueDate?: Date | null;
+  partQty?: number;
+  assigneeIds?: string[];
+  notes?: string;
+  operation?: string;
+}) {
+  try {
+    // Import RBAC functions
+    let userId: string;
+    try {
+      const { requirePermission, PERMISSIONS } = await import('@/lib/rbac');
+      userId = await requirePermission(PERMISSIONS.WORK_ORDERS.UPDATE);
+    } catch (rbacError) {
+      console.error('RBAC authorization failed:', rbacError);
+      if (
+        rbacError instanceof Error &&
+        rbacError.message.includes('permission')
+      ) {
+        return {
+          success: false,
+          error: 'You do not have permission to update work orders'
+        };
+      }
+      return { success: false, error: 'Authorization failed' };
+    }
+
+    // Validate work order exists
+    const existingWorkOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      select: { id: true }
+    });
+
+    if (!existingWorkOrder) {
+      return { success: false, error: 'Work order not found' };
+    }
+
+    // Validate assignee user IDs exist if provided
+    if (assigneeIds && assigneeIds.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: assigneeIds } },
+        select: { id: true }
+      });
+
+      const foundUserIds = users.map((u) => u.id);
+      const invalidUserIds = assigneeIds.filter(
+        (id) => !foundUserIds.includes(id)
+      );
+
+      if (invalidUserIds.length > 0) {
+        return {
+          success: false,
+          error: `Invalid assignee user IDs: ${invalidUserIds.join(', ')}`
+        };
+      }
+    }
+
+    // Prepare update data
+    const updateData: Prisma.WorkOrderUpdateInput = {};
+
+    if (dueDate !== undefined) {
+      updateData.dueDate = dueDate;
+    }
+
+    if (partQty !== undefined) {
+      if (partQty <= 0) {
+        return {
+          success: false,
+          error: 'Part quantity must be greater than 0'
+        };
+      }
+      updateData.partQty = partQty;
+    }
+
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+
+    if (operation !== undefined) {
+      updateData.operation = operation;
+    }
+
+    // Use transaction to handle assignees update and quantity-related actions
+    const result = await prisma.$transaction(async (tx) => {
+      // Update basic work order fields
+      const updatedWorkOrder = await tx.workOrder.update({
+        where: { id: workOrderId },
+        data: updateData
+      });
+
+      // Handle assignees update if provided
+      if (assigneeIds !== undefined) {
+        // Remove existing assignees
+        await tx.workOrderAssignee.deleteMany({
+          where: { workOrderId }
+        });
+
+        // Add new assignees
+        if (assigneeIds.length > 0) {
+          await tx.workOrderAssignee.createMany({
+            data: assigneeIds.map((userId) => ({
+              workOrderId,
+              userId
+            }))
+          });
+        }
+      }
+
+      // Update QUANTITY_INPUT actions target values if partQty was updated
+      if (partQty !== undefined) {
+        // Find all QUANTITY_INPUT actions for this work order and update their target values
+        await tx.workOrderWorkInstructionStepAction.updateMany({
+          where: {
+            step: {
+              workOrderInstruction: {
+                workOrderId: workOrderId
+              }
+            },
+            actionType: 'QUANTITY_INPUT'
+          },
+          data: {
+            targetValue: partQty
+          }
+        });
+      }
+
+      return updatedWorkOrder;
+    });
+
+    revalidatePath(`/production/${workOrderId}`);
+    revalidatePath(`/production/${workOrderId}/edit`);
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error('Error updating work order:', error);
+    return {
+      success: false,
+      error: `Failed to update work order: ${error.message || 'Unknown error'}`
+    };
+  }
+}
+
 export async function deleteWorkInstructionStep(stepId: string) {
   try {
     await prisma.workInstructionStep.delete({

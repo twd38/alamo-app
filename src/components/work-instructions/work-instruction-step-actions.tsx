@@ -11,41 +11,22 @@ import {
   updateWorkInstructionStepAction,
   updateWorkOrderWorkInstructionStepAction
 } from '@/lib/actions';
-import { DynamicActionForm } from '@/app/(dashboard)/parts/library/[partId]/@instructions/components/dynamic-action-form';
-
-type WorkInstructionStepAction = {
-  id: string;
-  stepId: string;
-  actionType: ActionType;
-  description: string;
-  targetValue: number | null;
-  unit: string | null;
-  tolerance: number | null;
-  signoffRoles: string[];
-  isRequired: boolean;
-  uploadedFileId: string | null;
-  notes: string | null;
-};
-
-type WorkInstructionStepWithActions = Prisma.WorkInstructionStepGetPayload<{
-  include: {
-    actions: true;
-    images: true;
-  };
-}> & {
-  actions: WorkInstructionStepAction[];
-};
+import { DynamicActionForm } from '@/components/work-instructions/dynamic-action-form';
 
 interface WorkInstructionStepActionsProps {
   step: any; // Can be WorkInstructionStepWithActions or WorkOrderWorkInstructionStepWithActions
   onUpdateStep: (stepId: string, updates: any) => void;
   revalidate: () => void;
   isWorkOrder?: boolean;
+  workOrder?: {
+    id: string;
+    partQty: number;
+  };
 }
 
 export const WorkInstructionStepActions: React.FC<
   WorkInstructionStepActionsProps
-> = ({ step, revalidate, isWorkOrder = false }) => {
+> = ({ step, revalidate, isWorkOrder = false, workOrder }) => {
   if (!step) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -56,7 +37,6 @@ export const WorkInstructionStepActions: React.FC<
 
   const handleAddAction = async () => {
     try {
-      console.log(step.id);
       // Create a new action with default values
       const createActionFn = isWorkOrder
         ? createWorkOrderWorkInstructionStepAction
@@ -64,7 +44,7 @@ export const WorkInstructionStepActions: React.FC<
 
       const result = await createActionFn({
         stepId: step.id,
-        actionType: ActionType.SIGNOFF,
+        actionType: ActionType.VALUE_INPUT,
         description: 'New Action',
         isRequired: true
       });
@@ -146,6 +126,7 @@ export const WorkInstructionStepActions: React.FC<
                         ...data
                       })
               }
+              workOrder={workOrder}
             />
             <Button
               variant="ghost"

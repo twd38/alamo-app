@@ -10,7 +10,7 @@ import PartFiles from '@/components/library/details/files';
 import { updatePart } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
-import StepFile from '@/components/library/details/step-file';
+import StepFileViewer from '@/components/library/details/step-file';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
   include: { part: true };
@@ -120,7 +120,7 @@ const Details = ({ part }: PartDetailsProps) => {
         </Card>
         {/* Step File Upload/View */}
         <Card className="col-span-1 p-6">
-          <StepFile
+          <StepFileViewer
             cadFile={part.cadFile}
             gltfFile={part.gltfFile}
             partId={part.id}

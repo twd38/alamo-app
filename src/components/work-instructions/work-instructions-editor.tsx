@@ -29,6 +29,10 @@ interface WorkInstructionsEditorProps {
   onCreateWorkInstruction?: () => void;
   revalidate: () => void;
   isWorkOrder?: boolean;
+  workOrder?: {
+    id: string;
+    partQty: number;
+  };
 }
 
 export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
@@ -40,7 +44,8 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
   onReorderSteps,
   onCreateWorkInstruction,
   revalidate,
-  isWorkOrder = false
+  isWorkOrder = false,
+  workOrder
 }) => {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
@@ -145,6 +150,7 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
               onUpdateStep={onUpdateStep}
               revalidate={revalidate}
               isWorkOrder={isWorkOrder}
+              workOrder={workOrder}
             />
           </TabsContent>
         </Tabs>

@@ -2,18 +2,24 @@
 
 import useSWR from 'swr';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
-import { getWorkOrderWorkInstructions, getWorkOrder } from '@/lib/queries';
+import { useState, useEffect } from 'react';
+import {
+  getWorkOrderWorkInstructions,
+  getWorkOrder,
+  getAllUsers
+} from '@/lib/queries';
 import {
   updateWorkOrderWorkInstructionStep,
   createWorkOrderWorkInstructionStep,
   deleteWorkOrderWorkInstructionStep,
-  reorderWorkOrderWorkInstructionSteps
+  reorderWorkOrderWorkInstructionSteps,
+  updateWorkOrder
 } from '@/lib/actions';
 import { WorkInstructionsEditor } from '@/components/work-instructions';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Card,
@@ -23,13 +29,22 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Book, Clipboard } from 'lucide-react';
+import { Book, Clipboard, Box, Loader2 } from 'lucide-react';
+import { UserSelect } from '@/components/user-select';
+import ThreeDViewer from '@/components/three-d-viewer';
+import { toast } from 'sonner';
+import { getFileUrlFromKey } from '@/lib/actions';
 
 // *** Work Order Work Instructions Editor *** (Main Component)
 const WorkOrderWorkInstructionsEditor: React.FC = () => {
   const params = useParams();
   const workOrderId = params.workOrderId as string;
-  const [activeTab, setActiveTab] = useState('work-instructions');
+  const [activeTab, setActiveTab] = useState('details');
+
+  // Editable field states
+  const [editingDueDate, setEditingDueDate] = useState<string>('');
+  const [editingQuantity, setEditingQuantity] = useState<string>('');
+  const [editingAssignees, setEditingAssignees] = useState<string[]>([]);
 
   const {
     data: workOrder,
@@ -47,7 +62,103 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
     getWorkOrderWorkInstructions(workOrderId)
   );
 
+  const { data: users, isLoading: isUsersLoading } = useSWR(
+    '/api/users',
+    getAllUsers
+  );
+
+  const { data: gltfFileUrl, isLoading: isGltfFileLoading } = useSWR(
+    workOrder?.part?.gltfFile?.key,
+    async (key) => {
+      const result = await getFileUrlFromKey(key);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get signed URL');
+      }
+      return result.url;
+    }
+  );
+
   const workInstructionId = workInstructions?.[0]?.id;
+
+  // Initialize editable fields when work order data loads
+  useEffect(() => {
+    if (workOrder) {
+      setEditingDueDate(
+        workOrder.dueDate
+          ? new Date(workOrder.dueDate).toISOString().split('T')[0]
+          : ''
+      );
+      setEditingQuantity(workOrder.partQty.toString());
+      setEditingAssignees(workOrder.assignees.map((a) => a.userId));
+    }
+  }, [workOrder]);
+
+  // Auto-save handlers
+  const handleDueDateChange = async (newDueDate: string) => {
+    setEditingDueDate(newDueDate);
+    try {
+      const dueDate = newDueDate ? new Date(newDueDate) : null;
+      const result = await updateWorkOrder({
+        workOrderId,
+        dueDate
+      });
+
+      if (result.success) {
+        mutateWorkOrder();
+        toast.success('Due date updated successfully');
+      } else {
+        toast.error(result.error || 'Failed to update due date');
+      }
+    } catch (error) {
+      console.error('Error updating due date:', error);
+      toast.error('Failed to update due date');
+    }
+  };
+
+  const handleQuantityChange = async (newQuantity: string) => {
+    setEditingQuantity(newQuantity);
+    const qty = parseInt(newQuantity);
+    if (qty > 0) {
+      try {
+        const result = await updateWorkOrder({
+          workOrderId,
+          partQty: qty
+        });
+
+        if (result.success) {
+          mutateWorkOrder();
+          toast.success('Quantity updated successfully');
+        } else {
+          toast.error(result.error || 'Failed to update quantity');
+        }
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+        toast.error('Failed to update quantity');
+      }
+    }
+  };
+
+  const handleAssigneesChange = async (newAssigneeIds: string | string[]) => {
+    const assigneeIds = Array.isArray(newAssigneeIds) ? newAssigneeIds : [];
+    setEditingAssignees(assigneeIds);
+
+    try {
+      const result = await updateWorkOrder({
+        workOrderId,
+        assigneeIds
+      });
+
+      if (result.success) {
+        mutateWorkOrder();
+        toast.success('Assignees updated successfully');
+      } else {
+        toast.error(result.error || 'Failed to update assignees');
+      }
+    } catch (error) {
+      console.error('Error updating assignees:', error);
+      toast.error('Failed to update assignees');
+    }
+  };
 
   const handleAddStep = async () => {
     if (!workInstructionId) return;
@@ -177,9 +288,17 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
 
       <div className="flex-1 flex flex-col">
         <div className="flex gap-4 px-4 border-b h-12 justify-between items-center">
-          <h1 className="text-sm font-semibold">
-            Work Order - {workOrder?.workOrderNumber}
-          </h1>
+          <div className="flex gap-2 items-center">
+            <h1 className="text-sm font-semibold">
+              Work Order - {workOrder?.workOrderNumber}
+            </h1>
+            <span className="text-sm text-muted-foreground">|</span>
+            {workOrder && (
+              <Badge className={getStatusColor(workOrder.status)}>
+                {formatStatus(workOrder.status)}
+              </Badge>
+            )}
+          </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList size="sm">
@@ -187,9 +306,13 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
                 <Clipboard className="w-3 h-3 mr-2" />
                 Details
               </TabsTrigger>
-              <TabsTrigger value="work-instructions" size="sm">
+              <TabsTrigger value="model" size="sm">
+                <Box className="w-3 h-3 mr-2" />
+                Model
+              </TabsTrigger>
+              <TabsTrigger value="instructions" size="sm">
                 <Book className="w-3 h-3 mr-2" />
-                Work Instructions
+                Instructions
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -201,54 +324,234 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
               {isWorkOrderLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-gray-500">
-                    Loading work order details...
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   </div>
                 </div>
               ) : workOrder ? (
-                <div className="max-w-4xl mx-auto space-y-6">
+                <div className="mx-auto space-y-6">
+                  {/* Overview Details */}
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">
+                              Part Name
+                            </label>
+                            <div className="mt-1 font-medium">
+                              {workOrder.part.name ||
+                                workOrder.part.description}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              Part Number
+                            </label>
+                            <div className="mt-1 font-mono">
+                              {workOrder.part.partNumber}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">
+                              Quantity
+                            </label>
+                            <div className="mt-1 flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                value={editingQuantity}
+                                onChange={(e) =>
+                                  setEditingQuantity(e.target.value)
+                                }
+                                onBlur={(e) =>
+                                  handleQuantityChange(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleQuantityChange(editingQuantity);
+                                  }
+                                }}
+                                className="w-20"
+                              />
+                              <span className="text-md">
+                                {workOrder.part.unit}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              Assignees
+                            </label>
+                            <div className="mt-1">
+                              <UserSelect
+                                users={users || []}
+                                value={editingAssignees}
+                                onChange={handleAssigneesChange}
+                                multiSelect={true}
+                                placeholder="Select assignees..."
+                                disabled={isUsersLoading}
+                                className=""
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">
+                              Due Date
+                            </label>
+                            <div className="mt-1">
+                              <Input
+                                type="date"
+                                value={editingDueDate}
+                                onChange={(e) =>
+                                  setEditingDueDate(e.target.value)
+                                }
+                                onBlur={(e) =>
+                                  handleDueDateChange(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleDueDateChange(editingDueDate);
+                                  }
+                                }}
+                                className="w-auto"
+                              />
+                            </div>
+                          </div>
+                          {workOrder.notes && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-700">
+                                Notes
+                              </label>
+                              <div className="mt-1 text-sm bg-gray-50 p-3 rounded-md">
+                                {workOrder.notes}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Bill of Materials */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-2xl">
-                        Work Order Details
+                      <CardTitle className="text-xl">
+                        Bill of Materials
                       </CardTitle>
                       <CardDescription>
-                        Edit and manage work order information
+                        Components and materials required for this part
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">
-                            Work Order Number
-                          </label>
-                          <div className="mt-1 text-lg font-mono">
-                            {workOrder.workOrderNumber}
-                          </div>
+                      {workOrder.part.bomParts?.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-3 px-4 font-medium">
+                                  Part Number
+                                </th>
+                                <th className="text-left py-3 px-4 font-medium">
+                                  Name
+                                </th>
+                                <th className="text-left py-3 px-4 font-medium">
+                                  Quantity
+                                </th>
+                                <th className="text-left py-3 px-4 font-medium">
+                                  Total Qty
+                                </th>
+                                <th className="text-left py-3 px-4 font-medium">
+                                  Unit
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {workOrder.part.bomParts.map((bomPart) => (
+                                <tr
+                                  key={bomPart.id}
+                                  className="border-b hover:bg-gray-50"
+                                >
+                                  <td className="py-3 px-4 font-mono text-sm">
+                                    {bomPart.part?.partNumber}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {bomPart.part?.name ||
+                                      bomPart.part?.description}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    {bomPart.qty}
+                                  </td>
+                                  <td className="py-3 px-4 text-center font-semibold">
+                                    {bomPart.qty * workOrder.partQty}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    {bomPart.part?.unit}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">
-                            Operation
-                          </label>
-                          <div className="mt-1">{workOrder.operation}</div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          No bill of materials defined for this part
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">
-                            Status
-                          </label>
-                          <div className="mt-1">
-                            <Badge className={getStatusColor(workOrder.status)}>
-                              {formatStatus(workOrder.status)}
-                            </Badge>
-                          </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Files */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-xl">Files</CardTitle>
+                      <CardDescription>
+                        Documents and files associated with this work order
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {workOrder.files?.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {workOrder.files.map((file) => (
+                            <div
+                              key={file.id}
+                              className="border rounded-lg p-4 hover:bg-gray-50"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm truncate">
+                                    {file.name}
+                                  </h4>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {file.type}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {(file.size / 1024).toFixed(1)} KB
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    window.open(file.url, '_blank')
+                                  }
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        {/* Add more work order detail fields here */}
-                        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-center">
-                            Work order details editing form will be implemented
-                            here
-                          </p>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          No files attached to this work order
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -260,7 +563,29 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'work-instructions' && (
+          {activeTab === 'model' && (
+            <div className="p-4 h-full">
+              {isGltfFileLoading || !gltfFileUrl ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <ThreeDViewer
+                  fileUrl={gltfFileUrl}
+                  fileType="gltf"
+                  height="100%"
+                  className="rounded-lg shadow-sm"
+                  environment="city"
+                  showGrid={true}
+                  onLoad={(model) => {
+                    console.log('3D model loaded:', model);
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          {activeTab === 'instructions' && (
             <WorkInstructionsEditor
               workInstructions={workInstructions}
               isLoading={isWorkInstructionsLoading}
@@ -270,6 +595,11 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
               onReorderSteps={handleReorderSteps}
               revalidate={() => mutate()}
               isWorkOrder={true}
+              workOrder={
+                workOrder
+                  ? { id: workOrder.id, partQty: workOrder.partQty }
+                  : undefined
+              }
             />
           )}
         </div>
