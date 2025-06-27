@@ -140,8 +140,10 @@ const columns: ColumnDef<WorkOrderData>[] = [
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <Link href={`/production/${wo.id}/edit`}>
+              <DropdownMenuItem>Edit</DropdownMenuItem>
+            </Link>
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(wo.id)}
             >

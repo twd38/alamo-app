@@ -20,10 +20,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { useDebouncedCallback } from 'use-debounce';
-import {
-  createWorkInstructionStepAction,
-  updateWorkInstructionStepAction
-} from '@/lib/actions';
+// Note: Action functions are now passed as props for flexibility
 import { useEffect } from 'react';
 import {
   ClipboardCheck,
@@ -61,6 +58,17 @@ const actionFormSchema = z.object({
 
 type ActionFormData = z.infer<typeof actionFormSchema>;
 
+type ActionData = {
+  actionType: ActionType;
+  description: string;
+  targetValue?: number | null;
+  unit?: string | null;
+  tolerance?: number | null;
+  signoffRoles?: string[] | null;
+  isRequired: boolean;
+  notes?: string | null;
+};
+
 interface DynamicActionFormProps {
   stepId: string;
   action?: {
@@ -75,13 +83,22 @@ interface DynamicActionFormProps {
     notes: string | null;
   };
   onActionSaved: () => void;
-  // onActionSaved?: (actionId: string, updates: Partial<WorkInstructionStepAction>) => void;
+  updateAction?: (
+    actionId: string,
+    data: ActionData
+  ) => Promise<{ success: boolean }>;
+  createAction?: (
+    stepId: string,
+    data: ActionData
+  ) => Promise<{ success: boolean }>;
 }
 
 export function DynamicActionForm({
   stepId,
   action,
-  onActionSaved
+  onActionSaved,
+  updateAction,
+  createAction
 }: DynamicActionFormProps) {
   const form = useForm<ActionFormData>({
     resolver: zodResolver(actionFormSchema),
@@ -99,10 +116,9 @@ export function DynamicActionForm({
 
   const debouncedSave = useDebouncedCallback(async (data: ActionFormData) => {
     try {
-      if (action?.id) {
+      if (action?.id && updateAction) {
         // Update existing action
-        const result = await updateWorkInstructionStepAction({
-          actionId: action.id,
+        const result = await updateAction(action.id, {
           actionType: data.actionType,
           description: data.description,
           targetValue: data.targetValue,
@@ -117,10 +133,9 @@ export function DynamicActionForm({
           // Notify parent of successful update
           onActionSaved();
         }
-      } else {
+      } else if (!action?.id && createAction) {
         // Create new action
-        const result = await createWorkInstructionStepAction({
-          stepId,
+        const result = await createAction(stepId, {
           actionType: data.actionType,
           description: data.description,
           targetValue: data.targetValue,

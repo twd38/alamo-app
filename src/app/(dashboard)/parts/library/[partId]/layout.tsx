@@ -10,7 +10,7 @@ import { Breadcrumb } from '@/components/breadcrumbs';
 type PartDetailLayoutProps = {
   params: Promise<{ partId: string }>;
   details: React.ReactNode;
-  manufacturing: React.ReactNode;
+  instructions: React.ReactNode;
   inventory: React.ReactNode;
 };
 
@@ -25,7 +25,7 @@ const TopBarActions = ({ part }: { part: Part | null }) => {
 const PartDetailLayout = async (props: PartDetailLayoutProps) => {
   const params = await props.params;
   const partId = params.partId as string;
-  const { details, manufacturing, inventory } = props;
+  const { details, instructions, inventory } = props;
 
   const part = await getPart(partId || '');
   const partNumber = part?.partNumber;
@@ -66,7 +66,7 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
       </div>
       <ActiveTab
         details={details}
-        manufacturing={manufacturing}
+        instructions={instructions}
         inventory={inventory}
       />
     </div>

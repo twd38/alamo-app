@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "CommentableEntityType" ADD VALUE 'WORK_ORDER_WORK_INSTRUCTION_STEP';

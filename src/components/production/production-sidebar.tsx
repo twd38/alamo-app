@@ -53,9 +53,7 @@ export function ProductionSidebar({
     workOrder?.status === WorkOrderStatus.IN_PROGRESS;
 
   // Find the corresponding work order step (execution tracking is embedded)
-  const workOrderStep = step;
-
-  const isStepCompleted = workOrderStep?.status === 'COMPLETED';
+  const isStepCompleted = step?.status === 'COMPLETED';
 
   // Check if all required actions are completed
   const requiredActions =
@@ -63,9 +61,9 @@ export function ProductionSidebar({
 
   // Find completed required actions by checking the work order step actions
   const completedRequiredActions =
-    workOrderStep?.actions?.filter((workOrderAction) => {
+    step?.actions?.filter((stepAction) => {
       // Find all steps with completedAt
-      const completedAt = workOrderAction.completedAt;
+      const completedAt = stepAction.completedAt;
       return completedAt;
     }) || [];
 
@@ -145,7 +143,6 @@ export function ProductionSidebar({
             <ProductionActions
               step={step}
               workOrder={workOrder}
-              workOrderStep={workOrderStep}
               isWorkOrderInProgress={isWorkOrderInProgress}
             />
             <div className="border-t border-inherit px-4 py-4 flex-shrink-0">
@@ -199,12 +196,10 @@ export function ProductionSidebar({
 function ProductionActions({
   step,
   workOrder,
-  workOrderStep,
   isWorkOrderInProgress
 }: {
   step: WorkOrderInstructionStepWithActions | null;
   workOrder: WorkOrder;
-  workOrderStep: any;
   isWorkOrderInProgress: boolean;
 }) {
   if (!step || !workOrder) {
@@ -225,19 +220,17 @@ function ProductionActions({
 
   return (
     <div className="overflow-y-auto p-4 space-y-4">
-      {workOrderStep?.actions?.map(
-        (workOrderAction: WorkOrderWorkInstructionStepAction) => {
-          return (
-            <ProductionActionItem
-              key={workOrderAction.id}
-              action={workOrderAction}
-              workOrderId={workOrder.id}
-              stepId={workOrderStep.id}
-              disabled={!isWorkOrderInProgress}
-            />
-          );
-        }
-      )}
+      {step?.actions?.map((stepAction: WorkOrderWorkInstructionStepAction) => {
+        return (
+          <ProductionActionItem
+            key={stepAction.id}
+            action={stepAction}
+            workOrderId={workOrder.id}
+            stepId={step.id}
+            disabled={!isWorkOrderInProgress}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -258,9 +251,11 @@ function ProductionComments({
     );
   }
 
+  console.log('step', step);
+
   return (
     <Comments
-      entityType="WORK_INSTRUCTION_STEP"
+      entityType="WORK_ORDER_WORK_INSTRUCTION_STEP"
       entityId={step.id}
       entityUrl={`/production/${workOrderId}?step=${step.id}&tab=comments`}
     />

@@ -1351,6 +1351,226 @@ export async function deleteWorkInstructionStepAction(actionId: string) {
   }
 }
 
+// Work Order Work Instruction Actions
+
+export async function updateWorkOrderWorkInstructionStep({
+  stepId,
+  title,
+  instructions,
+  estimatedLabourTime
+}: {
+  stepId: string;
+  title: string;
+  instructions: string;
+  estimatedLabourTime: number;
+}) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStep.update({
+      where: { id: stepId },
+      data: {
+        title,
+        instructions,
+        estimatedLabourTime
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error updating work order work instruction step:', error);
+    return {
+      success: false,
+      error: 'Failed to update work order work instruction step'
+    };
+  }
+}
+
+export async function createWorkOrderWorkInstructionStep({
+  workOrderInstructionId,
+  stepNumber,
+  title,
+  instructions,
+  estimatedLabourTime
+}: {
+  workOrderInstructionId: string;
+  stepNumber: number;
+  title: string;
+  instructions: string;
+  estimatedLabourTime: number;
+}) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStep.create({
+      data: {
+        workOrderInstructionId,
+        stepNumber,
+        title,
+        instructions,
+        estimatedLabourTime,
+        requiredTools: [],
+        status: 'PENDING',
+        activeWorkers: 0
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error creating work order work instruction step:', error);
+    return {
+      success: false,
+      error: 'Failed to create work order work instruction step'
+    };
+  }
+}
+
+export async function deleteWorkOrderWorkInstructionStep(stepId: string) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStep.delete({
+      where: { id: stepId }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error deleting work order work instruction step:', error);
+    return {
+      success: false,
+      error: 'Failed to delete work order work instruction step'
+    };
+  }
+}
+
+export async function reorderWorkOrderWorkInstructionSteps(
+  workOrderInstructionId: string,
+  stepIds: string[]
+) {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      for (let i = 0; i < stepIds.length; i++) {
+        await tx.workOrderWorkInstructionStep.update({
+          where: { id: stepIds[i] },
+          data: { stepNumber: i + 1 }
+        });
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error reordering work order work instruction steps:', error);
+    return {
+      success: false,
+      error: 'Failed to reorder work order work instruction steps'
+    };
+  }
+}
+
+export async function createWorkOrderWorkInstructionStepAction(
+  data: Prisma.WorkOrderWorkInstructionStepActionCreateWithoutStepInput & {
+    stepId: string;
+  }
+) {
+  const {
+    stepId,
+    actionType,
+    description,
+    targetValue,
+    unit,
+    tolerance,
+    signoffRoles,
+    isRequired,
+    notes
+  } = data;
+  try {
+    const result = await prisma.workOrderWorkInstructionStepAction.create({
+      data: {
+        stepId,
+        actionType,
+        description,
+        targetValue: targetValue || null,
+        unit: unit || null,
+        tolerance: tolerance || null,
+        signoffRoles: signoffRoles || [],
+        isRequired,
+        notes: notes || null
+      }
+    });
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error(
+      'Error creating work order work instruction step action:',
+      error.stack
+    );
+    return {
+      success: false,
+      error: 'Failed to create work order work instruction step action'
+    };
+  }
+}
+
+export async function deleteWorkOrderWorkInstructionStepAction(
+  actionId: string
+) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStepAction.delete({
+      where: { id: actionId }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(
+      'Error deleting work order work instruction step action:',
+      error
+    );
+    return {
+      success: false,
+      error: 'Failed to delete work order work instruction step action'
+    };
+  }
+}
+
+export async function updateWorkOrderWorkInstructionStepAction({
+  actionId,
+  actionType,
+  description,
+  targetValue,
+  unit,
+  tolerance,
+  signoffRoles,
+  isRequired,
+  notes,
+  uploadedFileId
+}: {
+  actionId: string;
+  actionType?: ActionType;
+  description?: string;
+  targetValue?: number | null;
+  unit?: string | null;
+  tolerance?: number | null;
+  signoffRoles?: string[];
+  isRequired?: boolean;
+  notes?: string | null;
+  uploadedFileId?: string | null;
+}) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStepAction.update({
+      where: { id: actionId },
+      data: {
+        actionType,
+        description,
+        targetValue,
+        unit,
+        tolerance,
+        signoffRoles,
+        isRequired,
+        notes,
+        uploadedFileId
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(
+      'Error updating work order work instruction step action:',
+      error
+    );
+    return {
+      success: false,
+      error: 'Failed to update work order work instruction step action'
+    };
+  }
+}
+
 export async function evaluateLot(lot: Lot) {
   return SCHEMES.map((scheme) => {
     const gate = checkFeasibility(lot, scheme);

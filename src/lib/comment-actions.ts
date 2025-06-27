@@ -493,6 +493,11 @@ async function verifyEntityExists(
           where: { id: entityId }
         }));
         break;
+      case CommentableEntityType.WORK_ORDER_WORK_INSTRUCTION_STEP:
+        exists = !!(await prisma.workOrderWorkInstructionStep.findUnique({
+          where: { id: entityId }
+        }));
+        break;
       case CommentableEntityType.BOARD:
         exists = !!(await prisma.board.findUnique({ where: { id: entityId } }));
         break;
@@ -538,6 +543,8 @@ function getEntityDisplayName(entityType: CommentableEntityType): string {
       return 'a work instruction';
     case CommentableEntityType.WORK_INSTRUCTION_STEP:
       return 'a work instruction step';
+    case CommentableEntityType.WORK_ORDER_WORK_INSTRUCTION_STEP:
+      return 'a work order step';
     case CommentableEntityType.BOARD:
       return 'a board';
     case CommentableEntityType.EPIC:
@@ -565,6 +572,9 @@ function revalidateEntityPath(
       break;
     case CommentableEntityType.WORK_INSTRUCTION:
       revalidatePath(`/parts/library`);
+      break;
+    case CommentableEntityType.WORK_ORDER_WORK_INSTRUCTION_STEP:
+      revalidatePath(`/production/${entityId}`);
       break;
     case CommentableEntityType.BOARD:
       revalidatePath(`/board/${entityId}`);
