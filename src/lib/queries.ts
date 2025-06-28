@@ -22,9 +22,19 @@ export async function getMissionMessage() {
 }
 
 export async function getAllTasks() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) return [];
+
   return await prisma.task.findMany({
     where: {
-      deletedOn: null
+      deletedOn: null,
+      assignees: {
+        some: {
+          id: userId
+        }
+      }
     },
     include: {
       assignees: true,
@@ -100,23 +110,27 @@ export async function getKanbanSections(boardId: string) {
   if (boardId === 'my-tasks') {
     return await prisma.kanbanSection.findMany({
       where: {
-        deletedOn: null
+        deletedOn: null,
+        tasks: {
+          some: {
+            assignees: {
+              some: {
+                id: userId
+              }
+            }
+          }
+        }
       },
       include: {
         tasks: {
           where: {
             deletedOn: null,
-            OR: [
-              { private: false },
-              {
-                private: true,
-                assignees: {
-                  some: {
-                    id: userId
-                  }
-                }
+            private: false,
+            assignees: {
+              some: {
+                id: userId
               }
-            ]
+            }
           },
           orderBy: {
             taskOrder: 'asc'
@@ -524,6 +538,84 @@ export async function getWorkOrdersCount({ query }: { query: string }) {
     }
   });
 }
+
+/**
+ * Optimized function to fetch work orders and count in parallel
+ * Eliminates duplicate WHERE clause execution and reduces database round trips
+ */
+export async function getWorkOrdersWithCount({
+  query,
+  page,
+  limit,
+  sortBy,
+  sortOrder
+}: {
+  query: string;
+  page: number;
+  limit: number;
+  sortBy: string;
+  sortOrder: Prisma.SortOrder;
+}) {
+  // Create reusable WHERE clause to avoid duplication
+  const whereClause = {
+    deletedOn: null,
+    OR: [
+      {
+        workOrderNumber: {
+          contains: query,
+          mode: 'insensitive'
+        }
+      },
+      {
+        part: {
+          OR: [
+            {
+              description: {
+                contains: query,
+                mode: 'insensitive'
+              }
+            },
+            {
+              partNumber: {
+                contains: query,
+                mode: 'insensitive'
+              }
+            }
+          ]
+        }
+      }
+    ]
+  } satisfies Prisma.WorkOrderWhereInput;
+
+  // Execute both queries in parallel
+  const [workOrders, totalCount] = await Promise.all([
+    prisma.workOrder.findMany({
+      where: whereClause,
+      include: {
+        part: true,
+        createdBy: true,
+        assignees: true
+      },
+      orderBy: {
+        [sortBy]: sortOrder
+      },
+      skip: (page - 1) * limit,
+      take: limit
+    }),
+    prisma.workOrder.count({
+      where: whereClause
+    })
+  ]);
+
+  return {
+    workOrders,
+    totalCount
+  };
+}
+
+export type WorkOrdersWithCount = Prisma.PromiseReturnType<
+  typeof getWorkOrdersWithCount
+>;
 
 /**
  * Core parcel‑detail structure returned from the Lightbox API after translation.
