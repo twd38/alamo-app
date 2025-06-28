@@ -115,22 +115,22 @@ export function ProductionSidebar({
           className="flex flex-col h-full"
         >
           <div className="border-b flex-shrink-0">
-            <TabsList className="w-full justify-start h-12 p-0 bg-transparent border-b-0">
+            <TabsList className="w-full justify-start h-10 p-0 bg-transparent border-b-0">
               <TabsTrigger
                 value="actions"
-                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
+                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-10"
               >
                 Actions
               </TabsTrigger>
               <TabsTrigger
                 value="comments"
-                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
+                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-10"
               >
                 Comments
               </TabsTrigger>
               <TabsTrigger
                 value="files"
-                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-12"
+                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-10"
               >
                 Files
               </TabsTrigger>
