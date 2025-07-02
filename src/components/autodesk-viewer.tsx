@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Loader2, AlertTriangle, Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { Loader2, AlertTriangle, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Autodesk Viewer types
 declare global {
@@ -35,22 +34,16 @@ declare global {
 interface AutodeskViewerProps {
   /** URN of the translated model to display */
   urn?: string;
-  /** File URL for upload and translation */
-  fileUrl?: string;
   /** Custom className for styling */
   className?: string;
   /** Width of the viewer */
   width?: string | number;
   /** Height of the viewer */
   height?: string | number;
-  /** Whether to show upload option */
-  showUpload?: boolean;
   /** Called when model loads successfully */
   onLoad?: (viewer: any) => void;
   /** Called when there's an error loading */
   onError?: (error: Error) => void;
-  /** Called when upload is successful */
-  onUploadSuccess?: (result: any) => void;
 }
 
 // Load Autodesk Viewer SDK
@@ -115,106 +108,19 @@ const loadAutodeskViewer = (): Promise<void> => {
   });
 };
 
-// Upload file component
-const FileUpload: React.FC<{
-  onUploadSuccess: (result: any) => void;
-  onError: (error: Error) => void;
-}> = ({ onUploadSuccess, onError }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/aps/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      const result = await response.json();
-      onUploadSuccess(result);
-
-      toast.success(
-        `Upload Successful: ${file.name} has been uploaded and translation started.`
-      );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Upload failed';
-      onError(new Error(errorMessage));
-
-      toast.error(`Upload Failed: ${errorMessage}`);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".dwg,.dwf,.dwfx,.dxf,.ifc,.ige,.iges,.igs,.ipt,.iam,.idw,.ipn,.stp,.step,.stl,.obj,.3ds,.max,.rvt,.rfa,.rte,.rft,.f3d,.catpart,.catproduct,.cgr,.3dxml,.3dm,.nwd,.nwc,.nwf"
-        onChange={handleFileSelect}
-        disabled={isUploading}
-        className="hidden"
-      />
-      <Button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isUploading}
-        variant="outline"
-        className="w-full"
-      >
-        {isUploading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Uploading...
-          </>
-        ) : (
-          <>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload 3D Model
-          </>
-        )}
-      </Button>
-    </div>
-  );
-};
-
 // Main Autodesk Viewer component
 const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
   urn,
-  fileUrl,
   className,
   width = '100%',
   height = '400px',
-  showUpload = false,
   onLoad,
-  onError,
-  onUploadSuccess
+  onError
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<any>(null);
-  const [currentUrn, setCurrentUrn] = useState<string | undefined>(urn);
-  const [translationStatus, setTranslationStatus] = useState<any>(null);
 
   const viewerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -275,13 +181,13 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
 
   // Load model when URN changes
   useEffect(() => {
-    if (!viewer || !currentUrn) return;
+    if (!viewer || !urn) return;
 
     const loadModel = async () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('Starting model load process for URN:', currentUrn);
+      console.log('Starting model load process for URN:', urn);
 
       // Helper function to determine if URN is already base64 encoded
       const isBase64Encoded = (str: string): boolean => {
@@ -297,7 +203,7 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
       // Check translation status first
       try {
         console.log('Checking translation status before loading...');
-        const response = await fetch(`/api/aps/translate/${currentUrn}`);
+        const response = await fetch(`/api/aps/translate/${urn}`);
         if (response.ok) {
           const status = await response.json();
           console.log('Translation status:', status);
@@ -324,24 +230,18 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
       // Determine the correct document ID format for the viewer
       let documentId: string;
 
-      if (currentUrn.startsWith('urn:adsk.objects:os.object:')) {
+      if (urn.startsWith('urn:adsk.objects:os.object:')) {
         // Raw URN - needs to be base64 encoded
-        const base64Urn = Buffer.from(currentUrn)
-          .toString('base64')
-          .replace(/=/g, '');
+        const base64Urn = Buffer.from(urn).toString('base64').replace(/=/g, '');
         documentId = `urn:${base64Urn}`;
         console.log('Encoded raw URN to base64 with urn: prefix:', documentId);
-      } else if (isBase64Encoded(currentUrn)) {
+      } else if (isBase64Encoded(urn)) {
         // Already base64 encoded - add urn: prefix if missing
-        documentId = currentUrn.startsWith('urn:')
-          ? currentUrn
-          : `urn:${currentUrn}`;
+        documentId = urn.startsWith('urn:') ? urn : `urn:${urn}`;
         console.log('Using base64 URN with urn: prefix:', documentId);
       } else {
         // Assume it's already in the correct format, add urn: prefix if missing
-        documentId = currentUrn.startsWith('urn:')
-          ? currentUrn
-          : `urn:${currentUrn}`;
+        documentId = urn.startsWith('urn:') ? urn : `urn:${urn}`;
         console.log('Using URN with urn: prefix:', documentId);
       }
 
@@ -393,42 +293,7 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
     };
 
     loadModel();
-  }, [viewer, currentUrn, onError, toast]);
-
-  // Handle upload success
-  const handleUploadSuccess = useCallback(
-    (result: any) => {
-      setCurrentUrn(result.translationUrn || result.objectId);
-
-      // Poll for translation status
-      const pollTranslation = async () => {
-        try {
-          const response = await fetch(
-            `/api/aps/translate/${result.translationUrn || result.objectId}`
-          );
-          const status = await response.json();
-
-          setTranslationStatus(status);
-
-          if (status.isComplete) {
-            setCurrentUrn(result.translationUrn || result.objectId);
-          } else if (!status.hasErrors) {
-            // Continue polling if not complete and no errors
-            setTimeout(pollTranslation, 5000);
-          }
-        } catch (error) {
-          console.error('Failed to check translation status:', error);
-        }
-      };
-
-      pollTranslation();
-
-      if (onUploadSuccess) {
-        onUploadSuccess(result);
-      }
-    },
-    [onUploadSuccess]
-  );
+  }, [viewer, urn, onError]);
 
   // Cleanup
   useEffect(() => {
@@ -442,6 +307,29 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
       }
     };
   }, [viewer]);
+
+  // Show no model message when URN is not provided
+  if (!urn) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center rounded-lg border bg-secondary',
+          className
+        )}
+        style={{ width, height }}
+      >
+        <div className="max-w-md p-6">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              No model available for this part. Please upload a 3D model on the
+              part detail page.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -465,41 +353,11 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
     <div
       ref={containerRef}
       className={cn(
-        'relative rounded-lg border overflow-hidden bg-gray-100',
+        'relative rounded-lg border overflow-hidden bg-muted/50',
         className
       )}
       style={{ width, height }}
     >
-      {/* Upload section */}
-      {showUpload && !currentUrn && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80">
-          <div className="w-80 p-6 bg-background border rounded-lg shadow-lg">
-            <h3 className="text-lg font-medium mb-4">Upload 3D Model</h3>
-            <FileUpload
-              onUploadSuccess={handleUploadSuccess}
-              onError={(error) => {
-                setError(error.message);
-                if (onError) onError(error);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Translation status */}
-      {translationStatus &&
-        !translationStatus.isComplete &&
-        !translationStatus.hasErrors && (
-          <div className="absolute top-4 left-4 z-10 bg-background border rounded-md p-3 shadow-lg">
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <div className="text-sm">
-                Translating model... {translationStatus.progress}
-              </div>
-            </div>
-          </div>
-        )}
-
       {/* Loading indicator */}
       {(isLoading || !isInitialized) && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">

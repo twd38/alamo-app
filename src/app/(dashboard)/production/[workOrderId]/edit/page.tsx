@@ -335,9 +335,12 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
                             <label className="text-sm font-medium">
                               Part Number
                             </label>
-                            <div className="mt-1 font-mono">
+                            <Link
+                              href={`/parts/library/${workOrder.part.id}`}
+                              className="mt-1 font-mono block underline"
+                            >
                               {workOrder.part.partNumber}
-                            </div>
+                            </Link>
                           </div>
                         </div>
 
@@ -558,24 +561,12 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
                   urn={workOrder.part.apsUrn || undefined}
                   height="100%"
                   className="rounded-lg shadow-sm"
-                  showUpload={!workOrder.part.apsUrn}
                   onLoad={(viewer: any) => {
                     console.log('Autodesk viewer loaded:', viewer);
                   }}
                   onError={(error: Error) => {
                     console.error('Autodesk viewer error:', error);
                     toast.error(`Viewer Error: ${error.message}`);
-                  }}
-                  onUploadSuccess={(result: any) => {
-                    console.log(
-                      'File uploaded and translation started:',
-                      result
-                    );
-                    toast.success(
-                      `Upload successful: ${result.fileName} is being processed`
-                    );
-                    // Optionally refresh work order to get updated part data
-                    mutateWorkOrder();
                   }}
                 />
               ) : (

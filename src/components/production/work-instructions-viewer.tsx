@@ -4,8 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Clock, PanelLeft, PanelRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Clock, Box, Home, X } from 'lucide-react';
 import { MarkdownEditor } from '@/components/markdown-editor';
+import AutodeskViewer from '@/components/autodesk-viewer';
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -38,6 +45,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [leftPanelSize, setLeftPanelSize] = useState(25);
   const [rightPanelSize, setRightPanelSize] = useState(25);
+  const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -68,18 +76,52 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
     }
   };
 
-  // Function to close left panel
-  const toggleLeftPanel = () => {
-    setLeftPanelSize(leftPanelSize === 25 ? 0 : 25);
+  // Function to open model dialog
+  const openModelDialog = () => {
+    setIsModelDialogOpen(true);
   };
 
-  // Function to close right panel
-  const toggleRightPanel = () => {
-    setRightPanelSize(rightPanelSize === 25 ? 0 : 25);
+  // Function to close model dialog
+  const closeModelDialog = () => {
+    setIsModelDialogOpen(false);
+  };
+
+  const RenderCheck = () => {
+    console.log('RenderCheck');
+    return <div></div>;
   };
 
   return (
     <>
+      {/* Model Dialog */}
+      <Dialog open={isModelDialogOpen}>
+        <DialogTitle className="sr-only">3D Model Viewer</DialogTitle>
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-full h-full p-0 gap-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={closeModelDialog}
+            className="h-8 w-8 absolute top-2 right-2 z-10"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <AutodeskViewer
+              urn={workOrder?.part?.apsUrn || undefined}
+              width="100%"
+              height="100%"
+              className="rounded-lg shadow-sm"
+              onLoad={(viewer: any) => {
+                console.log('Autodesk viewer loaded in dialog:', viewer);
+              }}
+              onError={(error: Error) => {
+                console.error('Autodesk viewer error in dialog:', error);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Second Top Bar */}
       {/* <div className="flex justify-between items-center border-b border-border p-2 bg-background">
         <Button variant="ghost" size="icon" onClick={toggleLeftPanel}>
@@ -106,16 +148,29 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
           {leftPanelSize > 0 && (
             <ScrollArea className="h-full w-full">
               <div className="p-2 space-y-2 w-full">
-                <div
-                  className={`p-3 space-y-1 rounded-lg border shadow-sm items-center cursor-pointer w-full ${
-                    !selectedStep ? 'bg-accent' : 'hover:bg-accent/50'
-                  }`}
-                  onClick={goToOverview}
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <h4 className="text-sm font-medium truncate">Overview</h4>
-                  </div>
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    variant="outline"
+                    className={`w-full ${
+                      selectedStepId === null
+                        ? 'bg-blue-50 border-blue-500'
+                        : 'hover:bg-accent border-border hover:border-blue-200'
+                    }`}
+                    onClick={goToOverview}
+                  >
+                    <Home className="h-4 w-4 mr-2" /> Overview
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={openModelDialog}
+                  >
+                    <Box className="h-4 w-4 mr-2" /> View Model
+                  </Button>
                 </div>
+
+                <div className="h-px bg-border mb-4" />
 
                 {steps.map((step) => (
                   <WorkInstructionStepItem

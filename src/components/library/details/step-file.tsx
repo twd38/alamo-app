@@ -263,7 +263,6 @@ const StepFile: React.FC<StepFileProps> = ({
         <AutodeskViewer
           height="100%"
           urn={apsUrn}
-          showUpload={false}
           onError={(error) => {
             console.error('AutodeskViewer error:', error);
             toast.error('Failed to load 3D model');
