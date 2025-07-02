@@ -212,8 +212,8 @@ const StepFile: React.FC<StepFileProps> = ({
     },
     maxFiles: 1,
     disabled: isUploading,
-    noClick: true, // Disable default click behavior
-    noKeyboard: true // Disable keyboard behavior
+    noClick: !!apsUrn, // Only disable click when there's an existing model
+    noKeyboard: !!apsUrn // Only disable keyboard when there's an existing model
   });
 
   const handleUpdateModel = () => {
@@ -293,7 +293,7 @@ const StepFile: React.FC<StepFileProps> = ({
 
   // If no APS URN, show upload interface
   return (
-    <div className={cn('w-full space-y-4', className)}>
+    <div className={cn('w-full space-y-4')}>
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">3D Model Viewer</h3>
         <div className="flex gap-2">
@@ -305,16 +305,6 @@ const StepFile: React.FC<StepFileProps> = ({
             >
               <Download className="h-4 w-4 mr-2" />
               Download CAD
-            </Button>
-          )}
-          {gltfFile && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDownload(gltfFile, 'GLTF')}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download GLTF
             </Button>
           )}
           <DropdownMenu>
@@ -339,7 +329,7 @@ const StepFile: React.FC<StepFileProps> = ({
       <div
         {...getRootProps()}
         className={cn(
-          'aspect-square w-full rounded-lg border-2 border-dashed transition-colors cursor-pointer',
+          'w-full rounded-lg border-2 border-dashed transition-colors cursor-pointer',
           isDragActive
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 bg-muted/10 hover:border-muted-foreground/40 hover:bg-muted/20',
