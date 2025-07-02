@@ -31,9 +31,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Book, Clipboard, Box, Loader2 } from 'lucide-react';
 import { UserSelect } from '@/components/user-select';
-import ThreeDViewer from '@/components/three-d-viewer';
+import AutodeskViewer from '@/components/autodesk-viewer';
 import { toast } from 'sonner';
-import { getFileUrlFromKey } from '@/lib/actions';
 
 // *** Work Order Work Instructions Editor *** (Main Component)
 const WorkOrderWorkInstructionsEditor: React.FC = () => {
@@ -65,17 +64,6 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
   const { data: users, isLoading: isUsersLoading } = useSWR(
     '/api/users',
     getAllUsers
-  );
-
-  const { data: gltfFileUrl, isLoading: isGltfFileLoading } = useSWR(
-    workOrder?.part?.gltfFile?.key,
-    async (key) => {
-      const result = await getFileUrlFromKey(key);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to get signed URL');
-      }
-      return result.url;
-    }
   );
 
   const workInstructionId = workInstructions?.[0]?.id;
@@ -565,22 +553,38 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
 
           {activeTab === 'model' && (
             <div className="p-4 h-full">
-              {isGltfFileLoading || !gltfFileUrl ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <ThreeDViewer
-                  fileUrl={gltfFileUrl}
-                  fileType="gltf"
+              {workOrder ? (
+                <AutodeskViewer
+                  urn={workOrder.part.apsUrn || undefined}
                   height="100%"
                   className="rounded-lg shadow-sm"
-                  environment="city"
-                  showGrid={true}
-                  onLoad={(model) => {
-                    console.log('3D model loaded:', model);
+                  showUpload={!workOrder.part.apsUrn}
+                  onLoad={(viewer: any) => {
+                    console.log('Autodesk viewer loaded:', viewer);
+                  }}
+                  onError={(error: Error) => {
+                    console.error('Autodesk viewer error:', error);
+                    toast.error(`Viewer Error: ${error.message}`);
+                  }}
+                  onUploadSuccess={(result: any) => {
+                    console.log(
+                      'File uploaded and translation started:',
+                      result
+                    );
+                    toast.success(
+                      `Upload successful: ${result.fileName} is being processed`
+                    );
+                    // Optionally refresh work order to get updated part data
+                    mutateWorkOrder();
                   }}
                 />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-gray-500 flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading work order...
+                  </div>
+                </div>
               )}
             </div>
           )}

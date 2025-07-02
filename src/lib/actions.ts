@@ -929,7 +929,8 @@ export async function updatePart({
   partImage,
   files,
   bomParts = [],
-  isRawMaterial
+  isRawMaterial,
+  apsUrn
 }: {
   id: string;
   partNumber?: string;
@@ -939,6 +940,7 @@ export async function updatePart({
   partImage?: File;
   files?: File[];
   isRawMaterial?: boolean;
+  apsUrn?: string;
   bomParts?: {
     id: string;
     part: Part;
@@ -972,6 +974,7 @@ export async function updatePart({
     if (description !== undefined) updateData.description = description;
     if (unit !== undefined) updateData.unit = unit;
     if (trackingType !== undefined) updateData.trackingType = trackingType;
+    if (apsUrn !== undefined) updateData.apsUrn = apsUrn;
 
     // Handle part image upload if it exists and is a File object
     if (partImage && partImage instanceof File) {

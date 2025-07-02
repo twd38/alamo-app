@@ -1,65 +1,40 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  Box,
-  Download,
-  Eye,
-  Loader2,
-  Upload,
-  FileUp,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
+import { Download, Loader2, Upload, FileUp, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { File as PrismaFile } from '@prisma/client';
-import ThreeDViewer from '@/components/three-d-viewer';
-import useSWR from 'swr';
-import {
-  getFileUrlFromKey,
-  addStepFileWithGltfConversion
-} from '@/lib/actions';
+import AutodeskViewer from '@/components/autodesk-viewer';
+import { getFileUrlFromKey, updatePart } from '@/lib/actions';
 import { useDropzone } from 'react-dropzone';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 interface StepFileProps {
   cadFile: PrismaFile | null;
   gltfFile: PrismaFile | null;
   partId: string;
+  apsUrn?: string | null;
   className?: string;
 }
 
-// Fetcher function for SWR
-const fetcher = async (key: string) => {
-  console.log('Fetching Key:', key);
-  const result = await getFileUrlFromKey(key);
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to get signed URL');
-  }
-  return result.url;
-};
-
-// Component for viewing STEP and GLTF files
+// Component for viewing CAD files with APS support
 const StepFile: React.FC<StepFileProps> = ({
   cadFile,
   gltfFile,
   partId,
+  apsUrn,
   className
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
-  const key = gltfFile?.key;
-
-  console.log('gltfFile', gltfFile);
-  // Get signed URL for the GLTF file using SWR
-  const {
-    data: signedGltfUrl,
-    error: gltfUrlError,
-    isLoading: isLoadingGltfUrl
-  } = useSWR(key, fetcher);
-
-  console.log('error', gltfUrlError);
-  console.log('signedGltfUrl', signedGltfUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownload = async (file: PrismaFile, label: string) => {
     try {
@@ -76,50 +51,113 @@ const StepFile: React.FC<StepFileProps> = ({
     }
   };
 
-  const handleStepFileUpload = useCallback(
+  const handleAPSUpload = useCallback(
     async (file: File) => {
       if (!file) return;
 
-      // Validate file type
-      const isValidStepFile =
-        file.name.toLowerCase().endsWith('.step') ||
-        file.name.toLowerCase().endsWith('.stp');
-
-      if (!isValidStepFile) {
-        toast.error('Please upload a STEP file (.step or .stp)');
-        return;
-      }
-
       setIsUploading(true);
-      setUploadProgress('Uploading STEP file...');
+      setUploadProgress('Uploading to Autodesk Platform Services...');
 
       try {
-        // Call the server action to upload and convert
-        setUploadProgress('Converting STEP to GLTF...');
-        const result = await addStepFileWithGltfConversion({
-          partId,
-          stepFile: file
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/aps/upload', {
+          method: 'POST',
+          body: formData
         });
 
-        if (result.success) {
-          setUploadProgress('Upload complete!');
-          toast.success(
-            'STEP file uploaded and converted to 3D model successfully!'
-          );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
 
-          // Refresh the page to show the new files
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } else {
-          throw new Error(
-            result.error || 'Failed to upload and convert STEP file'
-          );
+        const result = await response.json();
+        console.log('APS Upload result:', result);
+        setUploadProgress('File uploaded, starting translation...');
+
+        // Wait for translation to complete
+        let translationComplete = false;
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes max
+
+        while (!translationComplete && attempts < maxAttempts) {
+          attempts++;
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+
+          try {
+            const statusResponse = await fetch(
+              `/api/aps/translate/${result.translationUrn}`
+            );
+            if (statusResponse.ok) {
+              const status = await statusResponse.json();
+              console.log('Translation status:', status);
+
+              if (status.isComplete) {
+                translationComplete = true;
+                setUploadProgress('Translation complete, saving...');
+
+                console.log(
+                  'Translation complete, saving URN:',
+                  result.translationUrn
+                );
+                console.log('Part ID:', partId);
+
+                // Save the APS URN to the part
+                try {
+                  const updateResult = await updatePart({
+                    id: partId,
+                    apsUrn: result.translationUrn
+                  });
+                  console.log('Update part result:', updateResult);
+
+                  if (updateResult.success) {
+                    console.log('Successfully saved APS URN to part');
+                    toast.success(
+                      '3D model uploaded and translated successfully!'
+                    );
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 1000);
+                  } else {
+                    console.error(
+                      'Failed to save APS URN:',
+                      updateResult.error
+                    );
+                    toast.error(
+                      `Model translated but failed to save: ${updateResult.error}`
+                    );
+                  }
+                } catch (updateError) {
+                  console.error(
+                    'Error updating part with APS URN:',
+                    updateError
+                  );
+                  toast.error(
+                    'Model translated but failed to save. Please refresh the page.'
+                  );
+                }
+                break;
+              } else if (status.hasErrors) {
+                throw new Error('Translation failed with errors');
+              } else {
+                setUploadProgress(
+                  `Translation in progress... (${status.progress || 'Processing'})`
+                );
+              }
+            }
+          } catch (statusError) {
+            console.warn('Error checking translation status:', statusError);
+          }
+        }
+
+        if (!translationComplete) {
+          throw new Error('Translation timed out. Please try again.');
         }
       } catch (error) {
-        console.error('Error uploading STEP file:', error);
+        console.error('Error uploading to APS:', error);
         toast.error(
-          error instanceof Error ? error.message : 'Failed to upload STEP file'
+          error instanceof Error ? error.message : 'Failed to upload to APS'
         );
       } finally {
         setIsUploading(false);
@@ -133,181 +171,229 @@ const StepFile: React.FC<StepFileProps> = ({
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
       if (file) {
-        handleStepFileUpload(file);
+        handleAPSUpload(file);
       }
     },
-    [handleStepFileUpload]
+    [handleAPSUpload]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: {
-      'application/octet-stream': ['.step', '.stp'],
-      'model/step': ['.step', '.stp']
+      // APS supports many formats
+      'application/octet-stream': [
+        '.step',
+        '.stp',
+        '.dwg',
+        '.dxf',
+        '.ipt',
+        '.iam',
+        '.idw',
+        '.ipn',
+        '.f3d',
+        '.catpart',
+        '.catproduct',
+        '.cgr',
+        '.3dxml',
+        '.3dm',
+        '.rvt',
+        '.rfa',
+        '.obj',
+        '.stl',
+        '.3ds',
+        '.max'
+      ],
+      'model/step': ['.step', '.stp'],
+      'application/dwg': ['.dwg'],
+      'application/dxf': ['.dxf'],
+      'application/inventor': ['.ipt', '.iam'],
+      'model/obj': ['.obj'],
+      'model/stl': ['.stl']
     },
     maxFiles: 1,
-    disabled: isUploading
+    disabled: isUploading,
+    noClick: true, // Disable default click behavior
+    noKeyboard: true // Disable keyboard behavior
   });
 
-  // If no GLTF file is available, show upload dropzone
-  if (!gltfFile) {
+  const handleUpdateModel = () => {
+    if (!isUploading) {
+      open(); // Trigger the file dialog
+    }
+  };
+
+  // If we have an APS URN, show the AutodeskViewer
+  if (apsUrn) {
     return (
-      <div className={cn('w-full', className)}>
-        <div
-          {...getRootProps()}
-          className={cn(
-            'aspect-square w-full rounded-lg border-2 border-dashed transition-colors cursor-pointer',
-            isDragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 bg-muted/10 hover:border-muted-foreground/40 hover:bg-muted/20',
-            isUploading && 'pointer-events-none opacity-75'
-          )}
-        >
-          <input {...getInputProps()} />
-          <div className="h-full flex flex-col items-center justify-center gap-4 p-8">
-            {isUploading ? (
-              <>
-                <Loader2 className="h-16 w-16 text-primary animate-spin" />
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-medium text-foreground">
-                    Processing STEP File...
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {uploadProgress}
-                  </p>
-                </div>
-              </>
-            ) : isDragActive ? (
-              <>
-                <FileUp className="h-16 w-16 text-primary" />
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-medium text-foreground">
-                    Drop STEP file here
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Release to upload and convert to 3D model
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <Upload className="h-16 w-16 text-muted-foreground" />
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-medium text-foreground">
-                    Upload STEP File
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Drag & drop a STEP file (.step or .stp) or click to browse
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    The file will be automatically converted to a 3D model
-                  </p>
-                </div>
-              </>
+      <div className={cn('w-full space-y-4 h-full', className)}>
+        {/* Header with download options and dropdown menu */}
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">3D Model Viewer</h3>
+          <div className="flex gap-2">
+            {cadFile && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownload(cadFile, 'CAD')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download CAD
+              </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={handleUpdateModel}
+                  disabled={isUploading}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Update model
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  // If we're loading the signed URL, show loading state
-  if (isLoadingGltfUrl || !signedGltfUrl) {
-    return (
-      <div className={cn('w-full', className)}>
-        <div className="aspect-square w-full rounded-lg border bg-muted/10 flex flex-col items-center justify-center gap-4 p-8">
-          <Loader2 className="h-16 w-16 text-muted-foreground animate-spin" />
-          <div className="text-center space-y-2">
-            <p className="text-lg font-medium text-foreground">
-              Loading 3D Model...
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Preparing secure access to the file
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // If there's an error getting the signed URL, show error
-  if (gltfUrlError) {
-    return (
-      <div className={cn('w-full', className)}>
-        <div className="aspect-square w-full rounded-lg border border-red-200 bg-red-50 flex flex-col items-center justify-center gap-4 p-8">
-          <Box className="h-16 w-16 text-red-500" />
-          <div className="text-center space-y-2">
-            <p className="text-lg font-medium text-red-700">
-              Error Loading 3D Model
-            </p>
-            <p className="text-sm text-red-600">
-              {gltfUrlError.message || 'Failed to load the 3D model file'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show the 3D viewer with file information
-  return (
-    <div className={cn('w-full space-y-4', className)}>
-      {/* 3D Viewer */}
-      <div className="relative">
-        <ThreeDViewer
-          fileUrl={signedGltfUrl}
-          fileType="gltf"
-          height="500px"
-          className="rounded-lg shadow-sm"
-          environment="studio"
-          showGrid={true}
-          onLoad={(model) => {
-            console.log('3D model loaded:', model);
-          }}
+        {/* Autodesk Viewer */}
+        <AutodeskViewer
+          height="100%"
+          urn={apsUrn}
+          showUpload={false}
           onError={(error) => {
-            console.error('Error loading 3D model:', error);
+            console.error('AutodeskViewer error:', error);
             toast.error('Failed to load 3D model');
           }}
         />
-      </div>
 
-      {/* File Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* GLTF File Info */}
-        <div className="p-4 border rounded-lg bg-card">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Box className="h-4 w-4 text-blue-600" />
-              <span className="font-medium text-sm">GLTF File</span>
-            </div>
-            <button
-              onClick={() => handleDownload(gltfFile, 'GLTF')}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <Download className="h-3 w-3" />
-              Download
-            </button>
-          </div>
+        {/* Hidden dropzone for file uploads triggered by dropdown */}
+        <div {...getRootProps()} className="hidden">
+          <input {...getInputProps()} />
         </div>
 
-        {/* CAD File Info */}
-        {cadFile && (
-          <div className="p-4 border rounded-lg bg-card">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Box className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-sm">STEP File</span>
-              </div>
-              <button
-                onClick={() => handleDownload(cadFile, 'STEP')}
-                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 transition-colors"
-              >
-                <Download className="h-3 w-3" />
-                Download
-              </button>
+        {/* Upload progress indicator */}
+        {isUploading && (
+          <div className="border rounded-lg p-4 bg-muted/10">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <p className="text-sm font-medium">
+                Processing with Autodesk Platform Services...
+              </p>
+              <p className="text-sm text-muted-foreground">{uploadProgress}</p>
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // If no APS URN, show upload interface
+  return (
+    <div className={cn('w-full space-y-4', className)}>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">3D Model Viewer</h3>
+        <div className="flex gap-2">
+          {cadFile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDownload(cadFile, 'CAD')}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download CAD
+            </Button>
+          )}
+          {gltfFile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDownload(gltfFile, 'GLTF')}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download GLTF
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={handleUpdateModel}
+                disabled={isUploading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Update model
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <div
+        {...getRootProps()}
+        className={cn(
+          'aspect-square w-full rounded-lg border-2 border-dashed transition-colors cursor-pointer',
+          isDragActive
+            ? 'border-primary bg-primary/5'
+            : 'border-muted-foreground/25 bg-muted/10 hover:border-muted-foreground/40 hover:bg-muted/20',
+          isUploading && 'pointer-events-none opacity-75'
+        )}
+      >
+        <input {...getInputProps()} />
+        <div className="h-full flex flex-col items-center justify-center gap-4 p-8">
+          {isUploading ? (
+            <>
+              <Loader2 className="h-16 w-16 text-primary animate-spin" />
+              <div className="text-center space-y-2">
+                <p className="text-lg font-medium text-foreground">
+                  Processing with Autodesk Platform Services...
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {uploadProgress}
+                </p>
+              </div>
+            </>
+          ) : isDragActive ? (
+            <>
+              <FileUp className="h-16 w-16 text-primary" />
+              <div className="text-center space-y-2">
+                <p className="text-lg font-medium text-foreground">
+                  Drop CAD file here
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Release to upload and translate with APS
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Upload className="h-16 w-16 text-muted-foreground" />
+              <div className="text-center space-y-2">
+                <p className="text-lg font-medium text-foreground">
+                  Upload CAD File
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Drag & drop CAD files or click to browse
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Professional CAD viewing with support for 70+ formats
+                  including:
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  .dwg, .step, .ipt, .iam, .f3d, .catpart, .rvt, .obj, .stl,
+                  .3ds, .max and more
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

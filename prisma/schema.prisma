@@ -239,6 +239,7 @@ model Part {
   partImageId      String?                @unique
   cadFileId        String?                @unique
   gltfFileId       String?                @unique
+  apsUrn           String?                @unique // Autodesk Platform Services URN for 3D viewer
   partRevision     String                 @default("A")
   trackingType     TrackingType           @default(SERIAL)
   partType         PartType               @default(RAW_000)

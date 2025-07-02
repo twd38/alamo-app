@@ -1,6 +1,13 @@
 'use client';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Clipboard, Warehouse, Box, ListOrdered, Book } from 'lucide-react';
+import {
+  Clipboard,
+  Warehouse,
+  Box,
+  ListOrdered,
+  Book,
+  Package
+} from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -19,13 +26,18 @@ export const TabList = () => {
       href: `/parts/library/${params.partId}?tab=details`
     },
     {
+      label: 'model',
+      icon: <Box />,
+      href: `/parts/library/${params.partId}?tab=model`
+    },
+    {
       label: 'instructions',
       icon: <Book />,
       href: `/parts/library/${params.partId}?tab=instructions`
     },
     {
       label: 'inventory',
-      icon: <Box />,
+      icon: <Warehouse />,
       href: `/parts/library/${params.partId}?tab=inventory`
     }
   ];
@@ -48,10 +60,12 @@ export const TabList = () => {
 
 export const ActiveTab = ({
   details,
+  model,
   instructions,
   inventory
 }: {
   details: React.ReactNode;
+  model: React.ReactNode;
   instructions: React.ReactNode;
   inventory: React.ReactNode;
 }) => {
@@ -63,6 +77,7 @@ export const ActiveTab = ({
   return (
     <>
       {activeTab === 'details' && details}
+      {activeTab === 'model' && model}
       {activeTab === 'instructions' && instructions}
       {activeTab === 'inventory' && inventory}
     </>
