@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
@@ -12,7 +12,33 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const ProductionPage = () => {
+const ProductionLoadingSkeleton = () => (
+  <div className="h-full bg-zinc-50 dark:bg-zinc-900">
+    <BasicTopBar />
+    <PageContainer>
+      <Card>
+        <CardHeader>
+          <CardTitle>Work Orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <div className="flex justify-between">
+              <Skeleton className="h-8 w-32" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </PageContainer>
+  </div>
+);
+
+const ProductionPageContent = () => {
   const searchParams = useSearchParams();
 
   // Extract URL parameters
@@ -123,6 +149,14 @@ const ProductionPage = () => {
         </Card>
       </PageContainer>
     </div>
+  );
+};
+
+const ProductionPage = () => {
+  return (
+    <Suspense fallback={<ProductionLoadingSkeleton />}>
+      <ProductionPageContent />
+    </Suspense>
   );
 };
 
