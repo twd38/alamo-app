@@ -89,10 +89,14 @@ export async function deleteFileFromR2(key: string): Promise<void> {
   await r2Client.send(command);
 }
 
-export async function getSignedDownloadUrl(key: string): Promise<string> {
+export async function getSignedDownloadUrl(
+  key: string,
+  fileName?: string
+): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
-    Key: key
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${fileName || key}"`
   });
 
   const signedUrl = await getSignedUrl(r2Client, command, {

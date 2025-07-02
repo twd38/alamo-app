@@ -6,24 +6,11 @@ import { File as FileIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
 import { File } from '@prisma/client';
-import { getFileUrlFromUnsignedUrl } from '@/lib/actions';
+import { downloadFile } from '@/lib/file-utils';
 
 interface FileListProps {
   files: File[] | [];
-  onChange: (files: FileType[]) => void;
-}
-
-type FileType = {
-  id?: string;
-  name: string;
-  size: number;
-  url?: string;
-};
-
-async function downloadFile(url: string) {
-  console.log('downloading file', url);
-  const signedUrl = await getFileUrlFromUnsignedUrl(url);
-  window.open(signedUrl.url, '_blank');
+  onChange: (files: any[]) => void;
 }
 
 const FileList = ({ files, onChange }: FileListProps) => {
@@ -33,7 +20,7 @@ const FileList = ({ files, onChange }: FileListProps) => {
       {files.length > 0 && (
         <>
           <div className="space-y-2">
-            {files.map((file: FileType, index: number) => (
+            {files.map((file, index: number) => (
               <div
                 key={index}
                 className="flex items-center justify-between p-2 h-12 bg-secondary border rounded-md px-2"
@@ -43,7 +30,7 @@ const FileList = ({ files, onChange }: FileListProps) => {
                     <FileIcon className="h-4 w-4" />
                     <Button
                       variant="link"
-                      onClick={() => downloadFile(file.url || '')}
+                      onClick={() => downloadFile(file)}
                       className="text-sm font-medium p-0 h-auto justify-start min-w-0 flex-1 max-w-[300px]"
                     >
                       <span className="truncate block">{file.name}</span>

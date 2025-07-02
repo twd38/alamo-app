@@ -663,9 +663,9 @@ function isFileInstance(
   return file instanceof File;
 }
 
-export async function getFileUrlFromKey(key: string) {
+export async function getFileUrlFromKey(key: string, fileName?: string) {
   try {
-    const presignedUrl = await getSignedDownloadUrl(key);
+    const presignedUrl = await getSignedDownloadUrl(key, fileName);
 
     return { success: true, url: presignedUrl };
   } catch (error) {
