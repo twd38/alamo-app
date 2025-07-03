@@ -1,4 +1,11 @@
-const CACHE_NAME = 'alamo-pwa-v3'; // Increment this with each deployment
+/* This is the service worker for the Alamo PWA.
+It is used to cache the static assets of the app and serve them offline.
+It is also used to handle the background sync and push notifications.
+It is also used to handle the notification clicks.
+It is also used to handle the messages from the main app.
+*/
+
+const CACHE_NAME = 'alamo-pwa-v__APP_VERSION__'; // Version automatically replaced during build
 const urlsToCache = [
   '/',
   '/manifest.json',

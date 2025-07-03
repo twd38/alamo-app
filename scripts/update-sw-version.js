@@ -4,37 +4,32 @@ const fs = require('fs');
 const path = require('path');
 
 const SW_PATH = path.join(__dirname, '..', 'public', 'sw.js');
+const PACKAGE_JSON_PATH = path.join(__dirname, '..', 'package.json');
 
 function updateServiceWorkerVersion() {
   try {
-    // Read the service worker file
-    let swContent = fs.readFileSync(SW_PATH, 'utf8');
+    // Read package.json to get the current version
+    const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf8'));
+    const appVersion = packageJson.version;
 
-    // Find the current cache name
-    const cacheNameRegex = /const CACHE_NAME = 'alamo-pwa-v(\d+)'/;
-    const match = swContent.match(cacheNameRegex);
-
-    if (!match) {
-      console.error('Could not find CACHE_NAME in service worker file');
+    if (!appVersion) {
+      console.error('Could not find version in package.json');
       process.exit(1);
     }
 
-    const currentVersion = parseInt(match[1], 10);
-    const newVersion = currentVersion + 1;
+    // Read the service worker file
+    let swContent = fs.readFileSync(SW_PATH, 'utf8');
 
-    // Replace the cache name with the new version
-    swContent = swContent.replace(
-      cacheNameRegex,
-      `const CACHE_NAME = 'alamo-pwa-v${newVersion}'`
-    );
+    // Replace the version placeholder with the actual version
+    const updatedContent = swContent.replace(/__APP_VERSION__/g, appVersion);
 
-    // Write the updated service worker file
-    fs.writeFileSync(SW_PATH, swContent, 'utf8');
-
-    console.log(
-      `✅ Service worker cache version updated from v${currentVersion} to v${newVersion}`
-    );
-    console.log(`📝 Updated file: ${SW_PATH}`);
+    // Only write if there was a change
+    if (updatedContent !== swContent) {
+      fs.writeFileSync(SW_PATH, updatedContent, 'utf8');
+      console.log(`✅ Service worker version updated to v${appVersion}`);
+    } else {
+      console.log(`ℹ️  Service worker already up to date (v${appVersion})`);
+    }
   } catch (error) {
     console.error('Error updating service worker version:', error);
     process.exit(1);

@@ -1,7 +1,6 @@
 {
   "name": "Alamo by the American Housing Corporation",
   "short_name": "Alamo",
-  "version": "1.0.0",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

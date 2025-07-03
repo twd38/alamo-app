@@ -1,10 +1,12 @@
 {
+  "name": "alamo-app",
+  "version": "4.0.3",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "npm run sw:update && next dev --turbopack",
+    "build": "npm run sw:update && next build",
     "start": "next start",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && npm run sw:update && next build",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "seed:rbac": "dotenv -e .env.local -- tsx scripts/seed-rbac.ts",

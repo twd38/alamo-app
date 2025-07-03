@@ -32,6 +32,7 @@ import { useTheme } from 'next-themes';
 import { BadgeQRDialog } from './badge-qr-dialog';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
+import packageJson from '../../../package.json';
 
 export function NavUser({
   user,
@@ -127,6 +128,9 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-xs text-muted-foreground cursor-default">
+              Alamo v{packageJson.version}
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
               onClick={async () => {
