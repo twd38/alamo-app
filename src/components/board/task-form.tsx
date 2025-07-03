@@ -738,15 +738,6 @@ const TaskForm = ({
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </div>
-                                {'url' in file ? (
-                                  <STLViewer
-                                    fileType={'pdf'}
-                                    filePath={file.url}
-                                    key={`${index}-viewer`}
-                                  />
-                                ) : (
-                                  <div key={`${index}-viewer`}></div>
-                                )}
                               </div>
                             ))}
                           </div>
