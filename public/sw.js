@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alamo-pwa-v1';
+const CACHE_NAME = 'alamo-pwa-v3'; // Increment this with each deployment
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -9,10 +9,11 @@ const urlsToCache = [
 
 // Install event - cache initial resources
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
+        console.log('Opened cache:', CACHE_NAME);
         return cache.addAll(urlsToCache);
       })
   );
@@ -22,6 +23,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activated');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -57,13 +59,16 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
           
-          // Clone the response because it's a stream and can only be used once
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+          // Only cache GET requests (POST, PUT, DELETE, etc. are not cacheable)
+          if (event.request.method === 'GET') {
+            // Clone the response because it's a stream and can only be used once
+            const responseToCache = response.clone();
+            
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+          }
           
           return response;
         }).catch(() => {
@@ -113,4 +118,11 @@ self.addEventListener('notificationclick', (event) => {
       return clients.openWindow('/');
     })
   );
+});
+
+// Handle messages from the main app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 }); 

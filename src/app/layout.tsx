@@ -2,7 +2,7 @@ import 'src/styles/global.css';
 import { ThemeProvider } from 'src/components/providers/theme-provider';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'sonner';
-import PWARegistration from 'src/components/pwa-registration';
+import PWAUpdateManager from 'src/components/pwa-update-manager';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -115,7 +115,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <PWARegistration />
+          <PWAUpdateManager />
           {children}
           <Toaster richColors />
         </ThemeProvider>
