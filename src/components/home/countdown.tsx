@@ -61,12 +61,12 @@ export default function Countdown({ targetDate }: CountdownProps) {
         <div className="grid grid-cols-4 gap-8">
           {Object.entries(timeLeft).map(([unit, value]) => (
             <div key={unit} className="flex flex-col items-center w-full">
-              <div className="text-center border-2 bg-muted border-primary/10 rounded-lg py-10 w-full">
-                <span className="text-5xl font-bold">
+              <div className="text-center border-2 bg-muted border-primary/10 rounded-lg py-4 md:py-10 w-full">
+                <span className="text-xl md:text-5xl font-bold">
                   {String(value).padStart(2, '0')}
                 </span>
               </div>
-              <span className="block text-sm font-medium text-primary/80 mt-3 uppercase">
+              <span className="block text-xs md:text-sm font-medium text-primary/80 mt-3 uppercase">
                 {unit}
               </span>
             </div>
