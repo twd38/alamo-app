@@ -2,6 +2,7 @@ import { LibraryDataTable } from '@/components/library/library-datatable';
 import { getParts, getPartsCount } from '@/lib/queries';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
+import type { Metadata } from 'next';
 
 interface InventoryPageProps {
   searchParams: Promise<{
@@ -16,6 +17,17 @@ interface InventoryPageProps {
     id: string;
   }>;
 }
+
+export const metadata: Metadata = {
+  title: 'Parts Library',
+  description: 'Browse and manage parts in the Alamo system.',
+  keywords: ['parts', 'inventory', 'manufacturing', 'library'],
+  openGraph: {
+    title: 'Parts Library | Alamo',
+    description: 'Browse and manage parts in the Alamo system.',
+    url: '/parts/library'
+  }
+};
 
 export default async function InventoryPage(props: InventoryPageProps) {
   const searchParams = await props.searchParams;
