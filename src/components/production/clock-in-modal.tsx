@@ -44,6 +44,8 @@ export function ClockInModal(props: ClockInModalProps) {
     async (result: IDetectedBarcode[]) => {
       if (!result?.[0]?.rawValue || isProcessing) return;
 
+      console.log('Scanned result:', result);
+
       try {
         setIsProcessing(true);
 
@@ -60,20 +62,25 @@ export function ClockInModal(props: ClockInModalProps) {
           return;
         }
 
-        // Check if user is already scanned
-        if (scannedUsers.some((user) => user.id === badge.user.id)) {
-          toast.error('User already scanned');
-          return;
-        }
-
         // Check if user is already clocked in
         if (clockedInUsers.some((user) => user.id === badge.user.id)) {
           toast.error('User already clocked in');
           return;
         }
 
-        setScannedUsers((prev) => [...prev, badge.user]);
-        toast.success(`${badge.user.name} scanned successfully`);
+        // Use functional update to check and add user atomically
+        setScannedUsers((prev) => {
+          console.log('Current scanned users:', prev);
+
+          // Check if user is already scanned using current state
+          if (prev.some((user) => user.id === badge.user.id)) {
+            return prev; // Return unchanged state
+          }
+
+          // Add the new user
+          toast.success(`${badge.user.name} scanned successfully`);
+          return [...prev, badge.user];
+        });
       } catch (error) {
         console.error('Badge scan error:', error);
         toast.error('Failed to verify badge');
@@ -81,7 +88,7 @@ export function ClockInModal(props: ClockInModalProps) {
         setIsProcessing(false);
       }
     },
-    [isProcessing, scannedUsers, clockedInUsers]
+    [isProcessing, clockedInUsers]
   );
 
   const handleClockIn = async () => {

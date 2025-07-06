@@ -8,6 +8,7 @@ import { getWorkOrder } from '@/lib/queries';
 import { WorkOrderStatus } from '@prisma/client';
 import { cn } from '@/lib/utils';
 import { ClockInModal } from './clock-in-modal';
+import { ProductionStatusBadge } from '@/components/production/production-status-badge';
 import {
   startWorkOrderProduction,
   pauseWorkOrderProduction
@@ -152,7 +153,12 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
   };
 
   return (
-    <div className={cn('p-4 text-white space-y-4 h-20', getTimeStatusColor())}>
+    <div
+      className={cn(
+        'px-4 text-white space-y-4 h-20 content-center',
+        getTimeStatusColor()
+      )}
+    >
       <div className="flex justify-between items-center">
         <div className="flex items-center">
           {/* Return Button */}
@@ -166,11 +172,16 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
           </Button>
 
           {/* Part Info */}
-          <div className="">
-            <h1 className="text-xl font-bold">{workOrder.part.name}</h1>
-            <p className="text-sm opacity-90">
-              {workOrder.part.partNumber} • Qty: {workOrder.partQty}
-            </p>
+          <div>
+            <h1 className="text-xl font-bold mb-1">{workOrder.part.name}</h1>
+            <div className="flex items-center gap-4">
+              <p className="text-sm opacity-90">{workOrder.part.partNumber}</p>
+              <p className="text-sm opacity-90">Qty: {workOrder.partQty}</p>
+              <ProductionStatusBadge
+                status={workOrderStatus}
+                className="text-[10px]"
+              />
+            </div>
           </div>
 
           <div className="flex items-center ml-8 py-2 px-4 rounded-md border border-red-500">

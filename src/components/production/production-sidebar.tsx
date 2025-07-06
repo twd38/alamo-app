@@ -12,11 +12,15 @@ import {
 import { ProductionActionItem } from './actions';
 import { CircleCheck } from 'lucide-react';
 import { getWorkOrder } from '@/lib/queries';
-import { completeWorkOrderWorkInstructionStep } from '@/lib/actions';
+import {
+  completeWorkOrderWorkInstructionStep,
+  completeWorkOrder
+} from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Comments } from '@/components/comments';
 import { useSearchParams } from 'next/navigation';
+import { WorkOrderCompletionDialog } from './work-order-completion-dialog';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
@@ -30,6 +34,70 @@ interface ProductionSidebarProps {
   onStepCompleted?: (stepId: string) => void;
 }
 
+// Button component for completing a normal step
+interface CompleteStepButtonProps {
+  canComplete: boolean;
+  isCompleting: boolean;
+  isStepCompleted: boolean;
+  onComplete: () => void;
+}
+
+function CompleteStepButton({
+  canComplete,
+  isCompleting,
+  isStepCompleted,
+  onComplete
+}: CompleteStepButtonProps) {
+  return (
+    <Button
+      variant="default"
+      className="w-full"
+      disabled={!canComplete || isCompleting}
+      onClick={onComplete}
+    >
+      <CircleCheck className="w-4 h-4 mr-2" />
+      {isCompleting
+        ? 'Completing...'
+        : isStepCompleted
+          ? 'Step Completed'
+          : 'Complete Step'}
+    </Button>
+  );
+}
+
+// Button component for completing a work order (last step)
+interface CompleteWorkOrderButtonProps {
+  canComplete: boolean;
+  isCompleting: boolean;
+  isStepCompleted: boolean;
+  isWorkOrderCompleted: boolean;
+  onComplete: () => void;
+}
+
+function CompleteWorkOrderButton({
+  canComplete,
+  isCompleting,
+  isStepCompleted,
+  isWorkOrderCompleted,
+  onComplete
+}: CompleteWorkOrderButtonProps) {
+  return (
+    <Button
+      variant="default"
+      className="w-full text-white"
+      disabled={!canComplete || isCompleting}
+      onClick={onComplete}
+    >
+      <CircleCheck className="w-4 h-4 mr-2" />
+      {isCompleting
+        ? 'Completing...'
+        : isWorkOrderCompleted
+          ? 'Work Order Completed'
+          : 'Complete Work Order'}
+    </Button>
+  );
+}
+
 export function ProductionSidebar({
   step,
   workOrder,
@@ -38,6 +106,7 @@ export function ProductionSidebar({
   const router = useRouter();
   const [isCompleting, setIsCompleting] = useState(false);
   const [activeTab, setActiveTab] = useState('actions');
+  const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const searchParams = useSearchParams();
 
   console.log('activeTab', activeTab);
@@ -52,8 +121,17 @@ export function ProductionSidebar({
   const isWorkOrderInProgress =
     workOrder?.status === WorkOrderStatus.IN_PROGRESS;
 
+  const isWorkOrderCompleted = workOrder?.status === WorkOrderStatus.COMPLETED;
+
   // Find the corresponding work order step (execution tracking is embedded)
   const isStepCompleted = step?.status === 'COMPLETED';
+
+  // Find if this is the last step in the work order
+  const isLastStep =
+    workOrder?.workInstruction?.steps.length === step?.stepNumber;
+
+  console.log('isLastStep', isLastStep);
+  console.log('step', step);
 
   // Check if all required actions are completed
   const requiredActions =
@@ -72,9 +150,6 @@ export function ProductionSidebar({
   const allActionsCompleted =
     requiredActions.length === 0 ||
     completedRequiredActions.length === requiredActions.length;
-
-  console.log('completedRequiredActions', completedRequiredActions);
-  console.log('allActionsCompleted', allActionsCompleted);
 
   const canCompleteStep =
     isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
@@ -101,6 +176,48 @@ export function ProductionSidebar({
       }
     } catch (error) {
       console.error('Error completing step:', error);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleCompleteWorkOrder = async () => {
+    if (!step || !workOrder) return;
+
+    setIsCompleting(true);
+    try {
+      // For the last step, complete the step first, then complete the work order
+      const stepResult = await completeWorkOrderWorkInstructionStep({
+        workOrderId: workOrder.id,
+        stepId: step.id
+      });
+
+      if (stepResult.success) {
+        // Complete the work order
+        const workOrderResult = await completeWorkOrder(workOrder.id);
+
+        if (workOrderResult.success) {
+          // Show completion dialog
+          setIsCompletionDialogOpen(true);
+
+          // Advance to next step if callback is provided
+          if (onStepCompleted) {
+            onStepCompleted(step.id);
+          }
+          router.refresh();
+        } else {
+          console.error(
+            'Failed to complete work order:',
+            workOrderResult.error
+          );
+          // You could show a toast notification here
+        }
+      } else {
+        console.error('Failed to complete step:', stepResult.error);
+        // You could show a toast notification here
+      }
+    } catch (error) {
+      console.error('Error completing work order:', error);
     } finally {
       setIsCompleting(false);
     }
@@ -151,11 +268,13 @@ export function ProductionSidebar({
                   Work order must be started to complete steps
                 </div>
               )}
+
               {isStepCompleted && (
                 <div className="mb-2 text-sm text-green-600 bg-green-50 p-2 rounded">
                   Step completed
                 </div>
               )}
+
               {!allActionsCompleted &&
                 isWorkOrderInProgress &&
                 !isStepCompleted && (
@@ -165,19 +284,23 @@ export function ProductionSidebar({
                     more required actions
                   </div>
                 )}
-              <Button
-                variant="default"
-                className="w-full"
-                disabled={!canCompleteStep || isCompleting}
-                onClick={handleCompleteStep}
-              >
-                <CircleCheck className="w-4 h-4 mr-2" />
-                {isCompleting
-                  ? 'Completing...'
-                  : isStepCompleted
-                    ? 'Step Completed'
-                    : 'Complete Step'}
-              </Button>
+
+              {isLastStep ? (
+                <CompleteWorkOrderButton
+                  canComplete={canCompleteStep}
+                  isCompleting={isCompleting}
+                  isStepCompleted={isStepCompleted}
+                  isWorkOrderCompleted={isWorkOrderCompleted}
+                  onComplete={handleCompleteWorkOrder}
+                />
+              ) : (
+                <CompleteStepButton
+                  canComplete={canCompleteStep}
+                  isCompleting={isCompleting}
+                  isStepCompleted={isStepCompleted}
+                  onComplete={handleCompleteStep}
+                />
+              )}
             </div>
           </TabsContent>
           <TabsContent value="comments" className="mt-0 min-h-0 h-full">
@@ -188,6 +311,15 @@ export function ProductionSidebar({
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Work Order Completion Dialog */}
+      <WorkOrderCompletionDialog
+        isOpen={isCompletionDialogOpen}
+        onOpenChange={setIsCompletionDialogOpen}
+        workOrderId={workOrder?.id || ''}
+        workOrderNumber={workOrder?.workOrderNumber || ''}
+        partName={workOrder?.part?.name || ''}
+      />
     </div>
   );
 }

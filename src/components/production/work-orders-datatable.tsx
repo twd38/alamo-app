@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ProductionStatusBadge } from '@/components/production/production-status-badge';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -101,27 +102,7 @@ const columns: ColumnDef<WorkOrderData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
-      const getStatusVariant = (status: string) => {
-        switch (status) {
-          case 'TODO':
-            return 'todo';
-          case 'IN_PROGRESS':
-            return 'in-progress';
-          case 'COMPLETED':
-            return 'completed';
-          case 'PAUSED':
-            return 'paused';
-          case 'SCRAPPED':
-            return 'scrapped';
-          default:
-            return 'secondary';
-        }
-      };
-      return (
-        <Badge variant={getStatusVariant(status) as any}>
-          {status.replace('_', ' ')}
-        </Badge>
-      );
+      return <ProductionStatusBadge status={status} />;
     }
   },
   {

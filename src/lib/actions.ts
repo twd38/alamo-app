@@ -2456,44 +2456,6 @@ export async function pauseWorkOrderProduction(workOrderId: string) {
   return { success: true, data: { count: activeTimeEntries.length } };
 }
 
-export async function stopWorkOrderProduction(workOrderId: string) {
-  // Get all active workOrderTimeEntries for the work order
-  const activeTimeEntries = await prisma.workOrderTimeEntry.findMany({
-    where: {
-      workOrderId,
-      stopTime: null
-    }
-  });
-
-  // Stop all workOrderTimeEntries for the work order
-  await prisma.workOrderTimeEntry.updateMany({
-    where: {
-      workOrderId,
-      stopTime: null
-    },
-    data: {
-      stopTime: new Date()
-    }
-  });
-
-  // Calculate the longest running time entry duration in seconds
-  const longestDuration = activeTimeEntries.reduce((max, current) => {
-    const duration =
-      (new Date().getTime() - current.startTime.getTime()) / 1000;
-    return Math.max(max, duration);
-  }, 0);
-
-  // Update the workOrder timeTaken with the duration
-  await prisma.workOrder.update({
-    where: { id: workOrderId },
-    data: {
-      timeTaken: Math.round(longestDuration)
-    }
-  });
-
-  return { success: true, data: { count: activeTimeEntries.length } };
-}
-
 export async function startWorkOrderTimeEntry(
   userId: string,
   workOrderId: string
@@ -2535,6 +2497,117 @@ export async function stopWorkOrderTimeEntry(
   });
 
   return { success: true, data: workOrderTimeEntry };
+}
+
+/**
+ * Complete a work order (change status to COMPLETED, stop timer)
+ * This is called when the last step is completed
+ */
+export async function completeWorkOrder(workOrderId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Get all active time entries
+    const activeTimeEntries = await prisma.workOrderTimeEntry.findMany({
+      where: {
+        workOrderId,
+        stopTime: null
+      }
+    });
+
+    // Get the work order to verify it exists and get current timeTaken
+    const currentWorkOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      select: {
+        id: true,
+        status: true,
+        timeTaken: true
+      }
+    });
+
+    if (!currentWorkOrder) {
+      return { success: false, error: 'Work order not found' };
+    }
+
+    if (currentWorkOrder.status !== WorkOrderStatus.IN_PROGRESS) {
+      return {
+        success: false,
+        error: 'Work order must be in progress to complete'
+      };
+    }
+
+    // Calculate the time taken for current session and stop all active time entries
+    let timeTakenForCurrentEntry = 0;
+    if (activeTimeEntries.length > 0) {
+      // Stop all active time entries
+      await prisma.workOrderTimeEntry.updateMany({
+        where: {
+          workOrderId,
+          stopTime: null
+        },
+        data: {
+          stopTime: new Date()
+        }
+      });
+
+      // Calculate the time taken for current entry (like pauseWorkOrderProduction does)
+      timeTakenForCurrentEntry =
+        new Date().getTime() - activeTimeEntries[0].startTime.getTime();
+    }
+
+    // Update the work order status to COMPLETED and add current session time to existing timeTaken
+    const updatedWorkOrder = await prisma.workOrder.update({
+      where: { id: workOrderId },
+      data: {
+        status: WorkOrderStatus.COMPLETED,
+        timeTaken: (currentWorkOrder.timeTaken || 0) + timeTakenForCurrentEntry
+      }
+    });
+
+    revalidatePath(`/production/${workOrderId}`);
+    revalidatePath('/production');
+
+    return { success: true, data: updatedWorkOrder };
+  } catch (error) {
+    console.error('Error completing work order:', error);
+    return { success: false, error: 'Failed to complete work order' };
+  }
+}
+
+/**
+ * Complete work order and clock out all users
+ * This is called from the completion dialog
+ */
+export async function completeWorkOrderAndClockOut(workOrderId: string) {
+  try {
+    // Get all users currently clocked in to this work order
+    const clockedInUsers = await prisma.clockInEntry.findMany({
+      where: {
+        workOrderId,
+        clockOutTime: null
+      },
+      select: { userId: true }
+    });
+
+    // Clock out all users
+    if (clockedInUsers.length > 0) {
+      const userIds = clockedInUsers.map((entry) => entry.userId);
+      await clockOutUsersFromWorkOrder(userIds, workOrderId);
+    }
+
+    return { success: true, data: { message: 'All users clocked out.' } };
+  } catch (error) {
+    console.error('Error completing work order and clocking out users:', error);
+    return {
+      success: false,
+      error: 'Failed to complete work order and clock out users'
+    };
+  }
 }
 
 // -----------------------------------------------------------------------------
