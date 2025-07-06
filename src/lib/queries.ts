@@ -594,7 +594,11 @@ export async function getWorkOrdersWithCount({
       include: {
         part: true,
         createdBy: true,
-        assignees: true
+        assignees: {
+          include: {
+            user: true
+          }
+        }
       },
       orderBy: {
         [sortBy]: sortOrder

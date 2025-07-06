@@ -5,7 +5,7 @@ It is also used to handle the notification clicks.
 It is also used to handle the messages from the main app.
 */
 
-const CACHE_NAME = 'alamo-pwa-v__APP_VERSION__'; // Version automatically replaced during build
+const CACHE_NAME = 'alamo-pwa-v4.0.1'; // Version automatically replaced during build
 const urlsToCache = [
   '/',
   '/manifest.json',

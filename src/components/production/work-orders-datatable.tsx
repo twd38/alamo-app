@@ -19,6 +19,7 @@ import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -39,15 +40,11 @@ import {
   TableRow
 } from '@/components/ui/table';
 import Link from 'next/link';
-import type { Part, WorkOrder, User } from '@prisma/client';
+import type { WorkOrdersWithCount } from '@/lib/queries';
+import { UserAvatarList } from '@/components/user-avatar-list';
 
-/**
- * Extended WorkOrder type including eagerly loaded relations necessary for the data-table.
- */
-export interface WorkOrderData extends WorkOrder {
-  part: Part | null;
-  createdBy: User | null;
-}
+// WorkOrderData is the type of the work orders that are returned from the database
+type WorkOrderData = WorkOrdersWithCount['workOrders'][0];
 
 // ----------------------------- Table columns -----------------------------
 const columns: ColumnDef<WorkOrderData>[] = [
@@ -100,14 +97,47 @@ const columns: ColumnDef<WorkOrderData>[] = [
     enableSorting: false
   },
   {
-    accessorKey: 'operation',
-    header: 'Operation',
-    cell: ({ row }) => <div>{row.getValue('operation')}</div>
-  },
-  {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => <div>{row.getValue('status')}</div>
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
+      const getStatusVariant = (status: string) => {
+        switch (status) {
+          case 'TODO':
+            return 'todo';
+          case 'IN_PROGRESS':
+            return 'in-progress';
+          case 'COMPLETED':
+            return 'completed';
+          case 'PAUSED':
+            return 'paused';
+          case 'SCRAPPED':
+            return 'scrapped';
+          default:
+            return 'secondary';
+        }
+      };
+      return (
+        <Badge variant={getStatusVariant(status) as any}>
+          {status.replace('_', ' ')}
+        </Badge>
+      );
+    }
+  },
+  {
+    id: 'assigned',
+    header: 'Assigned',
+    cell: ({ row }) => {
+      const assignedUsers = row.original.assignees.map(
+        (assignee) => assignee.user
+      );
+      return assignedUsers.length > 0 ? (
+        <UserAvatarList users={assignedUsers} maxVisible={3} />
+      ) : (
+        <span className="text-muted-foreground text-sm">Unassigned</span>
+      );
+    },
+    enableSorting: false
   },
   {
     accessorKey: 'partQty',
