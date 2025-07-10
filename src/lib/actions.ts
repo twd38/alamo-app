@@ -2149,7 +2149,8 @@ export async function updateWorkOrder({
   partQty,
   assigneeIds,
   notes,
-  operation
+  operation,
+  status
 }: {
   workOrderId: string;
   dueDate?: Date | null;
@@ -2157,6 +2158,7 @@ export async function updateWorkOrder({
   assigneeIds?: string[];
   notes?: string;
   operation?: string;
+  status?: WorkOrderStatus;
 }) {
   try {
     // Import RBAC functions
@@ -2231,6 +2233,10 @@ export async function updateWorkOrder({
 
     if (operation !== undefined) {
       updateData.operation = operation;
+    }
+
+    if (status !== undefined) {
+      updateData.status = status;
     }
 
     // Use transaction to handle assignees update and quantity-related actions
@@ -3047,6 +3053,66 @@ export async function getStepExecutionStatus(workOrderId: string) {
   } catch (error) {
     console.error('Error getting step execution status:', error);
     return { success: false, error: 'Failed to get step execution status' };
+  }
+}
+
+export async function deleteWorkOrder(workOrderId: string) {
+  try {
+    // Import RBAC functions
+    let userId: string;
+    try {
+      const { requirePermission, PERMISSIONS } = await import('@/lib/rbac');
+      userId = await requirePermission(PERMISSIONS.WORK_ORDERS.DELETE);
+    } catch (rbacError) {
+      console.error('RBAC authorization failed:', rbacError);
+      if (
+        rbacError instanceof Error &&
+        rbacError.message.includes('permission')
+      ) {
+        return {
+          success: false,
+          error: 'You do not have permission to delete work orders'
+        };
+      }
+      return { success: false, error: 'Authorization failed' };
+    }
+
+    // Validate work order exists and is not already deleted
+    const existingWorkOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      select: {
+        id: true,
+        workOrderNumber: true,
+        deletedOn: true
+      }
+    });
+
+    if (!existingWorkOrder) {
+      return { success: false, error: 'Work order not found' };
+    }
+
+    if (existingWorkOrder.deletedOn) {
+      return { success: false, error: 'Work order is already deleted' };
+    }
+
+    // Soft delete the work order by setting deletedOn timestamp
+    const deletedWorkOrder = await prisma.workOrder.update({
+      where: { id: workOrderId },
+      data: {
+        deletedOn: new Date()
+      }
+    });
+
+    // Revalidate production pages to reflect deletion
+    revalidatePath('/production');
+
+    return { success: true, data: deletedWorkOrder };
+  } catch (error: any) {
+    console.error('Error deleting work order:', error);
+    return {
+      success: false,
+      error: `Failed to delete work order: ${error.message || 'Unknown error'}`
+    };
   }
 }
 

@@ -3,7 +3,13 @@ import { ThemeProvider } from 'src/components/providers/theme-provider';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'sonner';
 import PWAUpdateManager from 'src/components/pwa-update-manager';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1
+};
 
 export const metadata: Metadata = {
   title: {
@@ -53,11 +59,6 @@ export const metadata: Metadata = {
     apple: '/alamo_logo.png'
   },
   manifest: '/manifest.json',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1
-  },
   robots: {
     index: true,
     follow: true,

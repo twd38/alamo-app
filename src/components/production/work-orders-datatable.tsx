@@ -43,6 +43,10 @@ import {
 import Link from 'next/link';
 import type { WorkOrdersWithCount } from '@/lib/queries';
 import { UserAvatarList } from '@/components/user-avatar-list';
+import { DeleteAlert } from '@/components/delete-alert';
+import { deleteWorkOrder } from '@/lib/actions';
+import { PermissionGate } from '@/components/rbac/permission-gate';
+import { PERMISSIONS } from '@/lib/rbac';
 
 // WorkOrderData is the type of the work orders that are returned from the database
 type WorkOrderData = WorkOrdersWithCount['workOrders'][0];
@@ -137,8 +141,12 @@ const columns: ColumnDef<WorkOrderData>[] = [
   {
     id: 'actions',
     enableHiding: false,
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const wo = row.original;
+      const { handleDeleteClick } = table.options.meta as {
+        handleDeleteClick: (wo: WorkOrderData) => void;
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -164,6 +172,18 @@ const columns: ColumnDef<WorkOrderData>[] = [
             <DropdownMenuItem>
               <Link href={`/production/${wo.id}`}>View details</Link>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <PermissionGate permission={PERMISSIONS.WORK_ORDERS.DELETE}>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(wo);
+                }}
+              >
+                Delete work order
+              </DropdownMenuItem>
+            </PermissionGate>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -174,10 +194,12 @@ const columns: ColumnDef<WorkOrderData>[] = [
 // --------------------------- Main component ------------------------------
 export function WorkOrdersDataTable({
   workOrders,
-  totalCount
+  totalCount,
+  refetch
 }: {
   workOrders: WorkOrderData[];
   totalCount: number;
+  refetch: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -193,6 +215,9 @@ export function WorkOrdersDataTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [searchValue, setSearchValue] = useState<string>(initialQuery);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workOrderToDelete, setWorkOrderToDelete] =
+    useState<WorkOrderData | null>(null);
 
   // Debounced URL update on search
   const updateSearchQuery = useCallback(
@@ -240,6 +265,34 @@ export function WorkOrdersDataTable({
     [router, pathname, searchParams]
   );
 
+  const handleDeleteClick = useCallback((workOrder: WorkOrderData) => {
+    setWorkOrderToDelete(workOrder);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!workOrderToDelete) return;
+
+    const result = await deleteWorkOrder(workOrderToDelete.id);
+
+    if (result.success) {
+      // Close dialog and reset state
+      setDeleteDialogOpen(false);
+      setWorkOrderToDelete(null);
+
+      // Refresh the page data to reflect the deletion
+      refetch();
+    } else {
+      // Handle error - you might want to show a toast notification here
+      console.error('Failed to delete work order:', result.error);
+    }
+  }, [workOrderToDelete, router]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setWorkOrderToDelete(null);
+  }, []);
+
   if (!workOrders) return null;
 
   const table = useReactTable({
@@ -258,6 +311,9 @@ export function WorkOrdersDataTable({
       columnFilters,
       columnVisibility,
       rowSelection
+    },
+    meta: {
+      handleDeleteClick
     }
   });
 
@@ -368,6 +424,13 @@ export function WorkOrdersDataTable({
           </Button>
         </div>
       </div>
+
+      <DeleteAlert
+        isOpen={deleteDialogOpen}
+        onCloseAction={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        resourceName={`${workOrderToDelete?.workOrderNumber || ''}`}
+      />
     </div>
   );
 }

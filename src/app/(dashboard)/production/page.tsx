@@ -144,6 +144,7 @@ const ProductionPageContent = () => {
             <WorkOrdersDataTable
               workOrders={data?.workOrders || []}
               totalCount={data?.totalCount || 0}
+              refetch={mutate}
             />
           </CardContent>
         </Card>

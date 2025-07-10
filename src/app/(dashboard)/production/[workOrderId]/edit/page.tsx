@@ -15,6 +15,7 @@ import {
   reorderWorkOrderWorkInstructionSteps,
   updateWorkOrder
 } from '@/lib/actions';
+import { WorkOrderStatus } from '@prisma/client';
 import { WorkInstructionsEditor } from '@/components/work-instructions';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import Link from 'next/link';
@@ -29,6 +30,13 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { Book, Clipboard, Box, Loader2 } from 'lucide-react';
 import { UserSelect } from '@/components/user-select';
 import AutodeskViewer from '@/components/autodesk-viewer';
@@ -44,6 +52,9 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
   const [editingDueDate, setEditingDueDate] = useState<string>('');
   const [editingQuantity, setEditingQuantity] = useState<string>('');
   const [editingAssignees, setEditingAssignees] = useState<string[]>([]);
+  const [editingStatus, setEditingStatus] = useState<WorkOrderStatus>(
+    WorkOrderStatus.TODO
+  );
 
   const {
     data: workOrder,
@@ -78,6 +89,7 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
       );
       setEditingQuantity(workOrder.partQty.toString());
       setEditingAssignees(workOrder.assignees.map((a) => a.userId));
+      setEditingStatus(workOrder.status as WorkOrderStatus);
     }
   }, [workOrder]);
 
@@ -145,6 +157,27 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
     } catch (error) {
       console.error('Error updating assignees:', error);
       toast.error('Failed to update assignees');
+    }
+  };
+
+  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
+    setEditingStatus(newStatus);
+
+    try {
+      const result = await updateWorkOrder({
+        workOrderId,
+        status: newStatus
+      });
+
+      if (result.success) {
+        mutateWorkOrder();
+        toast.success('Status updated successfully');
+      } else {
+        toast.error(result.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
     }
   };
 
@@ -248,6 +281,16 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
       .replace(/_/g, ' ')
       .toLowerCase()
       .replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const getStatusOptions = () => {
+    return [
+      { value: WorkOrderStatus.TODO, label: 'To Do' },
+      { value: WorkOrderStatus.IN_PROGRESS, label: 'In Progress' },
+      { value: WorkOrderStatus.PAUSED, label: 'Paused' },
+      { value: WorkOrderStatus.COMPLETED, label: 'Completed' },
+      { value: WorkOrderStatus.SCRAPPED, label: 'Scrapped' }
+    ];
   };
 
   return (
@@ -412,6 +455,36 @@ const WorkOrderWorkInstructionsEditor: React.FC = () => {
                                 }}
                                 className="w-auto"
                               />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">
+                              Status
+                            </label>
+                            <div className="mt-1">
+                              <Select
+                                value={editingStatus}
+                                onValueChange={(value) =>
+                                  handleStatusChange(value as WorkOrderStatus)
+                                }
+                              >
+                                <SelectTrigger
+                                  className="w-auto min-w-[150px]"
+                                  selectSize="sm"
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {getStatusOptions().map((option) => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                           {workOrder.notes && (

@@ -44,9 +44,7 @@ export function DeleteAlert({
             Are you sure you want to delete this {resourceName}?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the{' '}
-            {resourceName}
-            and remove the data from our servers.
+            {`This action cannot be undone. This will delete ${resourceName}.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
