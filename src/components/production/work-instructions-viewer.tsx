@@ -266,35 +266,26 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
                               {workOrder?.partQty || 'N/A'}
                             </p>
                           </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">
-                          Part Label
-                        </h3>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Print a label for this part with work order and part
-                            information.
-                          </p>
-                          <PrintLabelButton
-                            workOrderNumber={
-                              workOrder?.workOrderNumber || 'N/A'
-                            }
-                            partNumber={workOrder?.part?.partNumber || 'N/A'}
-                            partName={workOrder?.part?.name}
-                            quantity={workOrder?.partQty || undefined}
-                            dueDate={
-                              workOrder?.dueDate
-                                ? new Date(
-                                    workOrder.dueDate
-                                  ).toLocaleDateString()
-                                : undefined
-                            }
-                            variant="outline"
-                            size="default"
-                          />
+                          <div>
+                            <PrintLabelButton
+                              workOrderNumber={
+                                workOrder?.workOrderNumber || 'N/A'
+                              }
+                              partNumber={workOrder?.part?.partNumber || 'N/A'}
+                              partName={workOrder?.part?.name}
+                              quantity={workOrder?.partQty || undefined}
+                              dueDate={
+                                workOrder?.dueDate
+                                  ? new Date(
+                                      workOrder.dueDate
+                                    ).toLocaleDateString()
+                                  : undefined
+                              }
+                              workOrderId={workOrder?.id}
+                              variant="outline"
+                              size="default"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>

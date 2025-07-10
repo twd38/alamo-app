@@ -9,33 +9,48 @@ export interface PartLabelData {
   partName?: string;
   quantity?: number;
   dueDate?: string;
+  workOrderId?: string;
+  baseUrl?: string;
 }
 
 /**
- * Generates ZPL code for a part label
- * Designed for 2" x 1" labels (typical for part labeling)
+ * Generates ZPL code for a part label with QR code
+ * Designed for 2.25" x 1.25" labels (457x254 dots at 203 DPI)
+ * Includes: Work Order Number, Part Number, Part Name (optional), and QR Code
  */
 export function generatePartLabelZPL(data: PartLabelData): string {
-  const { workOrderNumber, partNumber, partName, quantity, dueDate } = data;
+  const {
+    workOrderNumber,
+    partNumber,
+    partName,
+    quantity,
+    dueDate,
+    workOrderId,
+    baseUrl
+  } = data;
 
-  // ZPL template for part label (2" x 1" - 203x102 dots at 203 DPI)
+  // Generate QR code URL if workOrderId is provided
+  const qrCodeUrl =
+    workOrderId && baseUrl ? `${baseUrl}/production/${workOrderId}` : null;
+
+  // ZPL template for part label (2.25" x 1.25" - 457x254 dots at 203 DPI)
   const zpl = `
 ^XA
-^CF0,30
-^FO20,15^FDWORK ORDER:^FS
-^CF0,25
-^FO20,45^FD${workOrderNumber}^FS
+^CF0,35
+^FO25,55^FD${workOrderNumber}^FS
 
-^CF0,30
-^FO20,80^FDPART NUMBER:^FS
-^CF0,25
-^FO20,110^FD${partNumber}^FS
+^CF0,35
+^FO25,100^FDPN-${partNumber}^FS
 
-${partName ? `^CF0,20^FO20,140^FD${partName.substring(0, 25)}^FS` : ''}
+${partName ? `^CF0,22^FO25,180^FD${partName.substring(0, 30)}^FS` : ''}
 
-${quantity ? `^CF0,18^FO150,15^FDQTY: ${quantity}^FS` : ''}
-
-${dueDate ? `^CF0,18^FO150,35^FDDUE: ${dueDate}^FS` : ''}
+${
+  qrCodeUrl
+    ? `
+^FO280,30^BQN,2,3
+^FDQA,${qrCodeUrl}^FS`
+    : ''
+}
 
 ^XZ
 `.trim();
@@ -44,137 +59,218 @@ ${dueDate ? `^CF0,18^FO150,35^FDDUE: ${dueDate}^FS` : ''}
 }
 
 /**
- * Prints a ZPL label using the browser's print functionality
- * This creates a printable document that should work with Zebra printers
- */
-export async function printZPLLabel(zplCode: string): Promise<void> {
-  try {
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank', 'width=400,height=300');
-
-    if (!printWindow) {
-      throw new Error(
-        'Unable to open print window. Please check pop-up settings.'
-      );
-    }
-
-    // Create HTML content with ZPL in a pre-formatted block
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Zebra Label</title>
-          <style>
-            body {
-              margin: 0;
-              padding: 10px;
-              font-family: monospace;
-              font-size: 12px;
-            }
-            .zpl-content {
-              white-space: pre-wrap;
-              word-break: break-all;
-              border: 1px solid #ccc;
-              padding: 10px;
-              background-color: #f9f9f9;
-            }
-            .label-preview {
-              margin-bottom: 20px;
-              padding: 10px;
-              border: 2px solid #333;
-              width: 2in;
-              height: 1in;
-              font-size: 8px;
-              position: relative;
-            }
-            @media print {
-              body { margin: 0; padding: 0; }
-              .no-print { display: none; }
-              .zpl-content { 
-                font-size: 10px;
-                border: none;
-                background: none;
-                padding: 0;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="no-print">
-            <h3>Zebra Label - Send this to your ZD420 printer</h3>
-            <p>Make sure your Zebra printer is set as the default printer, then click Print.</p>
-          </div>
-          <div class="zpl-content">${zplCode}</div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-
-    // Wait a moment for content to load, then print
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
-  } catch (error) {
-    console.error('Error printing label:', error);
-    throw error;
-  }
-}
-
-/**
- * Alternative printing method using direct ZPL sending
- * This requires the printer to be accessible via network or special drivers
+ * Sends ZPL directly to Zebra printer using multiple methods
+ * Tries various approaches to mimic netcat-like raw data sending
  */
 export async function sendZPLToPrinter(
   zplCode: string,
-  printerIP?: string
+  printerIP: string = '192.168.1.148'
 ): Promise<void> {
-  if (printerIP) {
-    try {
-      // This would require a backend endpoint to handle ZPL printing
-      const response = await fetch('/api/print-label', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          zpl: zplCode,
-          printerIP: printerIP
-        })
-      });
+  const methods = [
+    () => sendViaRawPort9100(zplCode, printerIP)
+    // () => sendViaZebraWebInterface(zplCode, printerIP),
+    // () => sendViaAlternativeEndpoints(zplCode, printerIP),
+    // () => sendViaWebSocket(zplCode, printerIP)
+  ];
 
-      if (!response.ok) {
-        throw new Error('Failed to send label to printer');
-      }
+  let lastError: Error | null = null;
+
+  for (const method of methods) {
+    try {
+      await method();
+      console.log('Successfully sent ZPL to printer');
+      return;
     } catch (error) {
-      console.error('Error sending ZPL to printer:', error);
-      throw error;
+      console.error('Method failed:', error);
+      lastError = error as Error;
     }
-  } else {
-    // Fallback to browser printing
-    await printZPLLabel(zplCode);
   }
+
+  throw new Error(
+    `All printing methods failed. Last error: ${lastError?.message || 'Unknown error'}`
+  );
 }
 
 /**
- * Creates a downloadable ZPL file
- * Useful for manual printing or testing
+ * Method 1: Send raw ZPL to port 9100 (like netcat)
+ * Mimics: nc 192.168.1.148 9100 < [file]
+ * This sends raw ZPL data directly to port 9100 without HTTP headers
  */
-export function downloadZPLFile(
+async function sendViaRawPort9100(
   zplCode: string,
-  filename: string = 'label.zpl'
-): void {
-  const blob = new Blob([zplCode], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
+  printerIP: string
+): Promise<void> {
+  console.log('Attempting raw port 9100 method (netcat-like)...');
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    // This is the closest we can get to raw TCP in a browser
+    // Send raw ZPL data directly to port 9100 with minimal HTTP overhead
+    const response = await fetch(`http://${printerIP}:9100`, {
+      method: 'POST',
+      headers: {
+        // No Content-Type header to make it as raw as possible
+        'Content-Length': zplCode.length.toString()
+      },
+      body: zplCode,
+      mode: 'no-cors', // Bypass CORS for local network
+      cache: 'no-cache',
+      redirect: 'manual' // Don't follow redirects
+    });
 
-  URL.revokeObjectURL(url);
+    console.log('Successfully sent raw ZPL to port 9100');
+    return;
+  } catch (error) {
+    console.log('Failed to send raw ZPL to port 9100:', error);
+  }
+
+  // Fallback: Try with even simpler approach
+  try {
+    console.log('Trying simplified raw approach...');
+
+    // Even simpler - just send the ZPL as plain text
+    const response = await fetch(`http://${printerIP}:9100`, {
+      method: 'POST',
+      body: zplCode,
+      mode: 'no-cors'
+    });
+
+    console.log('Successfully sent via simplified raw method');
+    return;
+  } catch (error) {
+    console.log('Simplified raw method also failed:', error);
+  }
+
+  throw new Error(
+    'Raw port 9100 method failed - printer may not accept HTTP on port 9100'
+  );
+}
+
+/**
+ * Method 2: Zebra's standard web interface
+ */
+async function sendViaZebraWebInterface(
+  zplCode: string,
+  printerIP: string
+): Promise<void> {
+  console.log('Attempting Zebra web interface method...');
+
+  const endpoints = ['/pstprnt', '/printer/zpl', '/zpl', '/print'];
+
+  try {
+    const url = `http://${printerIP}`;
+
+    // Try form-encoded data
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `prnstr=${encodeURIComponent(zplCode)}`,
+      mode: 'no-cors'
+    });
+
+    console.log(`Successfully sent via ${url}`);
+    return;
+  } catch (error) {
+    console.log(`Failed to send print label:`, error);
+  }
+  throw new Error('Zebra web interface method failed');
+}
+
+/**
+ * Method 3: Alternative endpoints and methods
+ */
+async function sendViaAlternativeEndpoints(
+  zplCode: string,
+  printerIP: string
+): Promise<void> {
+  console.log('Attempting alternative endpoints method...');
+
+  const alternatives = [
+    {
+      url: `http://${printerIP}/`,
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: zplCode
+    },
+    {
+      url: `http://${printerIP}/cgi-bin/print`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(zplCode)}`
+    },
+    {
+      url: `http://${printerIP}/printer/print`,
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: zplCode
+    }
+  ];
+
+  for (const config of alternatives) {
+    try {
+      const response = await fetch(config.url, {
+        method: config.method,
+        headers: config.headers,
+        body: config.body,
+        mode: 'no-cors'
+      });
+
+      console.log(`Successfully sent via ${config.url}`);
+      return;
+    } catch (error) {
+      console.log(`Failed to send via ${config.url}:`, error);
+    }
+  }
+
+  throw new Error('Alternative endpoints method failed');
+}
+
+/**
+ * Method 4: WebSocket approach (if printer supports it)
+ */
+async function sendViaWebSocket(
+  zplCode: string,
+  printerIP: string
+): Promise<void> {
+  console.log('Attempting WebSocket method...');
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`ws://${printerIP}:9100`);
+
+    ws.onopen = () => {
+      console.log('WebSocket connection opened');
+      ws.send(zplCode);
+    };
+
+    ws.onmessage = (event) => {
+      console.log('WebSocket response:', event.data);
+      ws.close();
+      resolve();
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      reject(new Error('WebSocket connection failed'));
+    };
+
+    ws.onclose = (event) => {
+      if (event.wasClean) {
+        resolve();
+      } else {
+        reject(new Error('WebSocket connection closed unexpectedly'));
+      }
+    };
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      if (
+        ws.readyState === WebSocket.CONNECTING ||
+        ws.readyState === WebSocket.OPEN
+      ) {
+        ws.close();
+        reject(new Error('WebSocket connection timed out'));
+      }
+    }, 5000);
+  });
 }
