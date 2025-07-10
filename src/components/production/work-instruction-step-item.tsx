@@ -30,7 +30,9 @@ export function WorkInstructionStepItem({
         </span>
         <Badge variant="outline">{step.estimatedLabourTime} min</Badge>
       </div>
-      <h4 className="text-sm font-medium truncate">{step.title}</h4>
+      <h4 className="text-sm font-medium truncate max-w-[240px]">
+        {step.title}
+      </h4>
     </div>
   );
 }

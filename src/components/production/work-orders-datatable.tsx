@@ -19,7 +19,6 @@ import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProductionStatusBadge } from '@/components/production/production-status-badge';
 import {
