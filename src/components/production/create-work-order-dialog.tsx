@@ -286,7 +286,9 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                             selected={dueDate}
                             onSelect={(d) => field.onChange(d)}
                             initialFocus
-                            disabled={(d) => d < new Date()}
+                            disabled={(d) =>
+                              d < new Date(new Date().setHours(0, 0, 0, 0))
+                            }
                           />
                         </PopoverContent>
                       </Popover>
