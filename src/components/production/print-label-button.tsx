@@ -2,11 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
-import {
-  generatePartLabelZPL,
-  sendZPLToPrinter,
-  type PartLabelData
-} from '@/lib/label-printing';
+import { type PartLabelData } from '@/lib/label-printing';
 import { toast } from 'sonner';
 
 interface PrintLabelButtonProps {
@@ -16,6 +12,7 @@ interface PrintLabelButtonProps {
   quantity?: number;
   dueDate?: string;
   workOrderId?: string;
+  printerSerialNumber?: string;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   className?: string;
@@ -28,6 +25,7 @@ export function PrintLabelButton({
   quantity,
   dueDate,
   workOrderId,
+  printerSerialNumber = 'D2J185007015',
   variant = 'outline',
   size = 'default',
   className
@@ -47,12 +45,30 @@ export function PrintLabelButton({
 
   const handlePrint = async () => {
     try {
-      const zplCode = generatePartLabelZPL(labelData);
-      await sendZPLToPrinter(zplCode, '192.168.1.148');
-      toast.success('Label sent to printer via network');
+      // Send print request to Zebra Cloud API
+      const response = await fetch('/api/print-label', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          labelData,
+          printerSerialNumber
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(
+          `Label sent to printer ${result.printerSerialNumber} via ${result.method}`
+        );
+      } else {
+        toast.error(result.error || 'Failed to send label to printer');
+      }
     } catch (error) {
-      console.error('Network print error:', error);
-      toast.error('Failed to reach printer. Please check printer connection.');
+      console.error('Print API error:', error);
+      toast.error('Failed to communicate with print server');
     }
   };
 

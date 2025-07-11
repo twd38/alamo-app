@@ -1,6 +1,6 @@
 /**
  * ZPL Label Generation and Printing Utilities
- * For Zebra ZD420 and compatible printers
+ * For Zebra printers via Zebra Cloud API
  */
 
 export interface PartLabelData {
@@ -59,218 +59,101 @@ ${
 }
 
 /**
- * Sends ZPL directly to Zebra printer using multiple methods
- * Tries various approaches to mimic netcat-like raw data sending
+ * Sends ZPL to Zebra printer using Zebra Cloud API
+ * Uses the SendFileToPrinter API endpoint
  */
 export async function sendZPLToPrinter(
   zplCode: string,
-  printerIP: string = '192.168.1.148'
+  printerSerialNumber: string = 'D2J185007015'
 ): Promise<void> {
-  const methods = [
-    () => sendViaRawPort9100(zplCode, printerIP)
-    // () => sendViaZebraWebInterface(zplCode, printerIP),
-    // () => sendViaAlternativeEndpoints(zplCode, printerIP),
-    // () => sendViaWebSocket(zplCode, printerIP)
-  ];
+  const apiKey = process.env.ZEBRA_API_KEY;
+  const tenant = process.env.ZEBRA_TENANT;
 
-  let lastError: Error | null = null;
-
-  for (const method of methods) {
-    try {
-      await method();
-      console.log('Successfully sent ZPL to printer');
-      return;
-    } catch (error) {
-      console.error('Method failed:', error);
-      lastError = error as Error;
-    }
+  if (!apiKey || !tenant) {
+    throw new Error(
+      'Zebra API credentials not configured. Set ZEBRA_API_KEY and ZEBRA_TENANT environment variables.'
+    );
   }
 
-  throw new Error(
-    `All printing methods failed. Last error: ${lastError?.message || 'Unknown error'}`
-  );
-}
-
-/**
- * Method 1: Send raw ZPL to port 9100 (like netcat)
- * Mimics: nc 192.168.1.148 9100 < [file]
- * This sends raw ZPL data directly to port 9100 without HTTP headers
- */
-async function sendViaRawPort9100(
-  zplCode: string,
-  printerIP: string
-): Promise<void> {
-  console.log('Attempting raw port 9100 method (netcat-like)...');
+  const baseUrl = 'https://api.zebra.com/v2/devices/printers';
+  const endpoint = `${baseUrl}/send`;
 
   try {
-    // This is the closest we can get to raw TCP in a browser
-    // Send raw ZPL data directly to port 9100 with minimal HTTP overhead
-    const response = await fetch(`http://${printerIP}:9100`, {
+    // Create FormData with ZPL file
+    const formData = new FormData();
+
+    // Add the serial number
+    formData.append('sn', printerSerialNumber);
+
+    // Create a blob from the ZPL code and add it as a file
+    const zplBlob = new Blob([zplCode], { type: 'text/plain' });
+    formData.append('zpl_file', zplBlob, 'label.zpl');
+
+    console.log(
+      `Sending ZPL to printer ${printerSerialNumber} via Zebra Cloud API...`
+    );
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        // No Content-Type header to make it as raw as possible
-        'Content-Length': zplCode.length.toString()
+        apikey: apiKey,
+        tenant: tenant
+        // Don't set Content-Type header - let fetch set it for FormData
       },
-      body: zplCode,
-      mode: 'no-cors', // Bypass CORS for local network
-      cache: 'no-cache',
-      redirect: 'manual' // Don't follow redirects
+      body: formData
     });
 
-    console.log('Successfully sent raw ZPL to port 9100');
-    return;
-  } catch (error) {
-    console.log('Failed to send raw ZPL to port 9100:', error);
-  }
-
-  // Fallback: Try with even simpler approach
-  try {
-    console.log('Trying simplified raw approach...');
-
-    // Even simpler - just send the ZPL as plain text
-    const response = await fetch(`http://${printerIP}:9100`, {
-      method: 'POST',
-      body: zplCode,
-      mode: 'no-cors'
-    });
-
-    console.log('Successfully sent via simplified raw method');
-    return;
-  } catch (error) {
-    console.log('Simplified raw method also failed:', error);
-  }
-
-  throw new Error(
-    'Raw port 9100 method failed - printer may not accept HTTP on port 9100'
-  );
-}
-
-/**
- * Method 2: Zebra's standard web interface
- */
-async function sendViaZebraWebInterface(
-  zplCode: string,
-  printerIP: string
-): Promise<void> {
-  console.log('Attempting Zebra web interface method...');
-
-  const endpoints = ['/pstprnt', '/printer/zpl', '/zpl', '/print'];
-
-  try {
-    const url = `http://${printerIP}`;
-
-    // Try form-encoded data
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: `prnstr=${encodeURIComponent(zplCode)}`,
-      mode: 'no-cors'
-    });
-
-    console.log(`Successfully sent via ${url}`);
-    return;
-  } catch (error) {
-    console.log(`Failed to send print label:`, error);
-  }
-  throw new Error('Zebra web interface method failed');
-}
-
-/**
- * Method 3: Alternative endpoints and methods
- */
-async function sendViaAlternativeEndpoints(
-  zplCode: string,
-  printerIP: string
-): Promise<void> {
-  console.log('Attempting alternative endpoints method...');
-
-  const alternatives = [
-    {
-      url: `http://${printerIP}/`,
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: zplCode
-    },
-    {
-      url: `http://${printerIP}/cgi-bin/print`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(zplCode)}`
-    },
-    {
-      url: `http://${printerIP}/printer/print`,
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: zplCode
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(
+        `Zebra Cloud API request failed: ${response.status} ${response.statusText}. ${errorText}`
+      );
     }
-  ];
 
-  for (const config of alternatives) {
-    try {
-      const response = await fetch(config.url, {
-        method: config.method,
-        headers: config.headers,
-        body: config.body,
-        mode: 'no-cors'
-      });
-
-      console.log(`Successfully sent via ${config.url}`);
-      return;
-    } catch (error) {
-      console.log(`Failed to send via ${config.url}:`, error);
-    }
+    const result = await response.json().catch(() => ({}));
+    console.log(
+      'Successfully sent ZPL to printer via Zebra Cloud API:',
+      result
+    );
+  } catch (error) {
+    console.error('Failed to send ZPL via Zebra Cloud API:', error);
+    throw new Error(
+      `Failed to send label to printer: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
-
-  throw new Error('Alternative endpoints method failed');
 }
 
 /**
- * Method 4: WebSocket approach (if printer supports it)
+ * Test printer connectivity via Zebra Cloud API
+ * Sends a simple test ZPL to verify the printer is reachable
  */
-async function sendViaWebSocket(
-  zplCode: string,
-  printerIP: string
-): Promise<void> {
-  console.log('Attempting WebSocket method...');
+export async function testPrinterConnection(
+  printerSerialNumber: string = 'D2J185007015'
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    // Generate a simple test ZPL
+    const testZPL = `
+^XA
+^CF0,30
+^FO50,50^FDZebra Cloud API Test^FS
+^FO50,100^FD${new Date().toLocaleString()}^FS
+^XZ
+`.trim();
 
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://${printerIP}:9100`);
+    await sendZPLToPrinter(testZPL, printerSerialNumber);
 
-    ws.onopen = () => {
-      console.log('WebSocket connection opened');
-      ws.send(zplCode);
+    return {
+      success: true,
+      message: `Test label sent successfully to printer ${printerSerialNumber} via Zebra Cloud API`
     };
-
-    ws.onmessage = (event) => {
-      console.log('WebSocket response:', event.data);
-      ws.close();
-      resolve();
+  } catch (error) {
+    console.error('Printer test failed:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred during printer test'
     };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      reject(new Error('WebSocket connection failed'));
-    };
-
-    ws.onclose = (event) => {
-      if (event.wasClean) {
-        resolve();
-      } else {
-        reject(new Error('WebSocket connection closed unexpectedly'));
-      }
-    };
-
-    // Timeout after 5 seconds
-    setTimeout(() => {
-      if (
-        ws.readyState === WebSocket.CONNECTING ||
-        ws.readyState === WebSocket.OPEN
-      ) {
-        ws.close();
-        reject(new Error('WebSocket connection timed out'));
-      }
-    }, 5000);
-  });
+  }
 }

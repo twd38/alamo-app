@@ -11,9 +11,10 @@ import {
 } from '@/components/ui/card';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
-import { Users, Shield, Settings, CreditCard } from 'lucide-react';
+import { Users, Shield, Settings, CreditCard, Printer } from 'lucide-react';
 import { UsersTab } from '@/components/admin/users-tab';
 import { BadgesTab } from '@/components/admin/badges-tab';
+import { PrinterTest } from '@/components/production/printer-test';
 import TopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
 
@@ -59,6 +60,10 @@ export default function AdminPage() {
                 <CreditCard className="h-4 w-4" />
                 Badges
               </TabsTrigger>
+              <TabsTrigger value="printers" className="flex items-center gap-2">
+                <Printer className="h-4 w-4" />
+                Printers
+              </TabsTrigger>
               <TabsTrigger
                 value="permissions"
                 className="flex items-center gap-2"
@@ -88,6 +93,23 @@ export default function AdminPage() {
 
             <TabsContent value="badges" className="space-y-4">
               <BadgesTab />
+            </TabsContent>
+
+            <TabsContent value="printers" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Zebra Cloud API Configuration</CardTitle>
+                  <CardDescription>
+                    Test printer connectivity and configure label printing via
+                    the Zebra Cloud API.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-center">
+                    <PrinterTest />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="permissions" className="space-y-4">
