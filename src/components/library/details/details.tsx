@@ -9,10 +9,11 @@ import { AddBOMPartsDialog } from '@/components/library/details/add-bom-parts-di
 import { PartsTable } from '@/components/parts-table';
 import { Prisma, Part, File as FileType } from '@prisma/client';
 import PartFiles from '@/components/library/details/files';
-import { updatePart } from '@/lib/actions';
+import { updatePart, uploadFileToR2AndDatabase } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
 import { Package, FileText } from 'lucide-react';
+import FileUpload from '@/components/ui/file-upload';
 import Image from 'next/image';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
@@ -107,8 +108,12 @@ const Details = ({ part }: PartDetailsProps) => {
     router.refresh();
   };
 
+  const handleUploadPartImage = async (file: File) => {
+    return await uploadFileToR2AndDatabase(file, 'parts');
+  };
+
   return (
-    <PageContainer className="h-screen pb-40 bg-secondary">
+    <div className="bg-secondary h-full overflow-y-auto p-4">
       <div className="space-y-4">
         {/* Part Details Card */}
         <Card className="w-full">
@@ -121,7 +126,7 @@ const Details = ({ part }: PartDetailsProps) => {
             {/* Part Image and Basic Info */}
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-shrink-0">
-                <div className="w-48 h-48  rounded-lg flex items-center justify-center">
+                <div className="w-48 h-48 rounded-lg flex items-center justify-center">
                   {part.partImage?.url ? (
                     // <Image
                     //   src={`/api/files/${part.partImageId}`}
@@ -136,9 +141,19 @@ const Details = ({ part }: PartDetailsProps) => {
                       className="rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="text-gray-400 text-center border-2 border-dashed bg-gray-50 border-gray-300">
+                    // <FileUpload
+                    //   value={undefined}
+                    //   onChange={() => {}}
+                    //   onUpload={handleUploadPartImage}
+                    //   uploadPath="parts"
+                    //   multiple={false}
+                    //   accept={{
+                    //     'image/*': ['.png', '.jpg', '.jpeg']
+                    //   }}
+                    // />
+                    <div className="flex flex-col items-center justify-center h-full w-full text-gray-400 text-center border-2 border-dashed bg-gray-50 border-gray-300">
                       <Package className="w-12 h-12 mx-auto mb-2" />
-                      <span className="text-sm">No image available</span>
+                      <div className="text-sm">No image available</div>
                     </div>
                   )}
                 </div>
@@ -265,7 +280,7 @@ const Details = ({ part }: PartDetailsProps) => {
           </CardContent>
         </Card>
       </div>
-    </PageContainer>
+    </div>
   );
 };
 
