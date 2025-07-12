@@ -116,15 +116,15 @@ const UserSelect = ({
             className
           )}
         >
-          <div className="flex flex-wrap gap-1 items-center">
+          <div className="flex gap-1 w-full h-full min-h-[32px] pr-4">
             {selectedUsers.length > 0 ? (
-              <ScrollArea className="max-w-full" type="scroll">
-                <div className="flex flex-wrap gap-1">
+              <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                <div className="flex gap-1 items-center min-w-fit py-1">
                   {selectedUsers.map((user) => (
                     <Badge
                       variant="secondary"
                       key={user.id}
-                      className="flex items-center gap-1 pr-1"
+                      className="gap-1 pr-1 shrink-0 whitespace-nowrap"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Avatar className="h-4 w-4">
@@ -154,12 +154,12 @@ const UserSelect = ({
                     </Badge>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             ) : (
-              <span>{placeholder}</span>
+              <span className="h-full flex items-center">{placeholder}</span>
             )}
           </div>
-          <ChevronsUpDown className="ml-2 mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="h-4 w-4 mr-2 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent

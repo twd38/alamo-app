@@ -37,16 +37,17 @@ export const NewPartDialog = () => {
           className="ml-4"
           onClick={() => setIsOpen(true)}
         >
-          <Plus className="mr-2 h-4 w-4" /> Add Part
+          <Plus className="mr-2 h-4 w-4" /> Create Part
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full max-w-[90vw] sm:max-w-[700px] overflow-y-scroll p-0 flex flex-col">
+      <SheetContent className="w-full max-w-[90vw] sm:max-w-[700px] p-0 flex flex-col h-full">
         <SheetHeader className="px-4 py-2 border-b">
-          <SheetTitle>Add New Part</SheetTitle>
+          <SheetTitle>Create New Part</SheetTitle>
         </SheetHeader>
-        <div className="overflow-y-auto py-2 flex-1">
+        <div className="overflow-y-auto px-4 flex-1">
           <NewPartForm />
         </div>
+        <SheetFooter></SheetFooter>
       </SheetContent>
     </Sheet>
   );

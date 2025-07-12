@@ -2,7 +2,6 @@ import Image from 'next/image';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import { getPart } from '@/lib/queries';
 import { TabList, ActiveTab } from './components/part-tabs';
-import { Button } from '@/components/ui/button';
 import { CreateWorkOrderDialog } from '@/components/production/create-work-order-dialog';
 import { Part } from '@prisma/client';
 import { Breadcrumb } from '@/components/breadcrumbs';
@@ -42,7 +41,7 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
   ];
 
   return (
-    <div className="h-full bg-zinc-50 dark:bg-zinc-900">
+    <div className="absolute inset-0 h-24 bg-zinc-50 dark:bg-zinc-900">
       <BasicTopBar
         breadcrumbs={breadcrumbs}
         actions={<TopBarActions part={part} />}
@@ -54,14 +53,6 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
             {' '}
             | {partNumber}/{partRevision}
           </h2>
-          {part?.partImage && (
-            <Image
-              src={part.partImage.url}
-              alt={part.description}
-              width={100}
-              height={100}
-            />
-          )}
         </div>
         <TabList />
       </div>

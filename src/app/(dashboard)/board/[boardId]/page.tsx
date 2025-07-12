@@ -1,6 +1,5 @@
 import React from 'react';
-import { KanbanBoard } from '@/components/board/kanban-board';
-import { ActionPanel } from '@/components/board/action-panel';
+import { BoardViewContainer } from '@/components/board/board-view-container';
 import {
   getKanbanSections,
   getAllTasks,
@@ -39,8 +38,12 @@ export default async function ProductionPage({ params }: BoardPageProps) {
     <div>
       <BoardsTopBar activeBoard={activeBoard} boards={boards} />
       <PageContainer>
-        <ActionPanel views={views} boardId={boardId} />
-        <KanbanBoard columns={kanbanSections} tasks={tasks} boardId={boardId} />
+        <BoardViewContainer
+          columns={kanbanSections}
+          tasks={tasks}
+          views={views}
+          boardId={boardId}
+        />
       </PageContainer>
     </div>
   );

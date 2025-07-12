@@ -114,7 +114,7 @@ export function KanbanColumn({
         style={style}
         {...attributes}
         {...listeners}
-        className="flex-1 min-w-[280px] max-w-[350px] transition-all duration-200"
+        className="flex-1 w-[280px] transition-all duration-200"
       >
         <div className="bg-muted/50 rounded-lg flex flex-col h-[calc(100vh-200px)]">
           <div className="px-3 py-2 bg-primary/5 rounded-t-lg border-b">

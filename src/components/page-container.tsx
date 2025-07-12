@@ -7,7 +7,7 @@ const PageContainer = ({
   children: React.ReactNode;
   className?: string;
 }) => {
-  return <div className={cn('p-4', className)}>{children}</div>;
+  return <div className={cn('p-4 overflow-y-auto', className)}>{children}</div>;
 };
 
 export default PageContainer;

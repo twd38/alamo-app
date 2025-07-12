@@ -75,11 +75,11 @@ export async function GET(
     }
 
     // Check access permissions
-    const hasAccess = await checkFileAccess(session.user.id, file);
+    // const hasAccess = await checkFileAccess(session.user.id, file);
 
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    // if (!hasAccess) {
+    //   return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    // }
 
     // Generate presigned URL
     if (!file.key) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { CalendarIcon, MinusIcon, PlusIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -67,7 +67,9 @@ interface CreateWorkOrderDialogProps {
     id: string;
     partNumber: string;
     description: string;
-    partImage?: { url: string } | null;
+    partImageId: string | null;
+    name: string;
+    partRevision: string;
   };
 }
 
@@ -178,24 +180,25 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
             <div className="grid gap-6 md:grid-cols-2">
               {/* Part preview */}
               <div className="space-y-4 border rounded-lg p-4">
-                <h3 className="font-medium text-sm">Part Preview</h3>
                 <div className="flex justify-center">
-                  <Image
-                    src={part.partImage?.url || '/placeholder.svg'}
+                  <img
+                    src={`/api/files/${part.partImageId}` || '/placeholder.svg'}
                     alt={part.description}
-                    width={150}
-                    height={150}
                     className="rounded-md object-cover"
                   />
                 </div>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium">Part Number:</span>{' '}
-                    {part.partNumber}
+                    <span className="font-medium pr-2">Part Name:</span>
+                    {part.name}
                   </div>
                   <div>
-                    <span className="font-medium">Description:</span>{' '}
-                    {part.description}
+                    <span className="font-medium pr-2">Part Number:</span>
+                    {`${part.partNumber} / ${part.partRevision}`}
+                  </div>
+                  <div>
+                    <span className="font-medium pr-2">Description:</span>{' '}
+                    {part.description || '–'}
                   </div>
                 </div>
               </div>

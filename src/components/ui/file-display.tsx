@@ -2,16 +2,8 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import {
-  FileText,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  File,
-  Download,
-  FileSpreadsheet,
-  FileCode
-} from 'lucide-react';
+import { Download } from 'lucide-react';
+import { FileIcon } from '@/components/file-icon';
 
 interface FileDisplayProps {
   /** File name with extension */
@@ -91,74 +83,6 @@ const getFileType = (fileName: string): string => {
   return typeMap[extension] || extension.toUpperCase();
 };
 
-const getFileIcon = (fileName: string, size: number = 20) => {
-  const extension = fileName.split('.').pop()?.toLowerCase() || '';
-
-  const iconProps = { size, className: 'flex-shrink-0' };
-
-  // Images
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(extension)) {
-    return (
-      <FileImage {...iconProps} className="text-green-600 flex-shrink-0" />
-    );
-  }
-
-  // Videos
-  if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(extension)) {
-    return <FileVideo {...iconProps} className="text-blue-600 flex-shrink-0" />;
-  }
-
-  // Audio
-  if (['mp3', 'wav', 'flac', 'aac'].includes(extension)) {
-    return (
-      <FileAudio {...iconProps} className="text-purple-600 flex-shrink-0" />
-    );
-  }
-
-  // Spreadsheets
-  if (['xls', 'xlsx', 'csv'].includes(extension)) {
-    return (
-      <FileSpreadsheet
-        {...iconProps}
-        className="text-green-700 flex-shrink-0"
-      />
-    );
-  }
-
-  // Code files
-  if (
-    [
-      'js',
-      'ts',
-      'jsx',
-      'tsx',
-      'html',
-      'css',
-      'json',
-      'xml',
-      'py',
-      'java',
-      'cpp',
-      'c'
-    ].includes(extension)
-  ) {
-    return <FileCode {...iconProps} className="text-blue-700 flex-shrink-0" />;
-  }
-
-  // PDF gets special red color like in your image
-  if (extension === 'pdf') {
-    return <FileText {...iconProps} className="text-red-600 flex-shrink-0" />;
-  }
-
-  // Documents
-  if (['doc', 'docx', 'txt', 'rtf'].includes(extension)) {
-    return <FileText {...iconProps} className="text-blue-600 flex-shrink-0" />;
-  }
-
-  // Default
-  return <File {...iconProps} className="text-gray-600 flex-shrink-0" />;
-};
-
 const isImageFile = (fileName: string): boolean => {
   const extension = fileName.split('.').pop()?.toLowerCase() || '';
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
@@ -236,7 +160,7 @@ export function FileDisplay({
         {/* File info at bottom */}
         <div className="p-3 border-t border-border bg-background">
           <div className="flex items-center gap-3">
-            {getFileIcon(fileName, 16)}
+            <FileIcon fileName={fileName} size={16} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
                 {fileName}
@@ -264,7 +188,7 @@ export function FileDisplay({
       )}
       onClick={downloadable ? handleClick : undefined}
     >
-      {getFileIcon(fileName, 24)}
+      <FileIcon fileName={fileName} size={24} />
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate">

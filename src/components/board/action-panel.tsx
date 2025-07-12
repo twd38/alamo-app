@@ -8,7 +8,9 @@ import {
   Calendar,
   CheckCircle,
   Plus,
-  Lock
+  Lock,
+  BarChart,
+  List
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -43,15 +45,21 @@ const operatorOptions = [
 type ActionPanelProps = {
   views: BoardView[];
   boardId: string;
+  onViewTypeChange?: (viewType: string) => void;
 };
 
-export function ActionPanel({ views, boardId }: ActionPanelProps) {
+export function ActionPanel({
+  views,
+  boardId,
+  onViewTypeChange
+}: ActionPanelProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
   const [isUpdateViewDialogOpen, setIsUpdateViewDialogOpen] = useState(false);
   const [activeTask, setActiveTask] = useAtom(taskModal);
   const [filterState, setFilterState] = useFilterAtom('kanban-board');
   const [activeView, setActiveView] = useState<BoardView | null>(null);
+  const [currentViewType, setCurrentViewType] = useState<string>('kanban');
 
   // use swr to get all users
   const { data: allUsers, isLoading } = useSWR('all-users', getAllUsers);
@@ -101,6 +109,11 @@ export function ActionPanel({ views, boardId }: ActionPanelProps) {
     setActiveView(views?.find((view) => view.id === viewId) || null);
   };
 
+  const handleViewTypeChange = (viewType: string) => {
+    setCurrentViewType(viewType);
+    onViewTypeChange?.(viewType);
+  };
+
   const filterOptions: FilterOption[] = [
     {
       label: 'Assignee',
@@ -133,6 +146,24 @@ export function ActionPanel({ views, boardId }: ActionPanelProps) {
     }
   ];
 
+  const tabs = [
+    {
+      label: 'Kanban',
+      value: 'kanban',
+      icon: <BarChart className="h-4 w-4 mr-2" />
+    },
+    {
+      label: 'List',
+      value: 'list',
+      icon: <List className="h-4 w-4 mr-2" />
+    },
+    {
+      label: 'Timeline',
+      value: 'timeline',
+      icon: <Calendar className="h-4 w-4 mr-2" />
+    }
+  ];
+
   // on mount, set filter state to empty
   useEffect(() => {
     setFilterState({ filters: [] });
@@ -140,30 +171,20 @@ export function ActionPanel({ views, boardId }: ActionPanelProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-        {/* <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search" className="pl-8 w-[250px]" />
-                </div> */}
-        <Tabs defaultValue="task" onValueChange={handleViewChange}>
+      <div className="flex items-center justify-between">
+        {/* WORK IN PROGRESS */}
+        {/* <Tabs value={currentViewType} onValueChange={handleViewTypeChange}>
           <TabsList>
-            <TabsTrigger value="task">Overview</TabsTrigger>
-            {views?.map((view) => (
-              <TabsTrigger key={view.id} value={view.id}>
-                {view.name}
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                <div className="flex items-center">
+                  {tab.icon}
+                  {tab.label}
+                </div>
               </TabsTrigger>
             ))}
           </TabsList>
-        </Tabs>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mx-1"
-          title="Create new view"
-          onClick={openCreateViewDialog}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        </Tabs> */}
         <div className="flex items-center gap-2 ml-auto">
           <SortDropdown />
           <FilterPopover

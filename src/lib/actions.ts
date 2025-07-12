@@ -684,6 +684,85 @@ export async function getFileUrlFromUnsignedUrl(url: string) {
   }
 }
 
+/**
+ * Upload a file to Cloudflare R2 and save it to the database
+ * This is a reusable server action that can be used across the application
+ */
+export async function uploadFileToR2AndDatabase(
+  file: File,
+  path: string,
+  relationData?: {
+    partId?: string;
+    taskId?: string;
+    workOrderId?: string;
+    commentId?: string;
+    instructionId?: string;
+    stepId?: string;
+  }
+): Promise<{
+  success: boolean;
+  data?: {
+    id: string;
+    url: string;
+    key: string;
+    name: string;
+    type: string;
+    size: number;
+  };
+  error?: string;
+}> {
+  try {
+    // Upload file to R2
+    const {
+      url: presignedUrl,
+      key,
+      publicUrl
+    } = await getUploadUrl(file.name, file.type, path);
+
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type
+      }
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
+    }
+
+    // Save file record to database
+    const fileRecord = await prisma.file.create({
+      data: {
+        url: publicUrl,
+        key,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        ...relationData
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        id: fileRecord.id,
+        url: fileRecord.url,
+        key: fileRecord.key,
+        name: fileRecord.name,
+        type: fileRecord.type,
+        size: fileRecord.size
+      }
+    };
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to upload file'
+    };
+  }
+}
+
 export async function getPresignedUploadUrl(
   fileName: string,
   contentType: string,
@@ -739,8 +818,8 @@ export async function createPart({
   unit,
   trackingType,
   partType,
-  partImage,
-  files,
+  partImageId,
+  fileIds,
   bomParts = [] // Default to empty array to avoid null
 }: {
   name: string;
@@ -750,8 +829,8 @@ export async function createPart({
   unit: Part['unit'];
   trackingType: Part['trackingType'];
   partType: PartType;
-  partImage?: File;
-  files?: File[];
+  partImageId?: string;
+  fileIds?: string[];
   bomParts:
     | {
         id: string;
@@ -768,75 +847,19 @@ export async function createPart({
       bomParts = [];
     }
 
-    // Upload files to R2 if they exist
-    let partImageFile: Prisma.FileCreateInput | undefined;
-    let partFiles: Prisma.FileCreateInput[] = [];
-
-    // Handle part image upload if it exists and is a File object (not already uploaded)
-    if (partImage && partImage instanceof File) {
-      const {
-        url: presignedUrl,
-        key,
-        publicUrl
-      } = await getUploadUrl(partImage.name, partImage.type, 'parts');
-
-      const upload = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: partImage,
-        headers: {
-          'Content-Type': partImage.type
-        }
+    // Validate file IDs exist if provided
+    if (fileIds && fileIds.length > 0) {
+      const existingFiles = await prisma.file.findMany({
+        where: { id: { in: fileIds } },
+        select: { id: true }
       });
 
-      if (!upload.ok) {
-        throw new Error('Failed to upload part image');
+      const foundFileIds = existingFiles.map((f) => f.id);
+      const invalidFileIds = fileIds.filter((id) => !foundFileIds.includes(id));
+
+      if (invalidFileIds.length > 0) {
+        throw new Error(`Invalid file IDs: ${invalidFileIds.join(', ')}`);
       }
-
-      partImageFile = {
-        url: publicUrl,
-        key,
-        name: partImage.name,
-        type: partImage.type,
-        size: partImage.size
-      };
-    }
-
-    // Handle multiple files upload if they exist
-    if (files && Array.isArray(files)) {
-      const filePromises = files.map(async (file: File) => {
-        if (file instanceof File) {
-          const {
-            url: presignedUrl,
-            key,
-            publicUrl
-          } = await getUploadUrl(file.name, file.type, 'parts');
-
-          const upload = await fetch(presignedUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-              'Content-Type': file.type
-            }
-          });
-
-          if (upload.ok) {
-            return {
-              url: publicUrl,
-              key,
-              name: file.name,
-              type: file.type,
-              size: file.size
-            };
-          }
-        }
-        return null;
-      });
-
-      // Filter out null values
-      const uploadedFiles = (await Promise.all(filePromises)).filter(
-        (file): file is NonNullable<typeof file> => file !== null
-      );
-      partFiles = uploadedFiles;
     }
 
     // Create the part cat if not provided
@@ -858,37 +881,16 @@ export async function createPart({
           description,
           unit,
           trackingType,
-          partType
+          partType,
+          partImageId
         }
       });
 
-      // Add files if they exist
-      if (partFiles.length > 0) {
-        for (const fileData of partFiles) {
-          await tx.file.create({
-            data: {
-              ...fileData,
-              part: {
-                connect: { id: newPart.id }
-              }
-            }
-          });
-        }
-      }
-
-      // Add part image if it exists
-      if (partImageFile) {
-        const image = await tx.file.create({
-          data: {
-            ...partImageFile
-          }
-        });
-
-        await tx.part.update({
-          where: { id: newPart.id },
-          data: {
-            partImageId: image.id
-          }
+      // Link existing files to the part if they exist
+      if (fileIds && fileIds.length > 0) {
+        await tx.file.updateMany({
+          where: { id: { in: fileIds } },
+          data: { partId: newPart.id }
         });
       }
 

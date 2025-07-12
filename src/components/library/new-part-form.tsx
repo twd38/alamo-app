@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Paperclip, File } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,16 +21,24 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { formatFileSize } from '@/lib/utils';
 import { TrackingType, BOMType, Part, PartType } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { BOMPartsManager } from './bom-parts-manager';
-import { createPart } from '@/lib/actions';
+import { createPart, uploadFileToR2AndDatabase } from '@/lib/actions';
 import { formatPartType } from '@/lib/utils';
+import FileUpload from '@/components/ui/file-upload';
 
-// Define the form schema using Zod
+// Interface for uploaded file data
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+}
+
+// Define the form schema to match the createPart function exactly
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   partNumber: z.string().optional(),
@@ -43,54 +50,34 @@ const formSchema = z.object({
   unit: z.string().min(1, { message: 'Unit of measure is required' }),
   trackingType: z.nativeEnum(TrackingType),
   partType: z.nativeEnum(PartType),
-  partImage: z
-    .custom<File>((data) => {
-      return (
-        data &&
-        typeof data === 'object' &&
-        'name' in data &&
-        'size' in data &&
-        'type' in data
-      );
+  partImageId: z.string().optional(),
+  fileIds: z.array(z.string()).optional(),
+  bomParts: z.array(
+    z.object({
+      id: z.string(),
+      part: z.any() as z.ZodType<Part>,
+      qty: z.number().min(1),
+      bomType: z.nativeEnum(BOMType)
     })
-    .optional(),
-  isRawMaterial: z.boolean().default(false),
-  files: z
-    .array(
-      z.custom<File>(
-        (data) => {
-          return (
-            data &&
-            typeof data === 'object' &&
-            'name' in data &&
-            'size' in data &&
-            'type' in data
-          );
-        },
-        {
-          message: 'Must be a valid file'
-        }
-      )
-    )
-    .default([]),
-  bomParts: z
-    .array(
-      z.object({
-        id: z.string(),
-        part: z.any() as z.ZodType<Part>,
-        qty: z.number().min(1),
-        bomType: z.nativeEnum(BOMType)
-      })
-    )
-    .default([])
+  ),
+  nxFilePath: z.string().optional()
 });
+
+// Additional form fields for UI state management
+const formSchemaWithUiFields = formSchema.extend({
+  partImageFile: z.custom<UploadedFile>().optional(),
+  attachedFiles: z.array(z.custom<UploadedFile>()).optional()
+});
+
+type FormData = z.infer<typeof formSchemaWithUiFields>;
+type CreatePartParams = z.infer<typeof formSchema>;
 
 const NewPartForm = () => {
   const router = useRouter();
 
   // Initialize form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchemaWithUiFields),
     defaultValues: {
       name: '',
       partNumber: '',
@@ -99,22 +86,73 @@ const NewPartForm = () => {
       unit: '',
       trackingType: TrackingType.SERIAL,
       partType: PartType.RAW_000,
-      files: [],
+      partImageFile: undefined,
+      partImageId: undefined,
+      attachedFiles: [],
+      fileIds: [],
       bomParts: []
     }
   });
 
-  const handleBOMChange = (
-    bomParts: z.infer<typeof formSchema>['bomParts']
+  // Handle file upload for part image
+  const handlePartImageUpload = async (file: File, path: string) => {
+    return await uploadFileToR2AndDatabase(file, path);
+  };
+
+  // Handle file upload for general files
+  const handleFileUpload = async (file: File, path: string) => {
+    return await uploadFileToR2AndDatabase(file, path);
+  };
+
+  // Handle part image change
+  const handlePartImageChange = (
+    files: UploadedFile | UploadedFile[] | undefined
   ) => {
+    // For single image uploads, we expect either a single file or undefined
+    const uploadedFile = Array.isArray(files) ? files[0] : files;
+    form.setValue('partImageFile', uploadedFile);
+    form.setValue('partImageId', uploadedFile?.id);
+  };
+
+  // Handle attached files change
+  const handleAttachedFilesChange = (
+    files: UploadedFile | UploadedFile[] | undefined
+  ) => {
+    // For multiple file uploads, we expect either an array or undefined
+    const uploadedFiles = Array.isArray(files)
+      ? files
+      : files
+        ? [files]
+        : undefined;
+    form.setValue('attachedFiles', uploadedFiles || []);
+    form.setValue('fileIds', uploadedFiles?.map((f) => f.id) || []);
+  };
+
+  const handleBOMChange = (bomParts: CreatePartParams['bomParts']) => {
     form.setValue('bomParts', bomParts);
   };
 
   // Handle form submission
-  const submitForm = async (data: z.infer<typeof formSchema>) => {
+  const submitForm = async (data: FormData) => {
     try {
-      const result = await createPart(data);
+      // Prepare data for createPart function
+      const createPartData: CreatePartParams = {
+        name: data.name,
+        partNumber: data.partNumber,
+        partRevision: data.partRevision,
+        description: data.description,
+        unit: data.unit,
+        trackingType: data.trackingType,
+        partType: data.partType,
+        partImageId: data.partImageId,
+        fileIds: data.fileIds,
+        bomParts: data.bomParts,
+        nxFilePath: data.nxFilePath
+      };
+
+      const result = await createPart(createPartData);
       console.log(result);
+
       if (result.success && result.data) {
         toast.success('Part created successfully');
         router.push(`/parts/library/${result.data.id}`);
@@ -133,10 +171,38 @@ const NewPartForm = () => {
         onSubmit={form.handleSubmit(submitForm)}
         className="flex flex-col h-full"
       >
-        <div className="px-4 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Part Name */}
-            <div className="grid grid-cols-1 gap-2 col-span-2">
+        <div className="space-y-6">
+          {/* Part Image and Name */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="partImageFile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <FileUpload
+                        multiple={false}
+                        accept={{
+                          'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp']
+                        }}
+                        value={field.value}
+                        onChange={handlePartImageChange}
+                        onUpload={handlePartImageUpload}
+                        uploadPath="parts"
+                        onError={(error) => toast.error(error)}
+                        placeholder="Upload Part Image"
+                        showPreview={true}
+                        previewSize="md"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="col-span-2 space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -150,41 +216,59 @@ const NewPartForm = () => {
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Part Number */}
-            <div className="flex gap-2">
-              <FormField
-                control={form.control}
-                name="partNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Part Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter part number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex gap-2 items-end mb-1.5 text-muted-foreground">
-                /
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="partNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Part Number</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-4">
+                          <Input placeholder="Enter part number" {...field} />
+                          <span>/</span>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="partRevision"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Revision</FormLabel>
+                      <FormControl>
+                        <Input className="w-20" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <FormField
-                control={form.control}
-                name="partRevision"
-                render={({ field }) => (
-                  <FormItem className="max-w-20">
-                    <FormLabel>Revision</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter part revision" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+          </div>
 
+          {/* Description */}
+          <div className="space-y-2">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter part description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
             {/* Tracking Type */}
             <FormField
               control={form.control}
@@ -269,101 +353,33 @@ const NewPartForm = () => {
 
           {/* Files Section */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <FormLabel>Files</FormLabel>
-              <FormField
-                control={form.control}
-                name="files"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="gap-2 bg-secondary"
-                            onClick={() => {
-                              const fileInput = document.getElementById(
-                                'file-upload'
-                              ) as HTMLInputElement;
-                              fileInput.click();
-                            }}
-                          >
-                            <Paperclip className="h-4 w-4" />
-                            Attach Files
-                          </Button>
-                          <Input
-                            id="file-upload"
-                            type="file"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              const currentFiles = field.value;
-
-                              // Validate file size (10MB limit)
-                              const invalidFiles = files.filter(
-                                (file) => file.size > 10 * 1024 * 1024
-                              );
-                              if (invalidFiles.length > 0) {
-                                toast.error('Files must be less than 10MB');
-                                return;
-                              }
-
-                              field.onChange([...currentFiles, ...files]);
-                            }}
-                          />
-                        </label>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* File List */}
-            {form.watch('files').length > 0 && (
-              <div className="border rounded-md px-2">
-                <div className="space-y-2">
-                  {form.watch('files').map((file: File, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-secondary/20 rounded-md"
-                    >
-                      <div className="flex items-center gap-2">
-                        <File className="h-4 w-4" />
-                        <span className="text-sm font-medium">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const currentFiles = form.getValues('files');
-                          const updatedFiles = currentFiles.filter(
-                            (_, i) => i !== index
-                          );
-                          form.setValue('files', updatedFiles);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <FormLabel>Files</FormLabel>
+            <FormField
+              control={form.control}
+              name="attachedFiles"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <FileUpload
+                      multiple={true}
+                      value={field.value}
+                      onChange={handleAttachedFilesChange}
+                      onUpload={handleFileUpload}
+                      uploadPath="parts"
+                      onError={(error) => toast.error(error)}
+                      placeholder="Drop files here or click to browse"
+                      showPreview={false}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
-        <div className="flex flex-grow flex-col justify-end">
-          <div className="flex justify-end border-t px-4 pb-1 pt-3 w-full mt-auto">
+        <div className="flex flex-grow flex-col justify-end pt-4">
+          <div className="flex justify-end pt-4 mt-auto border-t -mx-4 px-4">
             <Button
               type="submit"
               variant="default"
