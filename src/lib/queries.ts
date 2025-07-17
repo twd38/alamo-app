@@ -439,7 +439,7 @@ export async function getWorkOrders() {
       deletedOn: null
     },
     orderBy: {
-      dueDate: 'desc'
+      dueDate: 'asc'
     },
     include: {
       part: true,

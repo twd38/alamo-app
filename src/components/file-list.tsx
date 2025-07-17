@@ -31,7 +31,7 @@ const FileList = ({ files, onChange }: FileListProps) => {
                     <Button
                       variant="link"
                       onClick={() => downloadFile(file)}
-                      className="text-sm font-medium p-0 h-auto justify-start min-w-0 flex-1 max-w-[300px]"
+                      className="text-sm font-medium p-0 h-auto justify-start min-w-0 flex-1 max-w-[300px] sm:max-w-full truncate"
                     >
                       <span className="truncate block">{file.name}</span>
                     </Button>

@@ -46,7 +46,7 @@ const ProductionPageContent = () => {
   const currentPage = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 10;
   const sortBy = searchParams.get('sortBy') || 'dueDate';
-  const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc';
+  const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
 
   // Create SWR key that updates when params change
   const swrKey = useMemo(
