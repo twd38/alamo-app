@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useParams } from 'next/navigation';
-import { getPartWorkInstructions, PartWorkInstructions } from '@/lib/queries';
+import {
+  getPartWorkInstructions,
+  PartWorkInstructions
+} from '../queries/getPartWorkInstructions';
 import { WorkInstructionStep } from '@prisma/client';
 import {
   createWorkInstruction,

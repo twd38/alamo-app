@@ -1,13 +1,12 @@
 import React from 'react';
-import { BoardViewContainer } from '@/components/board/board-view-container';
-import {
-  getKanbanSections,
-  getAllTasks,
-  getAllViews,
-  getBoards
-} from '@/lib/queries';
-import { BoardsTopBar } from '@/components/board/top-bar';
+import { BoardViewContainer } from './components/board-view-container';
+import { BoardsTopBar } from './components/top-bar';
 import PageContainer from '@/components/page-container';
+import { getAllTasks } from './queries/getAllTasks';
+import { getKanbanSections } from './queries/getKanbanSections';
+import { getBoards } from './queries/getBoards';
+import { getAllViews } from './queries/getAllViews';
+
 export const dynamic = 'force-dynamic';
 
 type BoardPageProps = {
@@ -18,12 +17,11 @@ type BoardPageProps = {
 
 export default async function ProductionPage({ params }: BoardPageProps) {
   const { boardId } = await params;
-  const [tasks, kanbanSections, views, boards] = await Promise.all([
-    getAllTasks(),
-    getKanbanSections(boardId),
-    getAllViews(boardId),
-    getBoards()
-  ]);
+
+  const tasks = await getAllTasks();
+  const kanbanSections = await getKanbanSections(boardId);
+  const views = await getAllViews(boardId);
+  const boards = await getBoards();
 
   const activeBoard =
     boardId === 'my-tasks'

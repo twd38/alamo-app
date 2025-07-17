@@ -1,5 +1,5 @@
 import StepFileViewer from '@/components/library/details/step-file';
-import { getPart } from '@/lib/queries';
+import { getPart } from '../queries/getPart';
 import PageContainer from '@/components/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 

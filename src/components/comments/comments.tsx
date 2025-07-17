@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Comment } from './comment';
 import { CommentInput } from './comment-input';
-import { getEntityComments } from '@/lib/comment-actions';
+import { getEntityComments } from '@/lib/comment-utils';
 import { CommentableEntityType } from '@prisma/client';
 
 interface CommentsProps {

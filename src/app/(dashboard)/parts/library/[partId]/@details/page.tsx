@@ -1,4 +1,4 @@
-import { getPart } from '@/lib/queries';
+import { getPart } from '../queries/getPart';
 import Details from '@/components/library/details/details';
 
 type PartDetailsPageProps = {

@@ -10,7 +10,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { getAllAccessBadges, getUsersWithoutBadges } from '@/lib/queries';
-import { deleteAccessBadge } from '@/lib/admin-actions';
+import { deleteAccessBadge } from '../actions/deleteAccessBadge';
 import { BadgesDataTable } from './badges-data-table';
 import { CreateBadgeDialog } from './create-badge-dialog';
 import { toast } from 'sonner';

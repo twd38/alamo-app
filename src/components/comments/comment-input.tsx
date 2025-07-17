@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TipTapTextEditor } from '@/components/tiptap-text-editor';
 import { useUser } from '@/hooks/use-user';
-import { createComment } from '@/lib/comment-actions';
+import { createComment } from '@/lib/comment-utils';
 import { CommentableEntityType } from '@prisma/client';
 import { CommentFileUpload, type CommentFile } from './comment-file-upload';
 import { Paperclip } from 'lucide-react';

@@ -1,4 +1,4 @@
-import { getWorkOrder } from '@/lib/queries';
+import { getWorkOrder } from './queries/getWorkOrder';
 import { ProductionTopBar } from '@/components/production/production-top-bar';
 import { WorkInstructionsViewer } from '@/components/production/work-instructions-viewer';
 

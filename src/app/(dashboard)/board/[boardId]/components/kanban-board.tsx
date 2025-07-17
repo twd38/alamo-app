@@ -20,13 +20,9 @@ import {
 import { useOptimistic } from 'react';
 import { toast } from 'sonner';
 import { MouseSensor, KeyboardSensor, TouchSensor } from '@/lib/dnd-sensors';
-import TaskDetail from '@/components/board/task-detail';
+import TaskDetail from './task-detail';
 import { useAtom } from 'jotai';
-import {
-  taskModal,
-  filterStateAtom,
-  FilterType
-} from '@/components/board/utils';
+import { taskModal, filterStateAtom, FilterType } from './utils';
 import {
   useFilterAtom,
   isValidUser,

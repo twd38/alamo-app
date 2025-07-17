@@ -1,8 +1,6 @@
-import Image from 'next/image';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
-import { getPart } from '@/lib/queries';
+import { getPart } from './queries/getPart';
 import { TabList, ActiveTab } from './components/part-tabs';
-import { Button } from '@/components/ui/button';
 import { CreateWorkOrderDialog } from '@/components/production/create-work-order-dialog';
 import { Part } from '@prisma/client';
 import { Breadcrumb } from '@/components/breadcrumbs';

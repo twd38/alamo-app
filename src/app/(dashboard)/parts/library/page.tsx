@@ -1,8 +1,11 @@
 import { LibraryDataTable } from '@/components/library/library-datatable';
-import { getParts, getPartsCount } from '@/lib/queries';
+import { getParts } from './queries/getParts';
+import { getPartsCount } from './queries/getPartsCount';
+
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
 import type { Metadata } from 'next';
+import { prisma } from '@/lib/db';
 
 interface InventoryPageProps {
   searchParams: Promise<{
@@ -34,14 +37,17 @@ export default async function InventoryPage(props: InventoryPageProps) {
   const query = searchParams?.query || '';
   const currentPage = Number(searchParams?.page) || 1;
   const limit = Number(searchParams?.limit) || 10;
+  const sortBy = searchParams?.sortBy || 'description';
+  const sortOrder = searchParams?.sortOrder || 'asc';
+  const page = Number(searchParams?.page) || 1;
   // const totalPages = await fetchInvoicesPages(query);
 
   const parts = await getParts({
     query,
-    page: currentPage,
+    page,
     limit,
-    sortBy: 'description',
-    sortOrder: 'asc'
+    sortBy,
+    sortOrder
   });
 
   const totalParts = await getPartsCount({

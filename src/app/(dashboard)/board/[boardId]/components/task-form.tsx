@@ -36,12 +36,7 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import useSWR from 'swr';
-import {
-  getAllUsers,
-  getKanbanSections,
-  getAllTags,
-  getBoards
-} from '@/lib/queries';
+import { getAllUsers } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Status, User, Task, TaskTag, Epic } from '@prisma/client';
@@ -87,6 +82,9 @@ import { SavingBadge } from '@/components/ui/saving-badge';
 import { useDebouncedCallback } from 'use-debounce';
 import { copyToClipboard } from '@/lib/utils';
 import Link from 'next/link';
+import { getKanbanSections } from '../queries/getKanbanSections';
+import { getBoards } from '../queries/getBoards';
+import { getTags } from '../queries/getTags';
 
 interface TaskWithRelations extends Task {
   assignees: User[];
@@ -160,7 +158,7 @@ const TaskForm = ({
   const { data: kanbanSections } = useSWR('allKanbanSections', () =>
     getKanbanSections(boardId)
   );
-  const { data: tags } = useSWR('allTags', () => getAllTags(boardId));
+  const { data: tags } = useSWR('allTags', () => getTags(boardId));
   const { data: boards } = useSWR('allBoards', getBoards);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

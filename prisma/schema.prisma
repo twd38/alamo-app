@@ -90,14 +90,14 @@ model File {
   size            Int
   type            String
   partId          String?
-  instructionId   String?
   stepId          String?
+  stepFileId      String?
   commentId       String?
   key             String                     @default("")
-  instruction     WorkInstruction?           @relation("InstructionFiles", fields: [instructionId], references: [id])
   workOrder       WorkOrder?                 @relation(fields: [workOrderId], references: [id])
   part            Part?                      @relation("PartFiles", fields: [partId], references: [id])
   step            WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
+  stepFile        WorkInstructionStep?       @relation("StepFiles", fields: [stepFileId], references: [id])
   task            Task?                      @relation(fields: [taskId], references: [id])
   comment         Comment?                   @relation("CommentFiles", fields: [commentId], references: [id])
   partImagePart   Part?                      @relation("PartImage")
@@ -328,7 +328,6 @@ model WorkInstruction {
   approvedAt            DateTime?
   approvedById          String?
   parentVersionId       String?               @unique
-  files                 File[]                @relation("InstructionFiles")
   approvedBy            User?                 @relation("ApprovedInstructions", fields: [approvedById], references: [id])
   createdBy             User?                 @relation(fields: [createdById], references: [id])
   parentVersion         WorkInstruction?      @relation("WorkInstructionVersions", fields: [parentVersionId], references: [id])
@@ -349,6 +348,7 @@ model WorkInstructionStep {
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   images              File[]                      @relation("StepImages")
+  files               File[]                      @relation("StepFiles")
   workInstruction     WorkInstruction             @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
   actions             WorkInstructionStepAction[]
   workOrderSteps      WorkOrderWorkInstructionStep[] @relation("WorkOrderStepSource")

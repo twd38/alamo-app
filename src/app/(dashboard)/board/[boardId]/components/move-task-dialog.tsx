@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { taskModal } from './utils';
-import { getKanbanSections } from '@/lib/queries';
+import { getKanbanSections } from '../queries/getKanbanSections';
 import useSWR from 'swr';
 import { Task } from '@prisma/client';
 

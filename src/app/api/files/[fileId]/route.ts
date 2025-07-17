@@ -59,10 +59,6 @@ export async function GET(
           // Parts are generally accessible to authenticated users
           select: { id: true }
         },
-        instruction: {
-          // Work instructions are generally accessible to authenticated users
-          select: { id: true }
-        },
         step: {
           // Work instruction steps are generally accessible to authenticated users
           select: { id: true }

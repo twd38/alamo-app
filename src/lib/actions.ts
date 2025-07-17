@@ -11,7 +11,8 @@ import {
   Prisma,
   PartType,
   ActionType,
-  TaskTag
+  TaskTag,
+  File as PrismaFile
 } from '@prisma/client';
 import {
   deleteFileFromR2,
@@ -38,45 +39,6 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 export async function updateDataAndRevalidate(path: string) {
   revalidatePath(path); // Revalidate the specific path
   return { message: 'Data updated and cache revalidated' };
-}
-
-export async function getKanbanSections(boardId?: string) {
-  const kanbanSections = await prisma.kanbanSection.findMany({
-    where: {
-      deletedOn: null,
-      boardId: boardId
-    },
-    include: {
-      tasks: {
-        where: {
-          deletedOn: null
-        },
-        include: {
-          assignees: true,
-          createdBy: true,
-          files: true
-        },
-        orderBy: {
-          taskOrder: 'asc'
-        }
-      }
-    },
-    orderBy: {
-      kanbanOrder: 'asc'
-    }
-  });
-
-  console.log(
-    'Retrieved workstations:',
-    kanbanSections.map((w) => ({
-      id: w.id,
-      name: w.name,
-      taskCount: w.tasks?.length || 0,
-      taskOrders: w.tasks?.map((t) => t.taskOrder) || []
-    }))
-  );
-
-  return kanbanSections;
 }
 
 export async function createKanbanSection(name: string, boardId: string) {
@@ -701,14 +663,7 @@ export async function uploadFileToR2AndDatabase(
   }
 ): Promise<{
   success: boolean;
-  data?: {
-    id: string;
-    url: string;
-    key: string;
-    name: string;
-    type: string;
-    size: number;
-  };
+  data?: PrismaFile;
   error?: string;
 }> {
   try {
@@ -745,14 +700,7 @@ export async function uploadFileToR2AndDatabase(
 
     return {
       success: true,
-      data: {
-        id: fileRecord.id,
-        url: fileRecord.url,
-        key: fileRecord.key,
-        name: fileRecord.name,
-        type: fileRecord.type,
-        size: fileRecord.size
-      }
+      data: fileRecord
     };
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -1229,12 +1177,14 @@ export async function updateWorkInstructionStep({
   stepId,
   title,
   instructions,
-  estimatedLabourTime
+  estimatedLabourTime,
+  files
 }: {
   stepId: string;
-  title: string;
-  instructions: string;
-  estimatedLabourTime: number;
+  title?: string;
+  instructions?: string;
+  estimatedLabourTime?: number;
+  files?: string[];
 }) {
   try {
     const result = await prisma.workInstructionStep.update({
@@ -1242,13 +1192,42 @@ export async function updateWorkInstructionStep({
       data: {
         title,
         instructions,
-        estimatedLabourTime
+        estimatedLabourTime,
+        files: {
+          connect: files?.map((file) => ({ id: file }))
+        }
       }
     });
     return { success: true, data: result };
   } catch (error) {
     console.error('Error updating work instruction step:', error);
     return { success: false, error: 'Failed to update work instruction step' };
+  }
+}
+
+export async function deleteWorkInstructionStepFile(
+  stepId: string,
+  fileId: string
+) {
+  try {
+    const result = await prisma.workInstructionStep.update({
+      where: { id: stepId },
+      data: {
+        files: {
+          delete: {
+            id: fileId
+          }
+        }
+      }
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error deleting work instruction step file:', error);
+    return {
+      success: false,
+      error: 'Failed to delete work instruction step file'
+    };
   }
 }
 

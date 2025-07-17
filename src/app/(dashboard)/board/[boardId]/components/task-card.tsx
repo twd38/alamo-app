@@ -7,7 +7,7 @@ import { Calendar, User2, Tag, Flag } from 'lucide-react';
 import { Badge } from 'src/components/ui/badge';
 import { Prisma } from '@prisma/client';
 import { useAtom } from 'jotai';
-import { taskModal } from '@/components/board/utils';
+import { taskModal } from './utils';
 import { PRIORITY_CONFIG } from '@/lib/constants/priority';
 
 type TaskWithRelations = Prisma.TaskGetPayload<{

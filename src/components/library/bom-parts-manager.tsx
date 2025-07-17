@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Part, BOMType, Prisma } from '@prisma/client';
-import { getParts } from '@/lib/queries';
+import { getParts } from '@/app/(dashboard)/parts/library/queries/getParts';
 import {
   Table,
   TableBody,
@@ -15,7 +15,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { UseFormReturn } from 'react-hook-form';
 
 // Interface for BOM component items
 export interface BOMPartsItem {

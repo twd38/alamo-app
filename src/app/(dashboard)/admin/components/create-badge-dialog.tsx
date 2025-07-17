@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { UserSelect } from '@/components/user-select';
 import { Loader2 } from 'lucide-react';
-import { createAccessBadge } from '@/lib/admin-actions';
+import { createAccessBadge } from '../actions/createAccessBadge';
 import { UserWithoutBadge } from '@/lib/queries';
 import { User } from '@prisma/client';
 

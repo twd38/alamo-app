@@ -1,5 +1,3 @@
-// /lib/config/assumptions.ts
-
 /**
  * Centralised financial and regulatory assumptions for the site‑selection engine.
  * All monetary values are in US dollars.

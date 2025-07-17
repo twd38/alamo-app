@@ -17,7 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Upload, X } from 'lucide-react';
-import { createUser, updateUser, getAllRoles } from '@/lib/admin-actions';
+import { getAllRoles } from '@/lib/rbac-actions';
+import { createUser } from '../actions/createUser';
+import { updateUser } from '../actions/updateUser';
 import { assignUserRole, removeUserRole } from '@/lib/rbac-actions';
 
 interface User {

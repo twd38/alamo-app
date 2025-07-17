@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
-import { updateComment, deleteComment } from '@/lib/comment-actions';
+import { updateComment, deleteComment } from '@/lib/comment-utils';
 import { useUser } from '@/hooks/use-user';
 import { CommentFilesDisplay } from './comment-file-upload';
 

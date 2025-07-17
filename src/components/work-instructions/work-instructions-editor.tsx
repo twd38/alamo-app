@@ -9,15 +9,17 @@ import {
   ResizablePanel,
   ResizableHandle
 } from '@/components/ui/resizable';
-import {
-  WorkInstructionStep,
-  WorkOrderWorkInstructionStep
-} from '@prisma/client';
+import { File as PrismaFile } from '@prisma/client';
 import { PartWorkInstructions, WorkOrderWorkInstructions } from '@/lib/queries';
 import { WorkInstructionStepList } from './work-instruction-step-list';
 import { WorkInstructionContent } from './work-instruction-content';
 import { StepDetails } from './step-details';
 import { WorkInstructionStepActions } from './work-instruction-step-actions';
+import {
+  uploadFileToR2AndDatabase,
+  updateWorkInstructionStep
+} from '@/lib/actions';
+import FileList from '@/components/file-list';
 
 interface WorkInstructionsEditorProps {
   workInstructions: any; // Union type of PartWorkInstructions | WorkOrderWorkInstructions
@@ -69,6 +71,57 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
       </div>
     );
   }
+
+  const handleUpdateWorkInstructionStepFiles = async (files: File[]) => {
+    console.log(files);
+    const file = files[0];
+    const stepId = selectedStep?.id;
+
+    try {
+      // 1. Upload files
+      const uploadedFile = await uploadFileToR2AndDatabase(
+        file,
+        'work-instructions',
+        {
+          stepId
+        }
+      );
+
+      // 2. Update work instruction step
+      const updatedFilesArray = [
+        ...(selectedStep?.files || []),
+        uploadedFile.data?.id
+      ];
+      const updatedStep = await updateWorkInstructionStep({
+        stepId,
+        files: updatedFilesArray
+      });
+
+      if (updatedStep.success) {
+        revalidate();
+      }
+    } catch (error) {
+      console.error('Error updating work instruction step files:', error);
+    }
+  };
+
+  const handleDeleteWorkInstructionStepFile = async (file: PrismaFile) => {
+    console.log(file);
+    const stepId = selectedStep?.id;
+    const updatedFilesArray = selectedStep?.files?.filter(
+      (f: PrismaFile) => f.id !== file.id
+    );
+    console.log(updatedFilesArray);
+
+    const updatedStep = await updateWorkInstructionStep({
+      stepId,
+      files: updatedFilesArray
+    });
+
+    if (updatedStep.success) {
+      revalidate();
+    }
+  };
 
   return (
     <ResizablePanelGroup
@@ -132,6 +185,12 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
               >
                 Actions
               </TabsTrigger>
+              <TabsTrigger
+                value="files"
+                className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 h-10"
+              >
+                Files
+              </TabsTrigger>
             </TabsList>
             <Button
               variant="ghost"
@@ -151,6 +210,13 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
               revalidate={revalidate}
               isWorkOrder={isWorkOrder}
               workOrder={workOrder}
+            />
+          </TabsContent>
+          <TabsContent value="files" className="mt-0 h-[calc(100%-3rem)] p-4">
+            <FileList
+              files={selectedStep?.files || []}
+              onUpload={handleUpdateWorkInstructionStepFiles}
+              onDelete={handleDeleteWorkInstructionStepFile}
             />
           </TabsContent>
         </Tabs>

@@ -65,6 +65,53 @@ export async function checkResourceAccess(
 }
 
 /**
+ * Get all roles
+ */
+export async function getAllRoles() {
+  try {
+    await requirePermission(PERMISSIONS.SYSTEM.ROLE_MANAGEMENT);
+
+    const roles = await prisma.role.findMany({
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return { success: true, data: roles };
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch roles'
+    };
+  }
+}
+
+/**
+ * Get all permissions
+ */
+export async function getAllPermissions() {
+  try {
+    await requirePermission(PERMISSIONS.SYSTEM.ROLE_MANAGEMENT);
+
+    const permissions = await prisma.permission.findMany({
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return { success: true, data: permissions };
+  } catch (error) {
+    console.error('Error fetching permissions:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to fetch permissions'
+    };
+  }
+}
+
+/**
  * Assign a role to a user (global role)
  */
 export async function assignUserRole(targetUserId: string, roleName: string) {

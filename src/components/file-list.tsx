@@ -5,15 +5,24 @@ import { Paperclip, X } from 'lucide-react';
 import { File as FileIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
-import { File } from '@prisma/client';
+import { File as PrismaFile } from '@prisma/client';
 import { downloadFile } from '@/lib/file-utils';
 
 interface FileListProps {
-  files: File[] | [];
-  onChange: (files: any[]) => void;
+  files: PrismaFile[] | [];
+  onUpload: (file: File[]) => void;
+  onDelete: (file: PrismaFile) => void;
 }
 
-const FileList = ({ files, onChange }: FileListProps) => {
+const FileList = ({ files, onUpload, onDelete }: FileListProps) => {
+  const handleDelete = (file: PrismaFile) => {
+    onDelete(file);
+  };
+
+  const handleUpload = (files: File[]) => {
+    onUpload(files);
+  };
+
   return (
     <div>
       {/* File List */}
@@ -44,13 +53,7 @@ const FileList = ({ files, onChange }: FileListProps) => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    const currentFiles = files;
-                    const updatedFiles = currentFiles.filter(
-                      (_, i) => i !== index
-                    );
-                    onChange(updatedFiles);
-                  }}
+                  onClick={() => handleDelete(file)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -95,7 +98,7 @@ const FileList = ({ files, onChange }: FileListProps) => {
             console.log('currentFiles', currentFiles);
             console.log('addedFiles', addedFiles);
 
-            onChange([...currentFiles, ...addedFiles]);
+            onUpload(addedFiles);
           }}
         />
       </label>
