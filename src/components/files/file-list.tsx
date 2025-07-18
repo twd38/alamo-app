@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, X } from 'lucide-react';
-import { File as FileIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
 import { File as PrismaFile } from '@prisma/client';
 import { downloadFile } from '@/lib/file-utils';
+import { FileDisplay } from './file-display';
+import { FileIcon } from './file-icon';
 
 interface FileListProps {
   files: PrismaFile[] | [];
@@ -16,16 +17,18 @@ interface FileListProps {
 }
 
 const FileList = ({ files, onUpload, onDelete }: FileListProps) => {
-  const [fileList, setFileList] = useState<PrismaFile[]>(files);
+  const [uploading, setUploading] = useState(false);
 
   const handleDelete = (file: PrismaFile) => {
     onDelete(file);
   };
 
   const handleUpload = (files: File[]) => {
+    setUploading(true);
     onUpload(files);
   };
 
+  console.log(files);
   return (
     <div>
       {/* File List */}
@@ -33,13 +36,20 @@ const FileList = ({ files, onUpload, onDelete }: FileListProps) => {
         <>
           <div className="space-y-2">
             {files.map((file, index: number) => (
+              // <FileDisplay
+              //   key={index}
+              //   fileName={file.name}
+              //   fileUrl={`/api/files/${file.id}`}
+              //   downloadable={true}
+              //   onClick={() => downloadFile(file)}
+              // />
               <div
                 key={index}
                 className="flex items-center justify-between p-2 h-12 bg-secondary border rounded-md px-2"
               >
                 <div className="flex items-center justify-between gap-2 w-full">
                   <div className="flex items-center gap-2">
-                    <FileIcon className="h-4 w-4" />
+                    <FileIcon fileName={file.name} className="h-4 w-4" />
                     <Button
                       variant="link"
                       onClick={() => downloadFile(file)}

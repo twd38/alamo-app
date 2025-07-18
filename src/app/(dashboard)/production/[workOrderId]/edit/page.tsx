@@ -10,9 +10,9 @@ import { Loader2 } from 'lucide-react';
 import { WorkOrderEditorWrapper } from './components/work-order-editor-wrapper';
 
 interface WorkOrderEditPageProps {
-  params: {
+  params: Promise<{
     workOrderId: string;
-  };
+  }>;
 }
 
 async function WorkOrderEditContent({ workOrderId }: { workOrderId: string }) {
@@ -62,7 +62,7 @@ function LoadingState() {
 export default async function WorkOrderEditPage({
   params
 }: WorkOrderEditPageProps) {
-  const { workOrderId } = params;
+  const { workOrderId } = await params;
 
   return (
     <div className="h-screen flex flex-col">

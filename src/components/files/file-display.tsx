@@ -168,7 +168,6 @@ export function FileDisplay({
               <p className="text-xs text-muted-foreground">
                 {fileType}
                 {fileSize && ` • ${formatFileSize(fileSize)}`}
-                {downloadable && ' • Click to download'}
               </p>
             </div>
           </div>
