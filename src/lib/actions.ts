@@ -1815,7 +1815,8 @@ export async function createWorkOrder({
   timeEstimate = '',
   dueDate,
   assigneeIds = [],
-  notes = ''
+  notes = '',
+  tagIds = []
 }: {
   partId: string;
   partQty: number;
@@ -1825,6 +1826,7 @@ export async function createWorkOrder({
   dueDate?: Date;
   assigneeIds?: string[];
   notes?: string;
+  tagIds?: string[];
 }) {
   try {
     // Validate input parameters
@@ -1962,13 +1964,17 @@ export async function createWorkOrder({
             deletedOn: null,
             assignees: {
               create: assigneeIds.map((uid) => ({ userId: uid }))
+            },
+            tags: {
+              connect: tagIds.map((tagId) => ({ id: tagId }))
             }
           };
 
           const workOrder = await tx.workOrder.create({
             data: workOrderData,
             include: {
-              assignees: true
+              assignees: true,
+              tags: true
             }
           });
 
@@ -2121,6 +2127,46 @@ export async function createWorkOrder({
     }
 
     return { success: false, error: 'Failed to create work order' };
+  }
+}
+
+export async function createWorkOrderTag(name: string) {
+  try {
+    // Validate input
+    if (!name || name.trim().length === 0) {
+      return { success: false, error: 'Tag name is required' };
+    }
+
+    if (name.length > 50) {
+      return {
+        success: false,
+        error: 'Tag name must be 50 characters or less'
+      };
+    }
+
+    const trimmedName = name.trim();
+
+    // Check if tag with this name already exists
+    const existingTag = await prisma.workOrderTag.findUnique({
+      where: { name: trimmedName }
+    });
+
+    if (existingTag) {
+      return { success: false, error: 'A tag with this name already exists' };
+    }
+
+    // Create the new tag
+    const newTag = await prisma.workOrderTag.create({
+      data: {
+        name: trimmedName,
+        color: 'slate' // Default color
+      }
+    });
+
+    return { success: true, data: newTag };
+  } catch (error) {
+    console.error('Error creating work order tag:', error);
+    return { success: false, error: 'Failed to create work order tag' };
   }
 }
 

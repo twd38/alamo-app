@@ -24,6 +24,7 @@ export async function getWorkOrder(workOrderId: string) {
           user: true
         }
       },
+      tags: true,
       clockInEntries: {
         where: {
           clockOutTime: null // Only get users who are currently clocked in

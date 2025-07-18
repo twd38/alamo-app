@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { Clock, Box, Home, X } from 'lucide-react';
+import { Clock, Box, Home, X, Tag } from 'lucide-react';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import AutodeskViewer from '@/components/autodesk-viewer';
 import {
@@ -287,6 +287,25 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
                             />
                           </div>
                         </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Tags</h3>
+                      <div className="space-y-2">
+                        {workOrder?.tags && workOrder.tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {workOrder.tags.map((tag) => (
+                              <Badge key={tag.id} color={tag.color}>
+                                {tag.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            No tags assigned
+                          </p>
+                        )}
                       </div>
                     </div>
 

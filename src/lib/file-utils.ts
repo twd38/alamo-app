@@ -70,7 +70,16 @@ export async function downloadFile(file: File): Promise<void> {
       return;
     }
 
-    window.open(signedUrl.url, '_blank');
+    // Create a temporary anchor element to trigger download without opening new tab
+    const link = document.createElement('a');
+    link.href = signedUrl.url;
+    link.download = file.name; // Suggests the filename to the browser
+    link.style.display = 'none';
+
+    // Temporarily add to DOM, click, and remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
     toast.success(`Downloaded ${file.name}`);
   } catch (error) {

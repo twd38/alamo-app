@@ -102,7 +102,10 @@ const Details = ({ part }: PartDetailsProps) => {
       files: files
     };
 
+    console.log('payload', payload);
+
     await updatePart(payload);
+
     router.refresh();
   };
 

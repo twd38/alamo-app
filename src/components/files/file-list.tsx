@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, X } from 'lucide-react';
@@ -15,6 +16,8 @@ interface FileListProps {
 }
 
 const FileList = ({ files, onUpload, onDelete }: FileListProps) => {
+  const [fileList, setFileList] = useState<PrismaFile[]>(files);
+
   const handleDelete = (file: PrismaFile) => {
     onDelete(file);
   };
@@ -98,7 +101,7 @@ const FileList = ({ files, onUpload, onDelete }: FileListProps) => {
             console.log('currentFiles', currentFiles);
             console.log('addedFiles', addedFiles);
 
-            onUpload(addedFiles);
+            handleUpload(addedFiles);
           }}
         />
       </label>

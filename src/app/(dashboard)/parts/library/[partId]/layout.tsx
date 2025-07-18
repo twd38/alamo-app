@@ -1,7 +1,7 @@
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import { getPart } from './queries/getPart';
 import { TabList, ActiveTab } from './components/part-tabs';
-import { CreateWorkOrderDialog } from '../../../production/components/create-work-order-dialog';
+import { CreateWorkOrderDialog } from './components/create-work-order-dialog';
 import { Part } from '@prisma/client';
 import { Breadcrumb } from '@/components/breadcrumbs';
 

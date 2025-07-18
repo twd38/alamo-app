@@ -127,6 +127,7 @@ model WorkOrder {
   clockInEntries  ClockInEntry[]
   timeEntries     WorkOrderTimeEntry[]
   workInstruction WorkOrderWorkInstruction?
+  tags            WorkOrderTag[]           @relation("WorkOrderToWorkOrderTag")
 }
 
 model WorkOrderAssignee {
@@ -174,6 +175,15 @@ model TaskTag {
   tasks   Task[]  @relation("TaskToTaskTag")
 
   @@unique([name, boardId])
+}
+
+model WorkOrderTag {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  color      Color       @default(slate)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  workOrders WorkOrder[] @relation("WorkOrderToWorkOrderTag")
 }
 
 model Project {

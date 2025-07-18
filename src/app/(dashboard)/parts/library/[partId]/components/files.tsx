@@ -15,13 +15,15 @@ const PartFiles = (props: PartFilesProps) => {
 
   // TODO: fix type error
   const handleUpload = (value: any) => {
-    setFileList(value);
-    onChange(value);
+    const newFileList = [...fileList, ...value];
+    setFileList(newFileList);
+    onChange(newFileList);
   };
 
   const handleDelete = (file: FileType) => {
-    setFileList(fileList.filter((f) => f.id !== file.id));
-    onChange(fileList);
+    const newFileList = fileList.filter((f) => f.id !== file.id);
+    setFileList(newFileList);
+    onChange(newFileList);
   };
 
   return (
