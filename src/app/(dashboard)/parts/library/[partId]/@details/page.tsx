@@ -1,5 +1,5 @@
 import { getPart } from '../queries/getPart';
-import Details from '@/components/library/details/details';
+import Details from '../components/details';
 
 type PartDetailsPageProps = {
   params: Promise<{ partId: string }>;

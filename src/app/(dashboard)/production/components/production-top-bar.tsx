@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlayIcon, PauseIcon, ChevronLeft } from 'lucide-react';
 import { Timer } from './timer';
-import { getWorkOrder } from '@/lib/queries';
+import { getWorkOrder } from '../queries';
 import { WorkOrderStatus } from '@prisma/client';
 import { cn } from '@/lib/utils';
 import { ClockInModal } from './clock-in-modal';
-import { ProductionStatusBadge } from '@/components/production/production-status-badge';
+import { ProductionStatusBadge } from './production-status-badge';
 import {
   startWorkOrderProduction,
   pauseWorkOrderProduction

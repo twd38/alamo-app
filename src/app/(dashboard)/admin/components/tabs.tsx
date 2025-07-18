@@ -14,7 +14,7 @@ import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
 import { UsersTab } from './users-tab';
 import { BadgesTab } from './badges-tab';
-import { PrinterTest } from '@/components/production/printer-test';
+import { PrinterTest } from './printer-test';
 
 export function AdminTabs() {
   const [activeTab, setActiveTab] = useState('users');

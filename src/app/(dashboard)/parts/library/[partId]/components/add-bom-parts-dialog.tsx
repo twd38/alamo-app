@@ -14,7 +14,7 @@ import {
 import {
   BOMPartsManager,
   BOMPartsItem
-} from '@/components/library/bom-parts-manager';
+} from '../../components/bom-parts-manager';
 import { Prisma, Part } from '@prisma/client';
 import { updatePart } from '@/lib/actions';
 import { useRouter } from 'next/navigation';

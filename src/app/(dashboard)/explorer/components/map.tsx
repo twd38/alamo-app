@@ -8,10 +8,10 @@ import { ReactNode } from 'react';
 import {
   getParcelDetail,
   ParcelDetail,
-  getParcelZoningDetail,
-  ParcelZoningDetail,
+  getParcelZoning,
+  ParcelZoning,
   getDevelopmentPlan
-} from '@/lib/queries';
+} from '../queries';
 import { PropertyDetail } from './property-detail';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { throttle, debounce } from 'lodash';
@@ -55,7 +55,7 @@ const Map = () => {
   const [parcelData, setParcelData] = useState<ParcelDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [zoningData, setZoningData] = useState<ParcelZoningDetail | null>(null);
+  const [zoningData, setZoningData] = useState<ParcelZoning | null>(null);
 
   // Selected development-plan details (full object)
   const [planDetail, setPlanDetail] = useState<DevelopmentPlan | null>(null);
@@ -355,7 +355,7 @@ const Map = () => {
           setError(null);
 
           const parcelResult = await getParcelDetail(address);
-          const zoningResult = await getParcelZoningDetail(address);
+          const zoningResult = await getParcelZoning(address);
 
           if (parcelResult.success && parcelResult.data) {
             setParcelData(parcelResult.data);

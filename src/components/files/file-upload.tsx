@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { X, Upload, File, ImageIcon, Loader2 } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { FileIcon } from '@/components/file-icon';
+import { FileIcon } from '@/components/files/file-icon';
 
 interface UploadedFile {
   id: string;

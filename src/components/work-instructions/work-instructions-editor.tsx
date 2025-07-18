@@ -10,7 +10,6 @@ import {
   ResizableHandle
 } from '@/components/ui/resizable';
 import { File as PrismaFile } from '@prisma/client';
-import { PartWorkInstructions, WorkOrderWorkInstructions } from '@/lib/queries';
 import { WorkInstructionStepList } from './work-instruction-step-list';
 import { WorkInstructionContent } from './work-instruction-content';
 import { StepDetails } from './step-details';
@@ -19,7 +18,7 @@ import {
   uploadFileToR2AndDatabase,
   updateWorkInstructionStep
 } from '@/lib/actions';
-import FileList from '@/components/file-list';
+import FileList from '@/components/files/file-list';
 
 interface WorkInstructionsEditorProps {
   workInstructions: any; // Union type of PartWorkInstructions | WorkOrderWorkInstructions

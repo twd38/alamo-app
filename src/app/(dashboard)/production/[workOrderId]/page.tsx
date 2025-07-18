@@ -1,6 +1,6 @@
-import { getWorkOrder } from './queries/getWorkOrder';
-import { ProductionTopBar } from '@/components/production/production-top-bar';
-import { WorkInstructionsViewer } from '@/components/production/work-instructions-viewer';
+import { getWorkOrder } from '../queries';
+import { ProductionTopBar } from '../components/production-top-bar';
+import { WorkInstructionsViewer } from '../components/work-instructions-viewer';
 
 interface WorkOrderPageProps {
   params: Promise<{

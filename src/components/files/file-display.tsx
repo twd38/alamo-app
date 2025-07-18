@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Download } from 'lucide-react';
-import { FileIcon } from '@/components/file-icon';
+import { FileIcon } from '@/components/files/file-icon';
 
 interface FileDisplayProps {
   /** File name with extension */

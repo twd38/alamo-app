@@ -3,8 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from 'src/components/ui/input';
-import { Spinner } from '@/components/icons';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 
 export function SearchInput() {
   const router = useRouter();
@@ -27,7 +26,7 @@ export function SearchInput() {
         placeholder="Search..."
         className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
       />
-      {isPending && <Spinner />}
+      {isPending && <Loader2 className="animate-spin" />}
     </form>
   );
 }

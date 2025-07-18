@@ -9,13 +9,34 @@ export async function getWorkOrderWorkInstructions(workOrderId: string) {
       where: {
         workOrderId: workOrderId
       },
-      include: {
+      select: {
+        id: true,
         steps: {
-          include: {
+          select: {
+            id: true,
+            stepNumber: true,
+            title: true,
+            instructions: true,
+            estimatedLabourTime: true,
             actions: {
-              include: {
-                uploadedFile: true,
-                executionFile: true
+              select: {
+                id: true,
+                actionType: true,
+                description: true,
+                uploadedFile: {
+                  select: {
+                    id: true,
+                    name: true,
+                    url: true
+                  }
+                },
+                executionFile: {
+                  select: {
+                    id: true,
+                    name: true,
+                    url: true
+                  }
+                }
               }
             }
           },

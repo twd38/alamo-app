@@ -5,16 +5,14 @@ import PageContainer from '@/components/page-container';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AddBOMPartsDialog } from '@/components/library/details/add-bom-parts-dialog';
+import { AddBOMPartsDialog } from './add-bom-parts-dialog';
 import { PartsTable } from '@/components/parts-table';
 import { Prisma, Part, File as FileType } from '@prisma/client';
-import PartFiles from '@/components/library/details/files';
+import PartFiles from './files';
 import { updatePart, uploadFileToR2AndDatabase } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
 import { Package, FileText } from 'lucide-react';
-import FileUpload from '@/components/ui/file-upload';
-import Image from 'next/image';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
   include: { part: true };

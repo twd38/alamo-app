@@ -5,13 +5,13 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Share, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import type { ParcelDetail, ParcelZoningDetail } from '@/lib/queries';
+import type { ParcelDetail, ParcelZoning } from '../queries';
 import { ScenarioDetail, ScenarioDetailProps } from './scenario-detail';
 import { evaluateLot } from '@/lib/actions';
 import Image from 'next/image';
 interface PropertyDetailProps {
   parcel: ParcelDetail | null;
-  parcelZoning: ParcelZoningDetail | null;
+  parcelZoning: ParcelZoning | null;
   onClose: () => void;
 }
 
@@ -38,7 +38,7 @@ export function PropertyDetail({
   const streetAddress = parcel.streetAddress;
   const owner = parcel.ownerInfo;
   const records = (parcel.parcelRecords as any[]) || [];
-  const zoning = parcelZoning as ParcelZoningDetail | null;
+  const zoning = parcelZoning as ParcelZoning | null;
 
   console.log(zoning?.screenshot);
 

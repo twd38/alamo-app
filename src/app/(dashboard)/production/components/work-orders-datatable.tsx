@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ProductionStatusBadge } from '@/components/production/production-status-badge';
+import { ProductionStatusBadge } from './production-status-badge';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -40,15 +40,15 @@ import {
   TableRow
 } from '@/components/ui/table';
 import Link from 'next/link';
-import type { WorkOrdersWithCount } from '@/lib/queries';
-import { UserAvatarList } from '@/components/user-avatar-list';
+import { UserAvatarList } from '@/components/ui/user-avatar-list';
 import { DeleteAlert } from '@/components/delete-alert';
+import { WorkOrders } from '../queries';
 import { deleteWorkOrder } from '@/lib/actions';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
 
 // WorkOrderData is the type of the work orders that are returned from the database
-type WorkOrderData = WorkOrdersWithCount['workOrders'][0];
+type WorkOrderData = WorkOrders['workOrders'][0];
 
 // ----------------------------- Table columns -----------------------------
 const columns: ColumnDef<WorkOrderData>[] = [

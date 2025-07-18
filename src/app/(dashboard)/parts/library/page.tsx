@@ -1,4 +1,4 @@
-import { LibraryDataTable } from '@/components/library/library-datatable';
+import { LibraryDataTable } from './components/library-datatable';
 import { getParts } from './queries/getParts';
 import { getPartsCount } from './queries/getPartsCount';
 

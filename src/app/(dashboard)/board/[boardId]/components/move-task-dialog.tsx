@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { ComboBox } from '@/components/combo-box';
+import { ComboBox } from '@/components/ui/combo-box';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

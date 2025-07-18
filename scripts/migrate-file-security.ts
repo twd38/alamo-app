@@ -27,7 +27,6 @@ async function migrateFilesSecurity() {
         taskId: true,
         workOrderId: true,
         partId: true,
-        instructionId: true,
         stepId: true
       }
     });

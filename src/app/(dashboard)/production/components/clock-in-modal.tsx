@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserAvatarList } from '@/components/user-avatar-list';
+import { UserAvatarList } from '@/components/ui/user-avatar-list';
 import { toast } from 'sonner';
 import { AlertCircle, LogIn, LogOut } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';

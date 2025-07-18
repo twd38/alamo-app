@@ -4,13 +4,13 @@ import { useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
-import { getWorkOrdersWithCount } from '@/lib/queries';
 import PageContainer from '@/components/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WorkOrdersDataTable } from '@/components/production/work-orders-datatable';
+import { WorkOrdersDataTable } from './components/work-orders-datatable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getWorkOrders } from './queries';
 
 const ProductionLoadingSkeleton = () => (
   <div className="h-full bg-zinc-50 dark:bg-zinc-900">
@@ -58,7 +58,7 @@ const ProductionPageContent = () => {
   const { data, error, isLoading, mutate } = useSWR(
     swrKey,
     () =>
-      getWorkOrdersWithCount({
+      getWorkOrders({
         query,
         page: currentPage,
         limit,

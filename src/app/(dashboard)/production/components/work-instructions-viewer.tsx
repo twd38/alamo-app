@@ -26,7 +26,7 @@ import {
 import { ProductionSidebar } from './production-sidebar';
 import { WorkInstructionStepItem } from './work-instruction-step-item';
 import { PrintLabelButton } from './print-label-button';
-import { getWorkOrder } from '@/lib/queries';
+import { getWorkOrder } from '../queries/getWorkOrder';
 import { useSearchParams } from 'next/navigation';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
@@ -296,7 +296,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
                         {workOrder?.assignees &&
                         workOrder.assignees.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
-                            {workOrder.assignees.map((assignee) => (
+                            {workOrder.assignees.map((assignee: any) => (
                               <Badge key={assignee.user.id} variant="secondary">
                                 {assignee.user.name || assignee.user.email}
                               </Badge>

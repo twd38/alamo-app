@@ -40,7 +40,7 @@ import { getAllUsers } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Status, User, Task, TaskTag, Epic } from '@prisma/client';
-import { ComboBox } from '@/components/combo-box';
+import { ComboBox } from '@/components/ui/combo-box';
 import {
   createTask,
   deleteTask,
@@ -64,7 +64,7 @@ import { useState } from 'react';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { getStatusConfig, formatFileSize } from '@/lib/utils';
 import { toast } from 'sonner';
-import STLViewer from '@/components/stl-viewer';
+
 import { generateRandomColor } from '@/lib/utils';
 import {
   Select,

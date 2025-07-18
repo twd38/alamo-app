@@ -18,12 +18,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import CreateBoardDialog from './create-board-dialog';
 import EditBoardDialog from './edit-board-dialog';
-import { ConfirmDeleteAlert } from '@/components/confirm-delete-alert';
+import { DeleteAlert } from '@/components/delete-alert';
 import { deleteBoard } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
-import { UserAccessList } from '@/components/user-access-list';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import { UserAccessList } from './user-access-list';
 
 type BoardWithRelations = Board & {
   createdBy: User;
@@ -183,12 +181,12 @@ const BoardsTopBar = ({ activeBoard, boards }: TopBarProps) => {
         collaboratorIds={collaborators.map((c) => c.id)}
         icon={icon || undefined}
       />
-      <ConfirmDeleteAlert
+      <DeleteAlert
         isOpen={isDeleteOpen}
         onCloseAction={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteBoard}
         resourceName="board"
-        confirmName={name}
+        confirmationText={name}
       />
     </div>
   );

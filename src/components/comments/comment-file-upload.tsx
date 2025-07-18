@@ -6,7 +6,7 @@ import { Paperclip, X, File as FileIcon, Image, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { FileDisplay } from '@/components/ui/file-display';
+import { FileDisplay } from '@/components/files/file-display';
 import { getSecureFileUrl, downloadSecureFile } from '@/lib/file-utils';
 
 export interface CommentFile {

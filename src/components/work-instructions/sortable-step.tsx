@@ -5,7 +5,7 @@ import { GripVertical } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Prisma } from '@prisma/client';
-import { StepDropdown } from '@/components/library/step-dropdown';
+import { StepDropdown } from './step-dropdown';
 
 interface SortableStepProps {
   step: Prisma.WorkInstructionStepGetPayload<{

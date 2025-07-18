@@ -11,7 +11,7 @@ import {
 } from '@prisma/client';
 import { ProductionActionItem } from './actions';
 import { CircleCheck } from 'lucide-react';
-import { getWorkOrder } from '@/lib/queries';
+import { getWorkOrder } from '../queries/getWorkOrder';
 import {
   completeWorkOrderWorkInstructionStep,
   completeWorkOrder
