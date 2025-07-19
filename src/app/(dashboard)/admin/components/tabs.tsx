@@ -28,7 +28,7 @@ export function AdminTabs() {
             <CardHeader>
               <CardTitle>Access Denied</CardTitle>
               <CardDescription>
-                You don't have permission to access the admin panel.
+                {`You don't have permission to access the admin panel.`}
               </CardDescription>
             </CardHeader>
           </Card>
