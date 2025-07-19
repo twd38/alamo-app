@@ -7,7 +7,7 @@ export async function getWorkOrderWorkInstructions(workOrderId: string) {
   try {
     const result = await prisma.workOrderWorkInstruction.findMany({
       where: {
-        workOrderId: workOrderId
+        workOrderId
       },
       select: {
         id: true,

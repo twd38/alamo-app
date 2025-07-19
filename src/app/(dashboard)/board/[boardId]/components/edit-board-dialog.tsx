@@ -63,7 +63,7 @@ export default function EditBoardDialog({
   } = useForm<FormValues>({
     resolver: zodResolver(boardSchema),
     defaultValues: {
-      boardName: boardName,
+      boardName,
       isPrivate: initialIsPrivate,
       collaboratorIds: initialCollaboratorIds,
       icon: initialIcon
@@ -96,7 +96,7 @@ export default function EditBoardDialog({
     if (isOpen) {
       fetchUsers();
       reset({
-        boardName: boardName,
+        boardName,
         isPrivate: initialIsPrivate,
         collaboratorIds: initialCollaboratorIds,
         icon: initialIcon

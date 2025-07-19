@@ -31,7 +31,7 @@ export async function getAccessBadge(badgeId: string) {
 export async function getUserAccessBadge(userId: string) {
   return await prisma.accessBadge.findUnique({
     where: {
-      userId: userId
+      userId
     }
   });
 }

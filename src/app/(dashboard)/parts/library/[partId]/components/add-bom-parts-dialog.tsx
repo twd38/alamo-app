@@ -30,7 +30,7 @@ type AddBOMPartsDialogProps = {
 const handleUpdateBOM = async (partId: string, bomParts: BOMPartsItem[]) => {
   const payload = {
     id: partId,
-    bomParts: bomParts
+    bomParts
   };
 
   const updatedPart = await updatePart(payload);

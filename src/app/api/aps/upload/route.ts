@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       '.3dxml'
     ];
 
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const fileExtension = `.${  file.name.split('.').pop()?.toLowerCase()}`;
     if (!supportedFormats.includes(fileExtension)) {
       return NextResponse.json(
         { error: `Unsupported file format: ${fileExtension}` },

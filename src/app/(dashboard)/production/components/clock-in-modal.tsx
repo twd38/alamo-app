@@ -174,7 +174,7 @@ export function ClockInModal(props: ClockInModalProps) {
                 ? 'Clock In/Out'
                 : 'Clock In',
             onClick: openClockOutModal,
-            disabled: disabled
+            disabled
           }}
         />
       ) : (

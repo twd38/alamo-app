@@ -74,7 +74,7 @@ export function PrinterTest() {
         },
         body: JSON.stringify({
           labelData: testLabelData,
-          printerSerialNumber: printerSerialNumber
+          printerSerialNumber
         })
       });
 

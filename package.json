@@ -17,8 +17,12 @@
     "init:admin:prod": "dotenv -e .env.production -- tsx scripts/init-admin.ts",
     "init:admin:staging": "dotenv -e .env.staging -- tsx scripts/init-admin.ts",
     "init:admin:env": "dotenv -e .env.$NODE_ENV -- tsx scripts/init-admin.ts",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "lint:strict": "eslint --ext .js,.jsx,.ts,.tsx src/ --max-warnings 0",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "check": "npm run format:check && npm run lint:strict && npm run build",
     "sw:update": "node scripts/update-sw-version.js",
     "deploy:update": "npm run sw:update && npm run build"
   },
@@ -139,7 +143,11 @@
     "@types/forge-apis": "^0.9.7",
     "@types/three": "^0.173.0",
     "@types/ws": "^8.5.14",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
     "dotenv-cli": "^8.0.0",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "^15.4.2",
     "prisma": "^6.2.1",
     "tsx": "^4.20.3"
   }

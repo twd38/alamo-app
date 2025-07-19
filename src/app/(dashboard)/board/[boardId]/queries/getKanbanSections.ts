@@ -53,7 +53,7 @@ export async function getKanbanSections(boardId: string) {
   return await prisma.kanbanSection.findMany({
     where: {
       deletedOn: null,
-      boardId: boardId
+      boardId
     },
     include: {
       tasks: {

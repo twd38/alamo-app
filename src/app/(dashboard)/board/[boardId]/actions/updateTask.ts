@@ -159,7 +159,7 @@ export async function updateTask(
         const message = `${actorName ?? 'Someone'} assigned you to task <${appUrl}/board/${result.boardId}?taskId=${result.id}|${result.name}>.`;
         await notify({
           recipientIds: addedIds,
-          message: message
+          message
         });
       }
     }

@@ -124,7 +124,7 @@ export const BOMPartsManager = ({
       ...bomParts,
       {
         id: part.id,
-        part: part,
+        part,
         qty: 1,
         bomType: defaultBomType
       }

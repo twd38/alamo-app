@@ -1244,7 +1244,7 @@ export async function updateWorkOrder({
           where: {
             step: {
               workOrderInstruction: {
-                workOrderId: workOrderId
+                workOrderId
               }
             },
             actionType: 'QUANTITY_INPUT'
@@ -2206,7 +2206,7 @@ export async function addStepFileWithGltfConversion({
           name: stepFile.name,
           type: stepFile.type || 'application/octet-stream',
           size: stepFile.size,
-          partId: partId
+          partId
         }
       });
 
@@ -2218,7 +2218,7 @@ export async function addStepFileWithGltfConversion({
           name: conversionResult.fileName!,
           type: 'model/gltf+json',
           size: conversionResult.data!.length,
-          partId: partId
+          partId
         }
       });
 

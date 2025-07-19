@@ -3,7 +3,6 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
-import { getUploadUrl } from '@/lib/server/r2';
 import { Prisma } from '@prisma/client';
 
 export async function createTask(data: {
@@ -18,7 +17,7 @@ export async function createTask(data: {
   kanbanSectionId: string;
   boardId: string;
   taskOrder: number;
-  files?: File[];
+  files?: Prisma.FileCreateInput[];
   tags?: string[];
   private?: boolean;
   epicId?: string;
@@ -26,25 +25,6 @@ export async function createTask(data: {
   try {
     const session = await auth();
     const userId = session?.user?.id || 'cm78gevrb0004kxxg43qs0mqv';
-
-    // Handle file uploads if present
-    const fileData: Prisma.FileCreateInput[] = [];
-    if (data.files && data.files.length > 0) {
-      for (const file of data.files) {
-        const { key, publicUrl } = await getUploadUrl(
-          file.name,
-          file.type,
-          'tasks'
-        );
-        fileData.push({
-          url: publicUrl,
-          key,
-          name: file.name,
-          type: file.type,
-          size: file.size
-        });
-      }
-    }
 
     const result = await prisma.$transaction(async (tx) => {
       // Move all existing tasks in the same Kanban section down by one position
@@ -76,7 +56,7 @@ export async function createTask(data: {
           boardId: data.boardId,
           taskOrder: 0,
           files: {
-            create: fileData
+            create: data.files || []
           },
           tags: {
             connect: data.tags?.map((tag) => ({ id: tag })) || []

@@ -18,10 +18,10 @@ export type Breadcrumb = {
 export function Breadcrumbs({ breadcrumbs }: { breadcrumbs?: Breadcrumb[] }) {
   const pathname = usePathname();
   const pathSegments = pathname.split('/').filter(Boolean);
-  let breadcrumbsList =
+  const breadcrumbsList =
     breadcrumbs ||
     pathSegments.map((segment, index) => {
-      const href = '/' + pathSegments.slice(0, index + 1).join('/');
+      const href = `/${  pathSegments.slice(0, index + 1).join('/')}`;
       return {
         href,
         label: segment.charAt(0).toUpperCase() + segment.slice(1)

@@ -42,7 +42,7 @@ export async function duplicateTask(taskId: string) {
             name: file.name,
             type: file.type,
             size: file.size,
-            taskId: taskId
+            taskId
           }))
         }
       },

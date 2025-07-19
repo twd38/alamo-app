@@ -14,8 +14,8 @@ import Link from 'next/link';
 import { BadgeQRDialog } from './badge-qr-dialog';
 
 export async function User() {
-  let session = await auth();
-  let user = session?.user;
+  const session = await auth();
+  const user = session?.user;
 
   // Fetch user's access badge if user exists
   let badge = null;

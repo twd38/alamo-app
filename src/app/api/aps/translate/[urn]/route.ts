@@ -89,7 +89,7 @@ export async function GET(
       isComplete,
       hasErrors,
       derivatives,
-      manifest: manifest // Include full manifest for debugging
+      manifest // Include full manifest for debugging
     });
   } catch (error) {
     console.error('Failed to get translation status:', error);

@@ -120,7 +120,7 @@ export async function createOrGetBucket(
     // If bucket doesn't exist (404), create it
     if (getResponse.status === 404) {
       const bucketSpec = {
-        bucketKey: bucketKey,
+        bucketKey,
         policyKey: 'transient' // Files will be deleted after 24 hours
       };
 

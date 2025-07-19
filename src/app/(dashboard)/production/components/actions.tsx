@@ -42,7 +42,7 @@ export function ProductionActionItem({
       const result = await completeStepAction({
         workOrderId,
         workOrderInstructionStepActionId: action.id,
-        value: value,
+        value,
         notes: notes || action.executionNotes || undefined,
         uploadedFileId: action.executionFileId || undefined
       });

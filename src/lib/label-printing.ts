@@ -97,7 +97,7 @@ export async function sendZPLToPrinter(
       method: 'POST',
       headers: {
         apikey: apiKey,
-        tenant: tenant
+        tenant
         // Don't set Content-Type header - let fetch set it for FormData
       },
       body: formData

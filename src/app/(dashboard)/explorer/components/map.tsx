@@ -143,8 +143,8 @@ const Map = () => {
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/standard',
-      center: center,
-      zoom: zoom
+      center,
+      zoom
     });
 
     // Create marker but don't add to map yet
@@ -786,7 +786,7 @@ const Map = () => {
     const city = (props.city ?? props.scity ?? '') as string;
     const state = (props.state2 ?? props.state ?? '') as string;
     const zip = (props.szip ?? props.szip5 ?? '') as string;
-    const fullAddress = address + ', ' + city + ', ' + state + ' ' + zip;
+    const fullAddress = `${address  }, ${  city  }, ${  state  } ${  zip}`;
 
     const { lng, lat } = e.lngLat;
 

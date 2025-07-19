@@ -38,7 +38,7 @@ const PartWorkInstructionsEditor: React.FC = () => {
 
     try {
       await createWorkInstruction({
-        partId: partId,
+        partId,
         title: 'New Work Instruction',
         description: '',
         instructionNumber: `WI-${Date.now()}`, // Generate a unique instruction number
@@ -64,9 +64,9 @@ const PartWorkInstructionsEditor: React.FC = () => {
     try {
       const steps = workInstructions?.[0]?.steps || [];
       await createWorkInstructionStep({
-        workInstructionId: workInstructionId,
+        workInstructionId,
         stepNumber: steps.length + 1,
-        title: 'Step ' + (steps.length + 1),
+        title: `Step ${  steps.length + 1}`,
         instructions: `{"type": "doc","content": []}`,
         estimatedLabourTime: 0
       });

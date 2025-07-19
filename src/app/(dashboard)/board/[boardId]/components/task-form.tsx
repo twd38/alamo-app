@@ -86,7 +86,6 @@ import Link from 'next/link';
 import { getKanbanSections } from '../queries/getKanbanSections';
 import { getBoards } from '../queries/getBoards';
 import { getTags } from '../queries/getTags';
-import { downloadFile, getUploadUrl } from '@/lib/actions/file-actions';
 
 interface TaskWithRelations extends Task {
   assignees: User[];
@@ -108,38 +107,7 @@ const formSchema = z.object({
   createdById: z.string(),
   assignees: z.array(z.string()),
   kanbanSectionId: z.string().optional(),
-  files: z
-    .array(
-      z.union([
-        //  or existing file records
-        z.object({
-          id: z.string(),
-          url: z.string(),
-          key: z.string(),
-          name: z.string(),
-          type: z.string(),
-          size: z.number(),
-          taskId: z.string(),
-          jobId: z.string()
-        }),
-        // For newly uploaded files
-        z.custom<Prisma.FileCreateInput>(
-          (data) => {
-            return (
-              data &&
-              typeof data === 'object' &&
-              'name' in data &&
-              'size' in data &&
-              'type' in data
-            );
-          },
-          {
-            message: 'Must be a valid file'
-          }
-        )
-      ])
-    )
-    .optional(),
+  files: z.array(z.any()),
   tags: z.array(z.string()).optional(),
   private: z.boolean().default(false)
 });
@@ -215,9 +183,9 @@ const TaskForm = ({
             createdById: data.createdById,
             assignees: data.assignees,
             kanbanSectionId: data.kanbanSectionId || '',
-            boardId: boardId,
+            boardId,
             taskOrder: 0,
-            files: data.files as File[],
+            files: data.files,
             tags: data.tags
           });
         }
@@ -550,8 +518,8 @@ const TaskForm = ({
                           const color = generateRandomColor();
                           const result = await createTaskTag({
                             name: value,
-                            color: color,
-                            boardId: boardId
+                            color,
+                            boardId
                           });
                           const newTag = result.data;
                           return newTag;
