@@ -5,8 +5,8 @@ import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { CommentableEntityType } from '@prisma/client';
 import { z } from 'zod';
-import { getUploadUrl } from '@/lib/r2';
-import { notify } from '@/lib/notification-service';
+import { getUploadUrl } from '@/lib/server/r2';
+import { notify } from '@/lib/server/notification-service';
 
 // Validation schemas
 const createCommentSchema = z.object({

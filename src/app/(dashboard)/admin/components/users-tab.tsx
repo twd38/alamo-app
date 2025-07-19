@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { getUsersWithRoles } from '@/lib/rbac-actions';
+import { getUsersWithRoles } from '@/lib/actions/rbac-actions';
 import { UserDialog } from './user-dialog';
 import { UsersDataTable } from './users-data-table';
 

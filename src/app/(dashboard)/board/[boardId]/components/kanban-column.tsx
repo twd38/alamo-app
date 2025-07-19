@@ -18,7 +18,7 @@ import {
 } from 'src/components/ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { DeleteAlert } from '@/components/delete-alert';
-import { deleteKanbanSection } from '@/lib/actions';
+import { deleteKanbanSection } from '../actions';
 import { toast } from 'sonner';
 import EditColumnDialog from './edit-column-dialog';
 import { TaskCardCreate } from './task-card-create';

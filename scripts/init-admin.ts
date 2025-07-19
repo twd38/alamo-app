@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { initializeAdminUser } from '../src/lib/rbac-actions';
+import { initializeAdminUser } from '../src/lib/actions/rbac-actions';
 
 async function main() {
   const userEmail = process.argv[2];

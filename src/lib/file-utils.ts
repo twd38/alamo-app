@@ -1,9 +1,5 @@
-/**
- * Utility functions for secure file access and downloads
- */
-import { toast } from 'sonner';
-import { getFileUrlFromKey } from '@/lib/actions';
-import type { File } from '@prisma/client';
+import { File as PrismaFile } from '@prisma/client';
+import { getDownloadUrl } from './actions/file-actions';
 
 /**
  * Get secure file URL through our API proxy
@@ -21,6 +17,32 @@ export function getSecureFileUrl(fileId: string): string {
  */
 export function isSecureFileUrl(url: string): boolean {
   return url.startsWith('/api/files/');
+}
+
+/**
+ * Downloads a file using its key and preserves the original filename
+ * @param file - The file object from the database containing key and name
+ * @returns Promise that resolves when download is complete
+ */
+export async function downloadFile(file: PrismaFile): Promise<void> {
+  try {
+    console.log('Downloading file:', file);
+
+    const signedUrl = await getDownloadUrl(file);
+
+    // Create a temporary anchor element to trigger download without opening new tab
+    const link = document.createElement('a');
+    link.href = signedUrl;
+    link.download = file.name; // Suggests the filename to the browser
+    link.style.display = 'none';
+
+    // Temporarily add to DOM, click, and remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+  }
 }
 
 /**
@@ -52,70 +74,4 @@ export function downloadSecureFile(fileId: string, fileName?: string): void {
  */
 export function getSecureDisplayUrl(fileId: string): string {
   return getSecureFileUrl(fileId);
-}
-
-/**
- * Downloads a file using its key and preserves the original filename
- * @param file - The file object from the database containing key and name
- * @returns Promise that resolves when download is complete
- */
-export async function downloadFile(file: File): Promise<void> {
-  try {
-    console.log('Downloading file:', file);
-
-    const signedUrl = await getFileUrlFromKey(file.key, file.name);
-
-    if (!signedUrl.success || !signedUrl.url) {
-      toast.error('Failed to get download URL');
-      return;
-    }
-
-    // Create a temporary anchor element to trigger download without opening new tab
-    const link = document.createElement('a');
-    link.href = signedUrl.url;
-    link.download = file.name; // Suggests the filename to the browser
-    link.style.display = 'none';
-
-    // Temporarily add to DOM, click, and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success(`Downloaded ${file.name}`);
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    toast.error('Failed to download file');
-  }
-}
-
-/**
- * Downloads multiple files sequentially with original filenames
- * @param files - Array of file objects from the database
- * @returns Promise that resolves when all downloads are complete
- */
-export async function downloadMultipleFiles(files: File[]): Promise<void> {
-  if (files.length === 0) {
-    toast.error('No files to download');
-    return;
-  }
-
-  if (files.length === 1) {
-    return downloadFile(files[0]);
-  }
-
-  toast.info(`Starting download of ${files.length} files...`);
-
-  try {
-    // Download files sequentially to avoid overwhelming the browser
-    for (const file of files) {
-      await downloadFile(file);
-      // Small delay between downloads to prevent browser issues
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    toast.success(`Downloaded ${files.length} files successfully`);
-  } catch (error) {
-    console.error('Error downloading multiple files:', error);
-    toast.error('Some files failed to download');
-  }
 }

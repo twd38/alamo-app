@@ -57,29 +57,6 @@ export async function getUploadUrl(
   };
 }
 
-// @deprecated Use getUploadUrl() for client-side uploads instead
-export async function uploadFileToR2(
-  file: File,
-  path: string
-): Promise<{ url: string; key: string }> {
-  const sanitizedName = sanitizeFileName(file.name);
-  const key = `${path}/${randomUUID()}-${sanitizedName}`;
-
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    ContentType: file.type,
-    Body: file
-  });
-
-  await r2Client.send(command);
-
-  return {
-    url: `${PUBLIC_URL}/${key}`,
-    key
-  };
-}
-
 export async function deleteFileFromR2(key: string): Promise<void> {
   const command = new DeleteObjectCommand({
     Bucket: BUCKET_NAME,

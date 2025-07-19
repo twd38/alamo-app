@@ -16,11 +16,11 @@ import {
   updateKanbanSectionKanbanOrder,
   moveTask,
   reorderTasks
-} from '@/lib/actions';
+} from '../actions';
 import { useOptimistic } from 'react';
 import { toast } from 'sonner';
 import { MouseSensor, KeyboardSensor, TouchSensor } from '@/lib/dnd-sensors';
-import TaskDetail from './task-detail';
+import TaskDetailSheet from './task-detail-sheet';
 import { useAtom } from 'jotai';
 import { taskModal, filterStateAtom, FilterType } from './utils';
 import {
@@ -493,7 +493,7 @@ export function KanbanBoard({
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      <TaskDetail task={cleanActiveTaskData || null} boardId={boardId} />
+      <TaskDetailSheet task={cleanActiveTaskData || null} boardId={boardId} />
       <NewSectionDialog
         boardId={boardId}
         isOpen={isNewSectionDialogOpen}

@@ -1,13 +1,13 @@
 import { createImageUpload } from 'novel';
 import { toast } from 'sonner';
-import { getPresignedUploadUrl, getFileUrl } from '@/lib/actions';
+import { getUploadUrl } from '@/lib/actions/file-actions';
 
 const onUpload = async (file: File): Promise<string> => {
   const folderPath = 'content';
 
   const uploadPromise = (async () => {
     // Get a presigned PUT URL
-    const presignedUrlResult = await getPresignedUploadUrl(
+    const presignedUrlResult = await getUploadUrl(
       file.name,
       file.type,
       folderPath

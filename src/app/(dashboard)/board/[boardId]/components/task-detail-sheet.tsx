@@ -6,6 +6,7 @@ import { taskModal } from './utils';
 import { useAtom } from 'jotai';
 import { Task, User, TaskTag } from '@prisma/client';
 import { useRouter, useSearchParams } from 'next/navigation';
+
 interface TaskWithRelations extends Task {
   assignees: User[];
   createdBy: User;
@@ -14,7 +15,7 @@ interface TaskWithRelations extends Task {
 }
 
 // Mock data for team members
-export default function TaskDetail({
+export default function TaskDetailSheet({
   task,
   boardId
 }: {
@@ -45,7 +46,7 @@ export default function TaskDetail({
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent
         onOpenAutoFocus={(e) => e.preventDefault()}
-        className="w-full max-w-[90vw] md:max-w-[700px] overflow-y-auto p-0"
+        className="w-full max-w-[90vw] md:max-w-[700px] p-0"
       >
         <SheetTitle className="hidden">Task</SheetTitle>
         <TaskForm task={task} boardId={boardId} />

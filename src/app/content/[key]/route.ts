@@ -1,4 +1,4 @@
-import { getSignedDownloadUrl } from '@/lib/r2';
+import { getSignedDownloadUrl } from '@/lib/server/r2';
 import { NextRequest, NextResponse } from 'next/server';
 
 // This is primarily used for downloading files from the R2 bucket for Novel editor content

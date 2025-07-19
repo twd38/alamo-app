@@ -6,7 +6,8 @@ import { Download, Loader2, Upload, FileUp, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { File as PrismaFile } from '@prisma/client';
 import AutodeskViewer from '@/components/autodesk-viewer';
-import { getFileUrlFromKey, updatePart } from '@/lib/actions';
+import { updatePart } from '../../actions';
+import { getFileUrlFromKey } from '@/lib/actions/file-actions';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import {

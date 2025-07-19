@@ -13,7 +13,7 @@ import {
 } from 'src/components/ui/dialog';
 import { Input } from 'src/components/ui/input';
 import { Button } from 'src/components/ui/button';
-import { createKanbanSection } from '@/lib/actions';
+import { createKanbanSection } from '../actions';
 
 const sectionSchema = z.object({
   sectionName: z.string().min(1, 'Section name is required')

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, MoreHorizontal } from 'lucide-react';
@@ -28,28 +28,28 @@ import {
   TooltipContent
 } from '@/components/ui/tooltip';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  CalendarIcon,
-  X,
-  Paperclip,
-  File,
-  Link as LinkIcon
-} from 'lucide-react';
+import { CalendarIcon, X, File, Link as LinkIcon } from 'lucide-react';
 import useSWR from 'swr';
 import { getAllUsers } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Status, User, Task, TaskTag, Epic } from '@prisma/client';
+import {
+  Prisma,
+  Status,
+  User,
+  Task,
+  TaskTag,
+  Epic,
+  File as PrismaFile
+} from '@prisma/client';
 import { ComboBox } from '@/components/ui/combo-box';
 import {
   createTask,
   deleteTask,
   duplicateTask,
   updateTask,
-  updateDataAndRevalidate,
-  getFileUrlFromKey,
-  createTag
-} from '@/lib/actions';
+  createTaskTag
+} from '../actions';
 import { useRouter, useParams } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { taskModal } from './utils';
@@ -64,7 +64,7 @@ import { useState } from 'react';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { getStatusConfig, formatFileSize } from '@/lib/utils';
 import { toast } from 'sonner';
-
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateRandomColor } from '@/lib/utils';
 import {
   Select,
@@ -81,10 +81,12 @@ import { MoveTaskDialog } from './move-task-dialog';
 import { SavingBadge } from '@/components/ui/saving-badge';
 import { useDebouncedCallback } from 'use-debounce';
 import { copyToClipboard } from '@/lib/utils';
+import { FileList } from '@/components/files/file-list';
 import Link from 'next/link';
 import { getKanbanSections } from '../queries/getKanbanSections';
 import { getBoards } from '../queries/getBoards';
 import { getTags } from '../queries/getTags';
+import { downloadFile, getUploadUrl } from '@/lib/actions/file-actions';
 
 interface TaskWithRelations extends Task {
   assignees: User[];
@@ -121,7 +123,7 @@ const formSchema = z.object({
           jobId: z.string()
         }),
         // For newly uploaded files
-        z.custom<File>(
+        z.custom<Prisma.FileCreateInput>(
           (data) => {
             return (
               data &&
@@ -160,7 +162,6 @@ const TaskForm = ({
   );
   const { data: tags } = useSWR('allTags', () => getTags(boardId));
   const { data: boards } = useSWR('allBoards', getBoards);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -227,10 +228,9 @@ const TaskForm = ({
           return;
         }
 
-        updateDataAndRevalidate(`/board/${boardId}`);
-
         // Reset the form so that formState.isDirty becomes false and
         // subsequent auto-saves only trigger on new changes.
+        console.log('resetting form');
         form.reset(data);
       } catch (error) {
         console.error('Error submitting form:', error);
@@ -284,42 +284,6 @@ const TaskForm = ({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const currentFiles = form.getValues('files') || [];
-
-    // Validate file size (10MB limit)
-    const invalidFiles = files.filter((file) => file.size > 10 * 1024 * 1024);
-    if (invalidFiles.length > 0) {
-      toast.error('Files must be less than 10MB');
-      return;
-    }
-
-    form.setValue('files', [...currentFiles, ...files]);
-  };
-
-  const handleRemoveFile = (index: number) => {
-    const currentFiles = form.getValues('files') || [];
-    const updatedFiles = currentFiles.filter((_, i) => i !== index);
-    form.setValue('files', updatedFiles);
-  };
-
-  const handleFileDownload = async (key: string, fileName: string) => {
-    console.log(key);
-    try {
-      const result = await getFileUrlFromKey(key);
-      if (result.success && result.url) {
-        // Open in new window
-        window.open(result.url, '_blank');
-      } else {
-        toast.error('Failed to open file');
-      }
-    } catch (error) {
-      console.error('Error opening file:', error);
-      toast.error('Error opening file');
-    }
-  };
-
   const isLoading = form.formState.isSubmitting || form.formState.isDirty;
 
   /*
@@ -336,12 +300,12 @@ const TaskForm = ({
     (values: z.infer<typeof formSchema>) => {
       // Guard clauses – only auto-save when editing (task exists) and the
       // form has unsaved changes.
-      // if (!task) return;
-      // if (!form.formState.isDirty) return;
+      if (!task) return;
+      if (!form.formState.isDirty) return;
 
       submitForm(values);
     },
-    1000
+    300
   ); // 1000 ms debounce
 
   useEffect(() => {
@@ -361,59 +325,58 @@ const TaskForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(submitForm)}>
-        <div className="h-full overflow-y-auto">
-          <div className="space-y-2">
-            {/* header */}
-            <div className="flex items-center justify-end pr-10 border-b h-12 gap-1">
-              <SavingBadge status={isLoading ? 'saving' : 'saved'} />
-              {/* copy link to task */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    type="button"
-                    onClick={() =>
-                      copyToClipboard(`/board/${boardId}/?taskId=${task?.id}`)
-                    }
-                  >
-                    <LinkIcon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Copy task link</TooltipContent>
-              </Tooltip>
-              <div className="flex gap-2">
-                {task && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleDuplicateTask}>
-                        Duplicate task
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsMoveTaskDialogOpen(true)}
-                      >
-                        Move task
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteAlertOpen(true)}
-                        className="text-red-600"
-                      >
-                        Delete task
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
+        <div className="h-full">
+          {/* header */}
+          <div className="flex items-center justify-end pr-10 border-b h-12 gap-1">
+            <SavingBadge status={isLoading ? 'saving' : 'saved'} />
+            {/* copy link to task */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  type="button"
+                  onClick={() =>
+                    copyToClipboard(`/board/${boardId}/?taskId=${task?.id}`)
+                  }
+                >
+                  <LinkIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Copy task link</TooltipContent>
+            </Tooltip>
+            <div className="flex gap-2">
+              {task && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDuplicateTask}>
+                      Duplicate task
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setIsMoveTaskDialogOpen(true)}
+                    >
+                      Move task
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setIsDeleteAlertOpen(true)}
+                      className="text-red-600"
+                    >
+                      Delete task
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-            {/* <div className="w-full h-[1px] bg-border" /> */}
-
-            <div className="px-4 space-y-2">
+          </div>
+          {/* <div className="w-full h-[1px] bg-border" /> */}
+          <ScrollArea className="h-[calc(100vh-3rem)]">
+            <div className="px-4 pb-12">
               <FormField
                 control={form.control}
                 name="name"
@@ -436,7 +399,7 @@ const TaskForm = ({
                 )}
               />
 
-              <div className="px-2 flex flex-col gap-2">
+              <div className="px-2 flex flex-col pt-2 gap-1">
                 <FormField
                   control={form.control}
                   name="assignees"
@@ -479,46 +442,7 @@ const TaskForm = ({
                     </FormItem>
                   )}
                 />
-                {/* <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem className="flex items-center gap-2">
-                                    <FormLabel className="w-24">Status</FormLabel>
-                                    <Select 
-                                        onValueChange={field.onChange} 
-                                        defaultValue={field.value}
-                                        value={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger className="w-[240px]">
-                                                <SelectValue>
-                                                    {(() => {
-                                                        const { label, variant } = getStatusConfig(field.value as Status)
-                                                        return <Badge variant={variant}>{label}</Badge>
-                                                    })()}
-                                                </SelectValue>
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {Object.values(Status).map((status) => {
-                                                const { label, variant } = getStatusConfig(status)
-                                                return (
-                                                    <SelectItem 
-                                                        key={status} 
-                                                        value={status}
-                                                        className="flex items-center gap-2"
-                                                    >
-                                                        <Badge variant={variant}>{label}</Badge>
-                                                    </SelectItem>
-                                                )
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        /> */}
+
                 <FormField
                   control={form.control}
                   name="dueDate"
@@ -624,7 +548,7 @@ const TaskForm = ({
                         defaultValues={tags || []}
                         onCreateValue={async (value) => {
                           const color = generateRandomColor();
-                          const result = await createTag({
+                          const result = await createTaskTag({
                             name: value,
                             color: color,
                             boardId: boardId
@@ -663,106 +587,22 @@ const TaskForm = ({
                   )}
                 />
 
-                {/* attachments */}
-                <FormField
-                  control={form.control}
-                  name="files"
-                  render={({ field: { value, onChange, ...fieldProps } }) => (
-                    <FormItem className="mt-2 gap-2">
-                      <div className="flex items-center gap-2">
-                        <FormLabel className="w-28">Attachments</FormLabel>
-                        <Input
-                          {...fieldProps}
-                          type="file"
-                          className="hidden"
-                          multiple
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept=""
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="gap-2"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                          Attach Files
-                        </Button>
-                      </div>
-                      <div className="flex-1 w-full gap-2">
-                        {value && value.length > 0 && (
-                          <div className="mt-2 space-y-2">
-                            {value.map((file, index) => (
-                              <div key={`${index}-parent`}>
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between bg-muted p-2 rounded-md"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <File className="h-4 w-4" />
-                                    {'url' in file ? (
-                                      <Button
-                                        variant="link"
-                                        className="p-0 h-auto"
-                                        onClick={() =>
-                                          handleFileDownload(
-                                            file.key,
-                                            file.name
-                                          )
-                                        }
-                                      >
-                                        <span className="text-sm hover:underline">
-                                          {file.name}
-                                        </span>
-                                      </Button>
-                                    ) : (
-                                      <span className="text-sm">
-                                        {file.name}
-                                      </span>
-                                    )}
-                                    <span className="text-xs text-muted-foreground">
-                                      ({formatFileSize(file.size)})
-                                    </span>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRemoveFile(index)}
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="gap-2 pt-2">
+                {/* description */}
                 <FormField
                   control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="w-24 px-2 align-text-top">
-                        Description
-                      </FormLabel>
+                      <FormLabel className="w-24">Description</FormLabel>
                       <MarkdownEditor
                         {...field}
                         initialContent={field.value}
                         updateContent={field.onChange}
                         hideSaveStatus={true}
                         hideWordCount={true}
+                        size="sm"
                         className={cn(
-                          'mt-2 px-2 min-h-[200px]',
+                          'py-2 px-2 min-h-[200px] border rounded-md',
                           'border-transparent hover:border-input focus:border-input',
                           'transition-all duration-200'
                         )}
@@ -770,9 +610,39 @@ const TaskForm = ({
                     </FormItem>
                   )}
                 />
+
+                {/* attachments */}
+                <FormField
+                  control={form.control}
+                  name="files"
+                  render={({ field: { value, onChange, ...fieldProps } }) => (
+                    <FormItem className="mt-2">
+                      <FormLabel>Attachments</FormLabel>
+                      <FileList
+                        files={
+                          value?.filter((file): file is any => 'url' in file) ||
+                          []
+                        }
+                        uploadPath="tasks"
+                        onUpload={(files) => {
+                          const currentFiles = value || [];
+                          onChange([...currentFiles, ...files]);
+                        }}
+                        onDelete={(fileToDelete) => {
+                          const currentFiles = value || [];
+                          const updatedFiles = currentFiles.filter(
+                            (file: any) => file.id !== fileToDelete.id
+                          );
+                          console.log('updatedFiles', updatedFiles);
+                          onChange(updatedFiles);
+                        }}
+                      />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </form>
 

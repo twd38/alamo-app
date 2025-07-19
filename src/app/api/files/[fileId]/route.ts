@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getSignedDownloadUrl } from '@/lib/r2';
+import { getSignedDownloadUrl } from '@/lib/server/r2';
 
 /**
  * Secure file serving endpoint with access control
@@ -85,7 +85,7 @@ export async function GET(
       );
     }
 
-    const presignedUrl = await getSignedDownloadUrl(file.key);
+    const presignedUrl = await getSignedDownloadUrl(file.key, file.name);
 
     // Return redirect to presigned URL
     return NextResponse.redirect(presignedUrl);

@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
-import { updateTask } from '@/lib/actions';
+import { updateTask } from '../actions/updateTask';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';

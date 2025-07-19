@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { createTask, updateDataAndRevalidate } from '@/lib/actions';
+import { createTask } from '../actions';
+import { revalidatePath } from 'next/cache';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Status } from '@prisma/client';
@@ -71,7 +72,7 @@ export function TaskCardCreate({
       toast.error('Error creating task');
     } finally {
       // Ensure UI stays in sync
-      await updateDataAndRevalidate('/production');
+      await revalidatePath('/production');
       router.refresh();
       reset();
     }

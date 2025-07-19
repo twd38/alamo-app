@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddBOMPartsDialog } from './add-bom-parts-dialog';
 import { PartsTable } from '@/components/parts-table';
-import { Prisma, Part, File as FileType } from '@prisma/client';
+import { Prisma, Part, File as PrismaFile } from '@prisma/client';
 import PartFiles from './files';
-import { updatePart, uploadFileToR2AndDatabase } from '@/lib/actions';
+import { updatePart, addFilesToPart, removeFilesFromPart } from '../../actions';
+import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
+import { FileList } from '@/components/files/file-list';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
 import { Package, FileText } from 'lucide-react';
@@ -96,21 +98,16 @@ const Details = ({ part }: PartDetailsProps) => {
     router.refresh();
   };
 
-  const handleUpdateFiles = async (files: File[]) => {
-    const payload = {
-      id: partId,
-      files: files
-    };
-
-    console.log('payload', payload);
-
-    await updatePart(payload);
+  const handleUploadFiles = async (newFiles: Prisma.FileCreateInput[]) => {
+    await addFilesToPart(partId, newFiles);
 
     router.refresh();
   };
 
-  const handleUploadPartImage = async (file: File) => {
-    return await uploadFileToR2AndDatabase(file, 'parts');
+  const handleDeleteFile = async (file: PrismaFile) => {
+    await removeFilesFromPart(partId, [file.id]);
+
+    router.refresh();
   };
 
   return (
@@ -277,7 +274,13 @@ const Details = ({ part }: PartDetailsProps) => {
             <CardTitle className="text-lg">Files</CardTitle>
           </CardHeader>
           <CardContent>
-            <PartFiles files={files} onChange={handleUpdateFiles} />
+            {/* <PartFiles files={files} onChange={handleUpdateFiles} /> */}
+            <FileList
+              uploadPath="parts"
+              files={files}
+              onUpload={handleUploadFiles}
+              onDelete={handleDeleteFile}
+            />
           </CardContent>
         </Card>
       </div>

@@ -14,11 +14,9 @@ import { WorkInstructionStepList } from './work-instruction-step-list';
 import { WorkInstructionContent } from './work-instruction-content';
 import { StepDetails } from './step-details';
 import { WorkInstructionStepActions } from './work-instruction-step-actions';
-import {
-  uploadFileToR2AndDatabase,
-  updateWorkInstructionStep
-} from '@/lib/actions';
-import FileList from '@/components/files/file-list';
+import { updateWorkInstructionStep } from '@/lib/actions';
+import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
+import { FileList } from '@/components/files/file-list';
 
 interface WorkInstructionsEditorProps {
   workInstructions: any; // Union type of PartWorkInstructions | WorkOrderWorkInstructions
@@ -212,11 +210,11 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
             />
           </TabsContent>
           <TabsContent value="files" className="mt-0 h-[calc(100%-3rem)] p-4">
-            <FileList
+            {/* <FileList
               files={selectedStep?.files || []}
               onUpload={handleUpdateWorkInstructionStepFiles}
               onDelete={handleDeleteWorkInstructionStepFile}
-            />
+            /> */}
           </TabsContent>
         </Tabs>
       </ResizablePanel>

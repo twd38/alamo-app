@@ -25,7 +25,8 @@ import { toast } from 'sonner';
 import { TrackingType, BOMType, Part, PartType } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { BOMPartsManager } from './bom-parts-manager';
-import { createPart, uploadFileToR2AndDatabase } from '@/lib/actions';
+import { createPart } from '../actions/createPart';
+import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
 import { formatPartType } from '@/lib/utils';
 import FileUpload from '@/components/files/file-upload';
 

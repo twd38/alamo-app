@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'American Housing Corporation' }],
   creator: 'American Housing Corporation',
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || 'https://alamo.ahc.com'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://alamo.americanhousing.co'
   ),
   openGraph: {
     type: 'website',

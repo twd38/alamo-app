@@ -17,10 +17,10 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Upload, X } from 'lucide-react';
-import { getAllRoles } from '@/lib/rbac-actions';
+import { getAllRoles } from '@/lib/actions/rbac-actions';
 import { createUser } from '../actions/createUser';
 import { updateUser } from '../actions/updateUser';
-import { assignUserRole, removeUserRole } from '@/lib/rbac-actions';
+import { assignUserRole, removeUserRole } from '@/lib/actions/rbac-actions';
 
 interface User {
   id: string;

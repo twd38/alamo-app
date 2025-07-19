@@ -1,5 +1,5 @@
-import { SlackClient } from './slack-client';
-import { prisma } from './db';
+import { SlackClient } from '../slack-client';
+import { prisma } from '../db';
 
 interface NotifyOptions {
   /**

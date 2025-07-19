@@ -1,7 +1,6 @@
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { prisma } from '@/lib/db';
 import Countdown from '@/components/home/countdown';
-import { updateMissionMessage } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
@@ -18,9 +17,22 @@ export default async function HomePage() {
   const updateMessage = async (content: string) => {
     'use server';
 
-    if (missionMessageId) {
-      await updateMissionMessage(missionMessageId, content);
+    if (content === null) {
+      return;
     }
+
+    if (missionMessageId === null) {
+      return await prisma.missionMessage.create({
+        data: {
+          content
+        }
+      });
+    }
+
+    return await prisma.missionMessage.update({
+      where: { id: missionMessageId },
+      data: { content }
+    });
   };
 
   return (

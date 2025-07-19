@@ -175,7 +175,7 @@ export const MarkdownEditor = ({
           immediatelyRender={false}
           initialContent={initialContentJson}
           extensions={extensions}
-          className="relative min-h-[500px] w-full pb-10"
+          className="relative w-full pb-8"
           editable={!readOnly}
           editorProps={{
             handleDOMEvents: {
@@ -186,7 +186,7 @@ export const MarkdownEditor = ({
             handleDrop: (view, event, _slice, moved) =>
               handleImageDrop(view, event, moved, uploadFn),
             attributes: {
-              class: `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full prose-p:my-1 prose-p:leading-tight`
+              class: `prose prose-${size} dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full prose-p:leading-tight`
             }
           }}
           onUpdate={({ editor }) => {

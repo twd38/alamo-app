@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import FileList from '@/components/files/file-list';
+import { FileList } from '@/components/files/file-list';
 import { File as FileType } from '@prisma/client';
 
 type PartFilesProps = {
   files: FileType[];
-  onChange: (files: File[]) => void;
+  onChange: (files: File[]) => void | Promise<void>;
 };
 
 const PartFiles = (props: PartFilesProps) => {
@@ -14,21 +14,23 @@ const PartFiles = (props: PartFilesProps) => {
   const [fileList, setFileList] = useState<any[]>(files);
 
   // TODO: fix type error
-  const handleUpload = (value: any) => {
+  const handleUpload = async (value: any) => {
+    console.log('handleUpload', value);
     const newFileList = [...fileList, ...value];
     setFileList(newFileList);
-    onChange(newFileList);
+    await onChange(newFileList);
   };
 
-  const handleDelete = (file: FileType) => {
+  const handleDelete = async (file: FileType) => {
     const newFileList = fileList.filter((f) => f.id !== file.id);
     setFileList(newFileList);
-    onChange(newFileList);
+    await onChange(newFileList);
   };
 
   return (
     <FileList
-      files={fileList}
+      files={files}
+      uploadPath="parts"
       onUpload={handleUpload}
       onDelete={handleDelete}
     />
