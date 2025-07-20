@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Download } from 'lucide-react';
 import { FileIcon } from '@/components/files/file-icon';
+import { getSecureImageUrl } from '@/lib/file-utils';
 
 interface FileDisplayProps {
   /** File name with extension */
@@ -141,10 +143,13 @@ export function FileDisplay({
         )}
         onClick={downloadable ? handleClick : undefined}
       >
-        <img
+        <Image
           src={fileUrl}
           alt={fileName}
+          width={400}
+          height={192}
           className="w-full h-48 object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
 
         {/* Overlay on hover for downloadable images */}

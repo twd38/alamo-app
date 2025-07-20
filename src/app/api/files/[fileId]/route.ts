@@ -182,7 +182,7 @@ async function checkEntityAccess(
 ): Promise<boolean> {
   try {
     switch (entityType) {
-      case 'TASK':
+      case 'TASK': {
         const task = await prisma.task.findUnique({
           where: { id: entityId },
           include: {
@@ -214,8 +214,9 @@ async function checkEntityAccess(
         }
 
         return false;
+      }
 
-      case 'WORK_ORDER':
+      case 'WORK_ORDER': {
         const workOrder = await prisma.workOrder.findUnique({
           where: { id: entityId },
           include: {
@@ -234,6 +235,7 @@ async function checkEntityAccess(
           return true;
 
         return false;
+      }
 
       case 'WORK_INSTRUCTION_STEP':
       case 'WORK_INSTRUCTION':

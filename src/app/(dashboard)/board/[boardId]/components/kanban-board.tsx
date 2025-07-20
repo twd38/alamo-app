@@ -142,24 +142,27 @@ export function KanbanBoard({
       const filterValue = value.toLowerCase().trim();
 
       switch (type) {
-        case 'Assignee':
+        case 'Assignee': {
           const assigneeIds = task.assignees.map(
             (user) => user.id?.toLowerCase() || ''
           );
           return isValidUser(assigneeIds, operator, filterValue);
+        }
 
-        case 'Tag':
+        case 'Tag': {
           const tagNames = task.tags.map(
             (tag) => tag.name?.toLowerCase() || ''
           );
           return isValidString(tagNames, operator, filterValue);
+        }
 
-        case 'Due date':
+        case 'Due date': {
           if (!task.dueDate) return operator === 'is not';
           const dueDate = new Date(task.dueDate).toISOString().split('T')[0];
           return isValidDate(dueDate, operator, filterValue);
+        }
 
-        case 'Created by':
+        case 'Created by': {
           const creatorName = task.createdBy?.name?.toLowerCase() || '';
           const creatorEmail = task.createdBy?.email?.toLowerCase() || '';
 
@@ -178,6 +181,7 @@ export function KanbanBoard({
               !creatorEmail.includes(filterValue)
             );
           break;
+        }
 
         default:
           return true;
@@ -356,10 +360,6 @@ export function KanbanBoard({
 
         if (sourceColumn.id === targetColumn.id) {
           // If reordering within the same column
-          console.log(
-            'Reordering tasks:',
-            targetTasks.map((t) => ({ id: t.id, order: t.taskOrder }))
-          );
           reorderTasks(
             targetColumn.id,
             targetTasks.map((task) => task.id)
@@ -376,11 +376,6 @@ export function KanbanBoard({
             });
         } else {
           // If moving to a different column
-          console.log('Moving task to new column:', {
-            taskId: activeTaskId,
-            targetColumn: targetColumn.id,
-            newOrder: newTaskOrder
-          });
           moveTask(activeTaskId, targetColumn.id, newTaskOrder)
             .then((result) => {
               if (!result?.success) {

@@ -7,7 +7,18 @@ import { getDownloadUrl } from './actions/file-actions';
  * @returns URL that goes through authentication
  */
 export function getSecureFileUrl(fileId: string): string {
+  // Get domain from env
   return `/api/files/${fileId}`;
+}
+
+/**
+ * Get secure image URL optimized through Next.js Image component
+ * @param fileId - The file ID from database
+ * @returns URL that works with Next.js Image component and Cloudflare optimization
+ */
+export function getSecureImageUrl(fileId: string): string {
+  // This URL will be processed by our custom image loader for secure access
+  return `/api/images/${fileId}`;
 }
 
 /**
@@ -26,8 +37,6 @@ export function isSecureFileUrl(url: string): boolean {
  */
 export async function downloadFile(file: PrismaFile): Promise<void> {
   try {
-    console.log('Downloading file:', file);
-
     const signedUrl = await getDownloadUrl(file);
 
     // Create a temporary anchor element to trigger download without opening new tab

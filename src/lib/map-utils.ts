@@ -50,6 +50,5 @@ export default function getDevelopableParcelCount(
     return isDevelopable ? count + 1 : count;
   }, 0);
 
-  console.log('Developable Parcel Count:', count);
   return count;
 }

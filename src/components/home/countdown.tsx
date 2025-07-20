@@ -1,31 +1,33 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 interface CountdownProps {
   targetDate: string | Date;
 }
 
+type TimeLeft = {
+  readonly days: number;
+  readonly hours: number;
+  readonly minutes: number;
+  readonly seconds: number;
+};
+
+const DEFAULT_TIME_LEFT: TimeLeft = {
+  days: 0,
+  hours: 0,
+  minutes: 0,
+  seconds: 0
+} as const;
+
 export default function Countdown({ targetDate }: CountdownProps) {
-  type TimeLeft = {
-    readonly days: number;
-    readonly hours: number;
-    readonly minutes: number;
-    readonly seconds: number;
-  };
+  const parsedTargetDate: Date = useMemo(
+    () => (typeof targetDate === 'string' ? new Date(targetDate) : targetDate),
+    [targetDate]
+  );
 
-  const DEFAULT_TIME_LEFT: TimeLeft = {
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0
-  } as const;
-
-  const parsedTargetDate: Date =
-    typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
-
-  const calculateTimeLeft = (): TimeLeft => {
+  const calculateTimeLeft = useCallback((): TimeLeft => {
     const difference: number = +parsedTargetDate - +new Date();
 
     if (difference <= 0) {
@@ -38,7 +40,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
       minutes: Math.floor((difference / 1000 / 60) % 60),
       seconds: Math.floor((difference / 1000) % 60)
     };
-  };
+  }, [parsedTargetDate]);
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(DEFAULT_TIME_LEFT);
 
@@ -50,7 +52,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [calculateTimeLeft]);
 
   return (
     <Card className="">

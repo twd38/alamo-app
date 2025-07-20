@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const SW_PATH = path.join(__dirname, '..', 'public', 'sw.js');
 const PACKAGE_JSON_PATH = path.join(__dirname, '..', 'package.json');
@@ -18,7 +22,7 @@ function updateServiceWorkerVersion() {
     }
 
     // Read the service worker file
-    let swContent = fs.readFileSync(SW_PATH, 'utf8');
+    const swContent = fs.readFileSync(SW_PATH, 'utf8');
 
     // Replace the version placeholder with the actual version
     const updatedContent = swContent.replace(/__APP_VERSION__/g, appVersion);
@@ -36,9 +40,5 @@ function updateServiceWorkerVersion() {
   }
 }
 
-// Run the update if this script is executed directly
-if (require.main === module) {
-  updateServiceWorkerVersion();
-}
-
-module.exports = updateServiceWorkerVersion;
+// Run the update
+updateServiceWorkerVersion();

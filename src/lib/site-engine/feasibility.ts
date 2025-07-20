@@ -12,9 +12,9 @@ export function checkFeasibility(
     b.push('unit cap exceeded');
 
   const storiesNeeded = scheme.typicalStories;
-  const heightNeeded = storiesNeeded * 10; // assume 10 ft per story
+  const heightNeeded = storiesNeeded * 10; // assume 10ft per story
   if (lot.heightLimitFt !== null && heightNeeded > lot.heightLimitFt)
-    b.push(`height > ${lot.heightLimitFt} ft`);
+    b.push(`height > ${lot.heightLimitFt}ft`);
 
   // parking check (base units; may change after yield scaling)
   const stallsNeeded =

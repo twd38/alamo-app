@@ -285,14 +285,12 @@ export function WorkOrdersDataTable({
       // Handle error - you might want to show a toast notification here
       console.error('Failed to delete work order:', result.error);
     }
-  }, [workOrderToDelete, router]);
+  }, [workOrderToDelete, refetch]);
 
   const handleDeleteCancel = useCallback(() => {
     setDeleteDialogOpen(false);
     setWorkOrderToDelete(null);
   }, []);
-
-  if (!workOrders) return null;
 
   const table = useReactTable({
     data: workOrders,
@@ -315,6 +313,9 @@ export function WorkOrdersDataTable({
       handleDeleteClick
     }
   });
+
+  // Early return after hooks are called
+  if (!workOrders) return null;
 
   // ------------------------------- Render -------------------------------
   return (

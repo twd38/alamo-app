@@ -42,7 +42,6 @@ export default function NewSectionDialog({
       await createKanbanSection(data.sectionName, boardId);
       // clear the form
       reset();
-      console.log('Section created successfully');
       onClose();
     } catch (error) {
       console.error('Error creating new section:', error);

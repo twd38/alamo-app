@@ -153,42 +153,22 @@ const TaskForm = ({
   const submitForm = useCallback(
     async (data: z.infer<typeof formSchema>) => {
       try {
-        let result;
+        if (!task) return;
 
-        if (task) {
-          // Update existing task
-          result = await updateTask(task.id, {
-            name: data.name,
-            taskNumber: data.taskNumber,
-            priority: data.priority,
-            epicId: data.epicId,
-            dueDate: data.dueDate,
-            description: data.description,
-            assignees: data.assignees,
-            kanbanSectionId: data.kanbanSectionId,
-            taskOrder: task.taskOrder,
-            files: data.files,
-            tags: data.tags
-          });
-        } else {
-          // Create new task
-          result = await createTask({
-            name: data.name,
-            taskNumber: data.taskNumber,
-            status: data.status,
-            priority: data.priority,
-            epicId: data.epicId,
-            dueDate: data.dueDate || new Date(),
-            description: data.description,
-            createdById: data.createdById,
-            assignees: data.assignees,
-            kanbanSectionId: data.kanbanSectionId || '',
-            boardId,
-            taskOrder: 0,
-            files: data.files,
-            tags: data.tags
-          });
-        }
+        // Update existing task
+        const result = await updateTask(task.id, {
+          name: data.name,
+          taskNumber: data.taskNumber,
+          priority: data.priority,
+          epicId: data.epicId,
+          dueDate: data.dueDate,
+          description: data.description,
+          assignees: data.assignees,
+          kanbanSectionId: data.kanbanSectionId,
+          taskOrder: task.taskOrder,
+          files: data.files,
+          tags: data.tags
+        });
 
         if (!result.success) {
           console.error('Failed to save task:', result.error);
@@ -198,14 +178,13 @@ const TaskForm = ({
 
         // Reset the form so that formState.isDirty becomes false and
         // subsequent auto-saves only trigger on new changes.
-        console.log('resetting form');
         form.reset(data);
       } catch (error) {
         console.error('Error submitting form:', error);
         toast.error('Error saving task');
       }
     },
-    [boardId, form, router, setActiveTask, task]
+    [form, task]
   );
 
   const handleDuplicateTask = async () => {
@@ -265,16 +244,44 @@ const TaskForm = ({
    */
 
   const debouncedSubmit = useDebouncedCallback(
-    (values: z.infer<typeof formSchema>) => {
+    async (values: z.infer<typeof formSchema>) => {
       // Guard clauses – only auto-save when editing (task exists) and the
       // form has unsaved changes.
       if (!task) return;
       if (!form.formState.isDirty) return;
 
-      submitForm(values);
+      try {
+        // Update existing task
+        const result = await updateTask(task.id, {
+          name: values.name,
+          taskNumber: values.taskNumber,
+          priority: values.priority,
+          epicId: values.epicId,
+          dueDate: values.dueDate,
+          description: values.description,
+          assignees: values.assignees,
+          kanbanSectionId: values.kanbanSectionId,
+          taskOrder: task.taskOrder,
+          files: values.files,
+          tags: values.tags
+        });
+
+        if (!result.success) {
+          console.error('Failed to save task:', result.error);
+          toast.error('Failed to save task');
+          return;
+        }
+
+        // Reset the form so that formState.isDirty becomes false and
+        // subsequent auto-saves only trigger on new changes.
+        form.reset(values);
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        toast.error('Error saving task');
+      }
     },
     300
-  ); // 1000 ms debounce
+  );
 
   useEffect(() => {
     if (!task) return;
@@ -601,7 +608,6 @@ const TaskForm = ({
                           const updatedFiles = currentFiles.filter(
                             (file: any) => file.id !== fileToDelete.id
                           );
-                          console.log('updatedFiles', updatedFiles);
                           onChange(updatedFiles);
                         }}
                       />

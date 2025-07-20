@@ -394,7 +394,7 @@ export function DynamicActionForm({
                         />
                       </FormControl>
                       <div className="text-xs text-gray-500">
-                        Automatically set to "pieces"
+                        Automatically set to &quot;pieces&quot;
                       </div>
                     </FormItem>
                   )}

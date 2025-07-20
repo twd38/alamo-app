@@ -22,22 +22,20 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { TrackingType, BOMType, Part, PartType } from '@prisma/client';
+import {
+  TrackingType,
+  BOMType,
+  Part,
+  PartType,
+  File as PrismaFile,
+  Prisma
+} from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { BOMPartsManager } from './bom-parts-manager';
 import { createPart } from '../actions/createPart';
-import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
+import { createFile, deleteFile } from '@/lib/actions/file-actions';
 import { formatPartType } from '@/lib/utils';
-import FileUpload from '@/components/files/file-upload';
-
-// Interface for uploaded file data
-interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  url: string;
-}
+import { FileList } from '@/components/files/file-list';
 
 // Define the form schema to match the createPart function exactly
 const formSchema = z.object({
@@ -66,8 +64,8 @@ const formSchema = z.object({
 
 // Additional form fields for UI state management
 const formSchemaWithUiFields = formSchema.extend({
-  partImageFile: z.custom<UploadedFile>().optional(),
-  attachedFiles: z.array(z.custom<UploadedFile>()).optional()
+  partImageFile: z.custom<PrismaFile>().optional(),
+  attachedFiles: z.array(z.custom<PrismaFile>()).optional()
 });
 
 type FormData = z.infer<typeof formSchemaWithUiFields>;
@@ -95,38 +93,96 @@ const NewPartForm = () => {
     }
   });
 
-  // Handle file upload for part image
-  const handlePartImageUpload = async (file: File, path: string) => {
-    return await uploadFileToR2AndDatabase(file, path);
-  };
-
-  // Handle file upload for general files
-  const handleFileUpload = async (file: File, path: string) => {
-    return await uploadFileToR2AndDatabase(file, path);
-  };
-
-  // Handle part image change
-  const handlePartImageChange = (
-    files: UploadedFile | UploadedFile[] | undefined
+  // Handle part image upload - create database records
+  const handlePartImageUpload = async (
+    fileInputs: Prisma.FileCreateInput[]
   ) => {
-    // For single image uploads, we expect either a single file or undefined
-    const uploadedFile = Array.isArray(files) ? files[0] : files;
-    form.setValue('partImageFile', uploadedFile);
-    form.setValue('partImageId', uploadedFile?.id);
+    try {
+      const createdFiles = await Promise.all(
+        fileInputs.map((fileInput) => createFile(fileInput as PrismaFile))
+      );
+
+      // For part image, we only expect one file
+      if (createdFiles.length > 0) {
+        const createdFile = createdFiles[0];
+        form.setValue('partImageFile', createdFile);
+        form.setValue('partImageId', createdFile.id);
+      }
+    } catch (error) {
+      console.error('Error creating part image file record:', error);
+      toast.error('Failed to upload part image');
+    }
   };
 
-  // Handle attached files change
-  const handleAttachedFilesChange = (
-    files: UploadedFile | UploadedFile[] | undefined
+  // Handle attached files upload - create database records
+  const handleAttachedFilesUpload = async (
+    fileInputs: Prisma.FileCreateInput[]
   ) => {
-    // For multiple file uploads, we expect either an array or undefined
-    const uploadedFiles = Array.isArray(files)
-      ? files
-      : files
-        ? [files]
-        : undefined;
-    form.setValue('attachedFiles', uploadedFiles || []);
-    form.setValue('fileIds', uploadedFiles?.map((f) => f.id) || []);
+    try {
+      const createdFiles = await Promise.all(
+        fileInputs.map((fileInput) => createFile(fileInput as PrismaFile))
+      );
+
+      // Add to existing attached files
+      const currentFiles = form.getValues('attachedFiles') || [];
+      const updatedFiles = [...currentFiles, ...createdFiles];
+
+      form.setValue('attachedFiles', updatedFiles);
+      form.setValue(
+        'fileIds',
+        updatedFiles.map((f) => f.id)
+      );
+    } catch (error) {
+      console.error('Error creating attached file records:', error);
+      toast.error('Failed to upload files');
+    }
+  };
+
+  // Handle file deletion for attached files
+  const handleAttachedFileDelete = async (file: PrismaFile) => {
+    try {
+      // Delete the file record from the database
+      const deleteResult = await deleteFile(file.id);
+
+      if (!deleteResult.success) {
+        throw new Error(deleteResult.error || 'Failed to delete file');
+      }
+
+      // Remove from form state
+      const currentFiles = form.getValues('attachedFiles') || [];
+      const updatedFiles = currentFiles.filter((f) => f.id !== file.id);
+
+      form.setValue('attachedFiles', updatedFiles);
+      form.setValue(
+        'fileIds',
+        updatedFiles.map((f) => f.id)
+      );
+
+      toast.success('File deleted successfully');
+    } catch (error) {
+      console.error('Error removing file:', error);
+      toast.error('Failed to remove file');
+    }
+  };
+
+  // Handle part image deletion
+  const handlePartImageDelete = async (file: PrismaFile) => {
+    try {
+      // Delete the file record from the database
+      const deleteResult = await deleteFile(file.id);
+
+      if (!deleteResult.success) {
+        throw new Error(deleteResult.error || 'Failed to delete file');
+      }
+
+      form.setValue('partImageFile', undefined);
+      form.setValue('partImageId', undefined);
+
+      toast.success('Part image deleted successfully');
+    } catch (error) {
+      console.error('Error removing part image:', error);
+      toast.error('Failed to remove part image');
+    }
   };
 
   const handleBOMChange = (bomParts: CreatePartParams['bomParts']) => {
@@ -152,7 +208,6 @@ const NewPartForm = () => {
       };
 
       const result = await createPart(createPartData);
-      console.log(result);
 
       if (result.success && result.data) {
         toast.success('Part created successfully');
@@ -182,19 +237,11 @@ const NewPartForm = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <FileUpload
-                        multiple={false}
-                        accept={{
-                          'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp']
-                        }}
-                        value={field.value}
-                        onChange={handlePartImageChange}
-                        onUpload={handlePartImageUpload}
+                      <FileList
+                        files={field.value ? [field.value] : []}
                         uploadPath="parts"
-                        onError={(error) => toast.error(error)}
-                        placeholder="Upload Part Image"
-                        showPreview={true}
-                        previewSize="md"
+                        onUpload={handlePartImageUpload}
+                        onDelete={handlePartImageDelete}
                       />
                     </FormControl>
                     <FormMessage />
@@ -361,15 +408,11 @@ const NewPartForm = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <FileUpload
-                      multiple={true}
-                      value={field.value}
-                      onChange={handleAttachedFilesChange}
-                      onUpload={handleFileUpload}
+                    <FileList
+                      files={field.value || []}
                       uploadPath="parts"
-                      onError={(error) => toast.error(error)}
-                      placeholder="Drop files here or click to browse"
-                      showPreview={false}
+                      onUpload={handleAttachedFilesUpload}
+                      onDelete={handleAttachedFileDelete}
                     />
                   </FormControl>
                   <FormMessage />

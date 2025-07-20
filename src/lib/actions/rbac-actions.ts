@@ -435,7 +435,6 @@ export async function initializeAdminUser(userEmail: string) {
       }
     });
 
-    console.log(`✅ Granted super admin role to ${userEmail}`);
     return { success: true, message: 'Super admin role assigned successfully' };
   } catch (error) {
     console.error('Error initializing admin user:', error);

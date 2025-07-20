@@ -170,10 +170,6 @@ export async function uploadFileToAPS(
   token: string
 ): Promise<string> {
   try {
-    console.log(
-      `Starting upload: ${objectKey} (${fileBuffer.length} bytes) to bucket ${bucketKey}`
-    );
-
     // Ensure bucket exists
     await createOrGetBucket(bucketKey, token);
 
@@ -208,8 +204,6 @@ async function uploadWithS3SignedUrl(
   token: string
 ): Promise<string> {
   try {
-    console.log(`Getting S3 signed URL for upload: ${objectKey}`);
-
     // Get S3 signed URL for single part upload (use GET with parts=1 query param)
     const signedResponse = await fetch(
       `${APS_CONFIG.baseUrl}/oss/v2/buckets/${bucketKey}/objects/${objectKey}/signeds3upload?parts=1`,
@@ -235,7 +229,6 @@ async function uploadWithS3SignedUrl(
     }
 
     const signedData = await signedResponse.json();
-    console.log('Got S3 signed URL, uploading file...');
 
     // Upload using the S3 signed URL
     const uploadResponse = await fetch(signedData.urls[0], {
@@ -254,7 +247,6 @@ async function uploadWithS3SignedUrl(
 
     // Get the ETag from the response
     const etag = uploadResponse.headers.get('ETag')?.replace(/"/g, '') || '';
-    console.log('File uploaded to S3, completing upload...');
 
     // Complete the upload
     const completeResponse = await fetch(
@@ -285,7 +277,6 @@ async function uploadWithS3SignedUrl(
     }
 
     const completeData = await completeResponse.json();
-    console.log('Upload completed successfully:', completeData);
 
     // Return the object URN for translation
     return (
@@ -312,8 +303,6 @@ async function uploadLargeFileS3(
   const totalParts = Math.ceil(fileSize / CHUNK_SIZE);
 
   try {
-    console.log(`Starting multipart S3 upload: ${totalParts} parts`);
-
     // Get signed URLs for multipart upload (use GET with parts query param)
     const signedUrlResponse = await fetch(
       `${APS_CONFIG.baseUrl}/oss/v2/buckets/${bucketKey}/objects/${objectKey}/signeds3upload?parts=${totalParts}`,
@@ -347,8 +336,6 @@ async function uploadLargeFileS3(
       const start = i * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, fileSize);
       const chunk = fileBuffer.slice(start, end);
-
-      console.log(`Uploading part ${i + 1}/${totalParts}`);
 
       const uploadResponse = await fetch(urls[i], {
         method: 'PUT',
@@ -397,7 +384,6 @@ async function uploadLargeFileS3(
     }
 
     const completeData = await completeResponse.json();
-    console.log('Multipart upload completed successfully:', completeData);
     return completeData.objectId;
   } catch (error) {
     console.error('Failed to upload large file:', error);
@@ -415,8 +401,6 @@ async function directUpload(
   token: string
 ): Promise<string> {
   try {
-    console.log(`Direct upload: ${objectKey} (DEPRECATED)`);
-
     const uploadResponse = await fetch(
       `${APS_CONFIG.baseUrl}/oss/v2/buckets/${bucketKey}/objects/${objectKey}`,
       {
@@ -449,7 +433,6 @@ async function directUpload(
     }
 
     const result = await uploadResponse.json();
-    console.log('Direct upload successful:', result);
 
     // Return the object URN
     return (
@@ -469,8 +452,6 @@ export async function translateModel(
   token: string
 ): Promise<string> {
   try {
-    console.log(`Starting translation for URN: ${urn}`);
-
     // Base64 encode the URN (without padding)
     const base64Urn = Buffer.from(urn).toString('base64').replace(/=/g, '');
 
@@ -510,7 +491,6 @@ export async function translateModel(
     }
 
     const result = await response.json();
-    console.log('Translation started successfully');
     return result.urn || base64Urn;
   } catch (error) {
     console.error('Failed to translate model:', error);

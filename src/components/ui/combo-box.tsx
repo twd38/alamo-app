@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -80,13 +80,24 @@ export function ComboBox<
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [localValues, setLocalValues] = useState<TItem[]>(defaultValues || []);
+  const prevDefaultValuesRef = useRef<TItem[] | undefined>(undefined);
 
-  // Update localValues when defaultValues changes
+  // Update localValues when defaultValues actually changes (not just reference)
   useEffect(() => {
     if (defaultValues) {
-      setLocalValues(defaultValues);
+      const prev = prevDefaultValuesRef.current;
+
+      // Check if this is the first time or if the content actually changed
+      if (
+        !prev ||
+        prev.length !== defaultValues.length ||
+        !prev.every((item, index) => item.id === defaultValues[index]?.id)
+      ) {
+        setLocalValues(defaultValues);
+        prevDefaultValuesRef.current = defaultValues;
+      }
     }
-  }, [JSON.stringify(defaultValues)]);
+  }, [defaultValues]);
 
   const filteredItems = localValues.filter((value) =>
     value.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -214,7 +225,7 @@ export function ComboBox<
                       disabled={isCreating}
                     >
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      Create "{searchQuery}"
+                      {`Create "${searchQuery}"`}
                     </Button>
                   </div>
                 ) : (
@@ -256,7 +267,7 @@ export function ComboBox<
                   <CommandGroup>
                     <CommandItem onSelect={handleCreateValue}>
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      Create "{searchQuery}"
+                      Create &quot;{searchQuery}&quot;
                     </CommandItem>
                   </CommandGroup>
                 </>

@@ -3,7 +3,7 @@ import { getPart } from './queries/getPart';
 import { TabList, ActiveTab } from './components/part-tabs';
 import { CreateWorkOrderDialog } from './components/create-work-order-dialog';
 import { Part } from '@prisma/client';
-import { Breadcrumb } from '@/components/breadcrumbs';
+import { BreadcrumbConfig } from '@/components/breadcrumbs';
 
 type PartDetailLayoutProps = {
   params: Promise<{ partId: string }>;
@@ -30,11 +30,12 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
   const partNumber = part?.partNumber;
   const partRevision = part?.partRevision;
 
-  const breadcrumbs: Breadcrumb[] = [
+  const breadcrumbs: BreadcrumbConfig[] = [
     { label: 'Parts', href: '/parts/library' },
     { label: 'Library', href: `/parts/library` },
     {
-      label: `${partNumber}/${partRevision}` || partId,
+      label:
+        partNumber && partRevision ? `${partNumber}/${partRevision}` : partId,
       href: `/parts/library/${partId}`
     }
   ];

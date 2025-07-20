@@ -44,18 +44,14 @@ export function ClockInModal(props: ClockInModalProps) {
     async (result: IDetectedBarcode[]) => {
       if (!result?.[0]?.rawValue || isProcessing) return;
 
-      console.log('Scanned result:', result);
-
       try {
         setIsProcessing(true);
 
         // Assuming the QR code contains the badge ID
         const badgeId = result[0].rawValue.trim();
-        console.log('Scanned badge ID:', badgeId);
 
         // Fetch badge data using the query function
         const badge = await getAccessBadge(badgeId);
-        console.log('Fetched badge:', badge);
 
         if (!badge) {
           toast.error('Invalid badge');
@@ -70,8 +66,6 @@ export function ClockInModal(props: ClockInModalProps) {
 
         // Use functional update to check and add user atomically
         setScannedUsers((prev) => {
-          console.log('Current scanned users:', prev);
-
           // Check if user is already scanned using current state
           if (prev.some((user) => user.id === badge.user.id)) {
             return prev; // Return unchanged state

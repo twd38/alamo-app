@@ -70,7 +70,7 @@ export function TimelineView({ columns, tasks, boardId }: TimelineViewProps) {
         const filterValue = value.toLowerCase().trim();
 
         switch (type) {
-          case 'Assignee':
+          case 'Assignee': {
             const assigneeIds = task.assignees.map(
               (u) => u.id?.toLowerCase() || ''
             );
@@ -82,34 +82,39 @@ export function TimelineView({ columns, tasks, boardId }: TimelineViewProps) {
                   assigneeNames.includes(filterValue)
               : !assigneeIds.includes(filterValue) &&
                   !assigneeNames.includes(filterValue);
+          }
 
-          case 'Tag':
+          case 'Tag': {
             const tagNames = task.tags.map(
               (tag) => tag.name?.toLowerCase() || ''
             );
             return operator === 'is'
               ? tagNames.includes(filterValue)
               : !tagNames.includes(filterValue);
+          }
 
-          case 'Due date':
+          case 'Due date': {
             if (!task.dueDate) return operator === 'is not';
             const dueDate = new Date(task.dueDate).toISOString().split('T')[0];
             return operator === 'is'
               ? dueDate === filterValue
               : dueDate !== filterValue;
+          }
 
-          case 'Created by':
+          case 'Created by': {
             const creatorName = task.createdBy?.name?.toLowerCase() || '';
             const creatorEmail = task.createdBy?.email?.toLowerCase() || '';
             return operator === 'is'
               ? creatorName === filterValue || creatorEmail === filterValue
               : creatorName !== filterValue && creatorEmail !== filterValue;
+          }
 
-          case 'Private':
+          case 'Private': {
             const isPrivate = task.private;
             return operator === 'is'
               ? isPrivate === (filterValue === 'true')
               : isPrivate !== (filterValue === 'true');
+          }
 
           default:
             return true;

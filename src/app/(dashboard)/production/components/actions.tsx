@@ -296,7 +296,6 @@ function CheckboxAction({
   );
 
   const handleCheckboxChange = (checked: boolean) => {
-    console.log('checked', checked);
     setIsChecked(checked);
     onUpdate(checked);
   };

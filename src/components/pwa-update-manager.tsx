@@ -37,7 +37,6 @@ export default function PWAUpdateManager() {
                 navigator.serviceWorker.controller
               ) {
                 // New service worker is available - apply update automatically
-                console.log('New version detected, updating silently...');
                 applyUpdate();
               }
             });

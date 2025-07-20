@@ -67,7 +67,6 @@ export async function createWorkInstruction({
     | undefined;
 }) {
   //Prisma.WorkInstructionStepCreateWithoutWorkInstructionInput[] | undefined,
-  console.log(partId, title, description, steps, instructionNumber);
   try {
     const result = await prisma.workInstruction.create({
       data: {
@@ -87,7 +86,6 @@ export async function createWorkInstruction({
     return { success: true, data: result };
   } catch (error: any) {
     console.error('Error creating work instruction:', error);
-    console.log(error.stack);
     return { success: false, error: 'Failed to create work instruction' };
   }
 }
@@ -181,7 +179,6 @@ export async function createWorkInstructionStepAction(
     stepId: string;
   }
 ) {
-  console.log(data);
   const {
     stepId,
     actionType,
@@ -555,7 +552,6 @@ export async function updateBoardView(
   }
 ) {
   try {
-    console.log(boardViewId, data);
     // Get user from auth
     const session = await auth();
     const userId = session?.user?.id;
@@ -1286,15 +1282,10 @@ export async function reorderWorkInstructionSteps(
   workInstructionId: string,
   stepIds: string[]
 ) {
-  console.log('Reordering work instruction steps', workInstructionId, stepIds);
-
   try {
     // Use a transaction to ensure all updates are atomic
     const updates = await prisma.$transaction(
       stepIds.map((stepId, index) => {
-        console.log('Updating step', stepId, index);
-        console.log('Step number', index + 1);
-
         return prisma.workInstructionStep.update({
           where: { id: stepId },
           data: { stepNumber: index + 1 }
@@ -2136,8 +2127,6 @@ export async function addStepFileWithGltfConversion({
       };
     }
 
-    console.log(`Processing STEP file ${stepFile.name} for part ${partId}`);
-
     // Convert STEP file to GLTF using Zoo API
     const conversionResult = await convertStepFileToGltf(stepFile);
 
@@ -2237,11 +2226,6 @@ export async function addStepFileWithGltfConversion({
         // @ts-ignore - cadFileId and gltfFileId exist in schema but types may be outdated
         gltfFileId: result.gltfFile.id
       }
-    });
-
-    console.log(`Successfully processed STEP file for part ${partId}:`, {
-      cadFileId: result.cadFile.id,
-      gltfFileId: result.gltfFile.id
     });
 
     // Revalidate the part page

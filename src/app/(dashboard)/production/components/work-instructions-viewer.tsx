@@ -88,7 +88,6 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
   };
 
   const RenderCheck = () => {
-    console.log('RenderCheck');
     return <div></div>;
   };
 
@@ -112,9 +111,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
               width="100%"
               height="100%"
               className="rounded-lg shadow-sm"
-              onLoad={(viewer: any) => {
-                console.log('Autodesk viewer loaded in dialog:', viewer);
-              }}
+              onLoad={(viewer: any) => {}}
               onError={(error: Error) => {
                 console.error('Autodesk viewer error in dialog:', error);
               }}

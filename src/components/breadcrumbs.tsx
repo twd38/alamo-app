@@ -10,18 +10,22 @@ import {
 } from 'src/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 
-export type Breadcrumb = {
+export interface BreadcrumbConfig {
   label: string;
   href: string;
-};
+}
 
-export function Breadcrumbs({ breadcrumbs }: { breadcrumbs?: Breadcrumb[] }) {
+export function Breadcrumbs({
+  breadcrumbs
+}: {
+  breadcrumbs?: BreadcrumbConfig[];
+}) {
   const pathname = usePathname();
   const pathSegments = pathname.split('/').filter(Boolean);
   const breadcrumbsList =
     breadcrumbs ||
     pathSegments.map((segment, index) => {
-      const href = `/${  pathSegments.slice(0, index + 1).join('/')}`;
+      const href = `/${pathSegments.slice(0, index + 1).join('/')}`;
       return {
         href,
         label: segment.charAt(0).toUpperCase() + segment.slice(1)

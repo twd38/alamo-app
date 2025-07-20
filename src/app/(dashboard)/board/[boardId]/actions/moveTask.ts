@@ -9,10 +9,6 @@ export async function moveTask(
   newOrder: number
 ) {
   try {
-    console.log(
-      `Moving task ${taskId} to workstation ${targetWorkStationId} with order ${newOrder}`
-    );
-
     await prisma.$transaction(async (tx) => {
       // Get all tasks in the target workstation
       const targetTasks = await tx.task.findMany({
@@ -47,7 +43,6 @@ export async function moveTask(
       );
     });
 
-    console.log('Task moved successfully');
     revalidatePath('/production');
     return { success: true };
   } catch (error) {

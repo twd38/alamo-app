@@ -89,10 +89,6 @@ export async function sendZPLToPrinter(
     const zplBlob = new Blob([zplCode], { type: 'text/plain' });
     formData.append('zpl_file', zplBlob, 'label.zpl');
 
-    console.log(
-      `Sending ZPL to printer ${printerSerialNumber} via Zebra Cloud API...`
-    );
-
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -111,10 +107,7 @@ export async function sendZPLToPrinter(
     }
 
     const result = await response.json().catch(() => ({}));
-    console.log(
-      'Successfully sent ZPL to printer via Zebra Cloud API:',
-      result
-    );
+    return result;
   } catch (error) {
     console.error('Failed to send ZPL via Zebra Cloud API:', error);
     throw new Error(

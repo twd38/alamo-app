@@ -432,11 +432,6 @@ export function TipTapTextEditor({
               )}
 
               {/* Character count display - disabled for now */}
-              {false && characterLimit && (
-                <div className="ml-auto text-xs text-muted-foreground">
-                  {0}/{characterLimit}
-                </div>
-              )}
             </>
           )}
           {/* Custom toolbar content appended at the end */}

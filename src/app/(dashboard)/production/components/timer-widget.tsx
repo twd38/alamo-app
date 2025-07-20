@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function formatTime(timeInSeconds: number) {
   const hours = Math.floor(timeInSeconds / 60 / 60);
@@ -18,15 +18,21 @@ export function TimerWidget(props: TimerWidgetProps) {
   const { startElapsedTime, stop } = props;
 
   const [elapsedTime, setElapsedTime] = useState(startElapsedTime);
+  const startTimeRef = useRef<number>(Date.now() - startElapsedTime * 1000);
 
   useEffect(() => {
     if (stop) return;
 
     const interval = setInterval(() => {
-      setElapsedTime(elapsedTime + 1);
+      const currentTime = Date.now();
+      const newElapsedTime = Math.floor(
+        (currentTime - startTimeRef.current) / 1000
+      );
+      setElapsedTime(newElapsedTime);
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [elapsedTime]);
+  }, [stop]);
 
   return (
     <div className="text-center">

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       '.3dxml'
     ];
 
-    const fileExtension = `.${  file.name.split('.').pop()?.toLowerCase()}`;
+    const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
     if (!supportedFormats.includes(fileExtension)) {
       return NextResponse.json(
         { error: `Unsupported file format: ${fileExtension}` },
@@ -94,9 +94,6 @@ export async function POST(request: NextRequest) {
     const bucketKey = generateBucketKey();
     const objectKey = generateObjectKey(file.name);
 
-    console.log(`Uploading file: ${file.name} (${fileBuffer.length} bytes)`);
-    console.log(`Bucket: ${bucketKey}, Object: ${objectKey}`);
-
     // Upload file to APS
     const objectId = await uploadFileToAPS(
       bucketKey,
@@ -105,12 +102,8 @@ export async function POST(request: NextRequest) {
       token
     );
 
-    console.log(`File uploaded successfully. Object ID: ${objectId}`);
-
     // Initiate translation
     const translationUrn = await translateModel(objectId, token);
-
-    console.log(`Translation initiated. URN: ${translationUrn}`);
 
     return NextResponse.json({
       success: true,

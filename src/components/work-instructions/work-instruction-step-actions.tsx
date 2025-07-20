@@ -82,7 +82,6 @@ export const WorkInstructionStepActions: React.FC<
 
   const handleActionSaved = async () => {
     // Trigger a revalidation to get the latest data
-    console.log('Refetching work instructions after action saved');
     await revalidate();
   };
 

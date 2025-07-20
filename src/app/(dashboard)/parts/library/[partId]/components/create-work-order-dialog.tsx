@@ -185,12 +185,10 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
           setOpen(false);
           toast.success('Work order created');
         } else {
-          // eslint-disable-next-line no-console
           console.error(result?.error);
           toast.error(result?.error ?? 'Failed to create work order');
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('Failed to create work order', err);
       }
     },
@@ -225,10 +223,15 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
             <div className="grid gap-6 md:grid-cols-2">
               {/* Part preview */}
               <div className="space-y-4 border rounded-lg p-4">
-                <div className="flex justify-center h-40">
-                  <img
-                    src={`/api/files/${part.partImageId}` || '/placeholder.svg'}
+                <div className="relative w-full aspect-square">
+                  <Image
+                    src={
+                      part.partImageId
+                        ? `/api/files/${part.partImageId}`
+                        : '/placeholder.svg'
+                    }
                     alt={part.description}
+                    fill
                     className="rounded-md object-cover"
                   />
                 </div>

@@ -35,7 +35,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   // Hide sidebar for production work order pages
-  const isProductionWorkOrder = pathname?.match(/^\/production\/[^\/]+$/);
+  const isProductionWorkOrder = pathname?.match(/^\/production\/[^/]+$/);
 
   if (isProductionWorkOrder) {
     return <div className="w-full h-full">{children}</div>;

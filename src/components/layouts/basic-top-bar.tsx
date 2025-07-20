@@ -1,15 +1,10 @@
 import { SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Breadcrumbs } from '@/components/breadcrumbs';
+import { Breadcrumbs, BreadcrumbConfig } from '@/components/breadcrumbs';
 
 type BasicTopBarProps = {
   actions?: React.ReactNode;
-  breadcrumbs?: Breadcrumb[];
-};
-
-type Breadcrumb = {
-  label: string;
-  href: string;
+  breadcrumbs?: BreadcrumbConfig[];
 };
 
 const BasicTopBar = ({ actions, breadcrumbs }: BasicTopBarProps) => {

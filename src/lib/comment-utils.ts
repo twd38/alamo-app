@@ -478,16 +478,13 @@ async function verifyEntityExists(
       case CommentableEntityType.PART:
         exists = !!(await prisma.part.findUnique({ where: { id: entityId } }));
         break;
-      case CommentableEntityType.WORK_INSTRUCTION:
+      case CommentableEntityType.WORK_INSTRUCTION: {
         const workInstruction = await prisma.workInstruction.findUnique({
           where: { id: entityId }
         });
-        console.log(
-          `Work instruction lookup for ID ${entityId}:`,
-          workInstruction
-        );
         exists = !!workInstruction;
         break;
+      }
       case CommentableEntityType.WORK_INSTRUCTION_STEP:
         exists = !!(await prisma.workInstructionStep.findUnique({
           where: { id: entityId }

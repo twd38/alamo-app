@@ -92,7 +92,7 @@ export async function getParcelZoning(
     /* --------------------------- Helper functions --------------------------- */
     const parseNum = (value: unknown): number => {
       if (value === undefined || value === null || value === 'NA') return 0;
-      const str = String(value).replace(/[^0-9.\-]/g, '');
+      const str = String(value).replace(/[^0-9.-]/g, '');
       const num = Number(str);
       return Number.isFinite(num) ? num : 0;
     };

@@ -10,7 +10,6 @@ function decodeUrn(urn: string): string {
     if (!urn.startsWith('urn:')) {
       const decoded = Buffer.from(urn, 'base64').toString('utf-8');
       if (decoded.startsWith('urn:')) {
-        console.log(`Decoded base64 URN: ${decoded}`);
         return decoded;
       }
     }
@@ -42,7 +41,6 @@ export async function GET(
 
     // Decode URN if it's base64 encoded
     const urn = decodeUrn(rawUrn);
-    console.log(`Checking translation status for URN: ${urn}`);
 
     // Get APS token
     const token = await getAPSToken();
@@ -77,10 +75,6 @@ export async function GET(
         }
       }
     }
-
-    console.log(
-      `Translation status: ${status}, Progress: ${progress}, Complete: ${isComplete}`
-    );
 
     return NextResponse.json({
       urn,

@@ -66,7 +66,7 @@ const PartWorkInstructionsEditor: React.FC = () => {
       await createWorkInstructionStep({
         workInstructionId,
         stepNumber: steps.length + 1,
-        title: `Step ${  steps.length + 1}`,
+        title: `Step ${steps.length + 1}`,
         instructions: `{"type": "doc","content": []}`,
         estimatedLabourTime: 0
       });

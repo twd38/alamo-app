@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Image from 'next/image';
 
 export interface ScenarioDetailProps {
   open: boolean;
@@ -53,7 +54,6 @@ export function ScenarioDetail({
   onOpenChange,
   scenario
 }: ScenarioDetailProps) {
-  console.log(scenario);
   if (!scenario) return null;
 
   return (
@@ -111,10 +111,13 @@ export function ScenarioDetail({
           <TabsContent value="massing">
             <div className="h-96 flex items-center justify-center bg-gray-100 rounded">
               {scenario.image ? (
-                <img
+                <Image
                   src={scenario.image}
                   alt={`${scenario.name} massing`}
+                  width={800}
+                  height={384}
                   className="object-contain w-full h-96 rounded"
+                  sizes="(max-width: 768px) 100vw, 800px"
                 />
               ) : (
                 <div className="text-gray-400 text-lg">No image available</div>

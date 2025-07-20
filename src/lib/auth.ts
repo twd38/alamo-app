@@ -60,10 +60,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             // If this provider is not yet connected to this user
             if (!existingAccount) {
-              console.log(
-                `Linking ${account.provider} account to existing user ${existingUser.email}`
-              );
-
               // Create a new account record linking this provider to the existing user
               await prisma.account.create({
                 data: {

@@ -97,7 +97,6 @@ const ValueInput = ({
 
   if (filterOption?.inputType === 'user') {
     const handleChange = (value: string | string[]) => {
-      console.log(value);
       const selectedUser = filterOption.userOptions?.find(
         (user) => user.id === value
       );
@@ -188,7 +187,6 @@ export function FilterPopover({
     const updatedFilters = filters.map((filter) =>
       filter.id === id ? { ...filter, [field]: value } : filter
     );
-    console.log('filtersMap', updatedFilters);
     setFilters(updatedFilters);
     setFilterState({ filters: updatedFilters });
   };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -30,10 +31,13 @@ const ImageInput: React.FC<ImageInputProps> = ({ onChange, value }) => {
   return (
     <div className="flex flex-col items-center">
       {preview && (
-        <img
+        <Image
           src={preview}
           alt="Preview"
+          width={128}
+          height={128}
           className="w-32 h-32 object-cover mb-2"
+          unoptimized
         />
       )}
       <label htmlFor="image-upload" className="cursor-pointer">

@@ -24,8 +24,6 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
   const { editor } = useEditor();
   const [inputValue, setInputValue] = useState('');
 
-  if (!editor) return null;
-
   const { completion, complete, isLoading } = useCompletion({
     // id: "novel",
     api: '/api/generate',
@@ -39,6 +37,8 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
       toast.error(e.message);
     }
   });
+
+  if (!editor) return null;
 
   const hasCompletion = completion.length > 0;
 

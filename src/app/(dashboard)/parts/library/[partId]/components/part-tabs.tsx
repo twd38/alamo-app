@@ -17,8 +17,6 @@ export const TabList = () => {
   const searchParams = useSearchParams();
   const activeTab = searchParams.get('tab') || 'details';
 
-  console.log('params', params);
-
   const tabs = [
     {
       label: 'details',

@@ -22,7 +22,6 @@ type TaskWithRelations = Prisma.TaskGetPayload<{
 export function TaskCard({ task }: { task: TaskWithRelations }) {
   const [_, setActiveTask] = useAtom(taskModal);
 
-  if (!task) return null;
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
       id: task.id
@@ -32,6 +31,8 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
     transform: CSS.Transform.toString(transform),
     transition
   };
+
+  if (!task) return null;
 
   const handleClick = (e: React.MouseEvent) => {
     // Prevent click when dragging

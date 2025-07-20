@@ -40,8 +40,6 @@ export function PropertyDetail({
   const records = (parcel.parcelRecords as any[]) || [];
   const zoning = parcelZoning as ParcelZoning | null;
 
-  console.log(zoning?.screenshot);
-
   // console.log(parcelZoning)
 
   // Helper to safely stringify any value for display
@@ -71,7 +69,6 @@ export function PropertyDetail({
       landCost: appraisal?.parcelValue || 0
     });
 
-    console.log(result);
     setScenario({
       id: parcel.id || '',
       name: 'Scenario 1',

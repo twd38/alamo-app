@@ -108,8 +108,6 @@ export function ProductionSidebar({
   const [activeTab, setActiveTab] = useState('actions');
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const searchParams = useSearchParams();
-
-  console.log('activeTab', activeTab);
   useEffect(() => {
     // If URL has a tab query param, set the active tab
     const tab = searchParams.get('tab');
@@ -129,9 +127,6 @@ export function ProductionSidebar({
   // Find if this is the last step in the work order
   const isLastStep =
     workOrder?.workInstruction?.steps.length === step?.stepNumber;
-
-  console.log('isLastStep', isLastStep);
-  console.log('step', step);
 
   // Check if all required actions are completed
   const requiredActions =
@@ -382,8 +377,6 @@ function ProductionComments({
       </div>
     );
   }
-
-  console.log('step', step);
 
   return (
     <Comments

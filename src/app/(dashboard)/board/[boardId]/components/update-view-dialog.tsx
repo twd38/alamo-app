@@ -42,13 +42,6 @@ export default function UpdateViewDialog({
 }: UpdateViewDialogProps) {
   const router = useRouter();
 
-  // Reset the form with the initial view name and filters when the dialog is opened
-  useEffect(() => {
-    reset({
-      name: initialViewName
-    });
-  }, [isOpen]);
-
   const {
     register,
     handleSubmit,
@@ -60,6 +53,13 @@ export default function UpdateViewDialog({
       name: initialViewName
     }
   });
+
+  // Reset the form with the initial view name and filters when the dialog is opened
+  useEffect(() => {
+    reset({
+      name: initialViewName
+    });
+  }, [initialViewName, reset]);
 
   const onSubmit = async (data: FormValues) => {
     try {

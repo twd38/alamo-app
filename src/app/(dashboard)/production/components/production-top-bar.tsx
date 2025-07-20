@@ -21,9 +21,15 @@ interface WorkOrderExecutionProps {
 }
 
 export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
-  if (!workOrder) return null;
-
+  // All hooks must be called before any conditional logic
   const router = useRouter();
+  const [isRunning, setIsRunning] = useState(
+    workOrder?.status === 'IN_PROGRESS'
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Early return after all hooks are called
+  if (!workOrder) return null;
 
   const elapsedTimeSoFar = () => {
     // if the work order is not in progress, return the time taken
@@ -48,11 +54,6 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
       (new Date().getTime() - mostRecentTimeEntry.startTime.getTime());
     return timeTaken;
   };
-
-  const [isRunning, setIsRunning] = useState(
-    workOrder.status === 'IN_PROGRESS'
-  );
-  const [isLoading, setIsLoading] = useState(false);
 
   const steps = workOrder.workInstruction?.steps || [];
 

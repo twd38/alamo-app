@@ -71,13 +71,11 @@ const loadAutodeskViewer = (): Promise<void> => {
           callback: (token: string, expires: number) => void
         ) => {
           try {
-            console.log('Fetching access token for viewer...');
             const response = await fetch('/api/aps/token');
             if (!response.ok) {
               throw new Error('Failed to get access token');
             }
             const data = await response.json();
-            console.log('Access token retrieved successfully for viewer');
             callback(data.access_token, data.expires_in);
           } catch (error) {
             console.error('Token fetch error:', error);
@@ -86,9 +84,7 @@ const loadAutodeskViewer = (): Promise<void> => {
         }
       };
 
-      console.log('Initializing Autodesk Viewer with options:', options);
       window.Autodesk.Viewing.Initializer(options, () => {
-        console.log('Autodesk Viewer initialized successfully');
         resolve();
       });
     };
@@ -187,8 +183,6 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
       setIsLoading(true);
       setError(null);
 
-      console.log('Starting model load process for URN:', urn);
-
       // Helper function to determine if URN is already base64 encoded
       const isBase64Encoded = (str: string): boolean => {
         try {
@@ -202,21 +196,17 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
 
       // Check translation status first
       try {
-        console.log('Checking translation status before loading...');
         const response = await fetch(`/api/aps/translate/${urn}`);
         if (response.ok) {
           const status = await response.json();
-          console.log('Translation status:', status);
 
           if (!status.isComplete) {
-            console.log('Translation not complete, waiting...');
             setError('Model is still being translated. Please wait...');
             setIsLoading(false);
             return;
           }
 
           if (status.hasErrors) {
-            console.log('Translation has errors:', status);
             setError('Translation failed with errors');
             setIsLoading(false);
             return;
@@ -234,30 +224,22 @@ const AutodeskViewer: React.FC<AutodeskViewerProps> = ({
         // Raw URN - needs to be base64 encoded
         const base64Urn = Buffer.from(urn).toString('base64').replace(/=/g, '');
         documentId = `urn:${base64Urn}`;
-        console.log('Encoded raw URN to base64 with urn: prefix:', documentId);
       } else if (isBase64Encoded(urn)) {
         // Already base64 encoded - add urn: prefix if missing
         documentId = urn.startsWith('urn:') ? urn : `urn:${urn}`;
-        console.log('Using base64 URN with urn: prefix:', documentId);
       } else {
         // Assume it's already in the correct format, add urn: prefix if missing
         documentId = urn.startsWith('urn:') ? urn : `urn:${urn}`;
-        console.log('Using URN with urn: prefix:', documentId);
       }
-
-      console.log('Loading document with URN:', documentId);
 
       window.Autodesk.Viewing.Document.load(
         documentId,
         (doc: any) => {
-          console.log('Document loaded successfully:', doc);
           const viewables = doc.getRoot().getDefaultGeometry();
           if (viewables) {
-            console.log('Found viewable geometry, loading into viewer...');
             viewer
               .loadDocumentNode(doc, viewables)
               .then(() => {
-                console.log('Model loaded successfully into viewer');
                 setIsLoading(false);
               })
               .catch((error: any) => {

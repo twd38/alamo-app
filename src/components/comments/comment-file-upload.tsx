@@ -2,7 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Paperclip, X, File as FileIcon, Image, Download } from 'lucide-react';
+import {
+  Paperclip,
+  X,
+  File as FileIcon,
+  ImageIcon,
+  Download
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -108,7 +114,7 @@ export function CommentFileUpload({
 
   const getFileIcon = (fileName: string) => {
     if (isImageFile(fileName)) {
-      return <Image className="h-4 w-4" />;
+      return <ImageIcon className="h-4 w-4" />;
     }
     return <FileIcon className="h-4 w-4" />;
   };

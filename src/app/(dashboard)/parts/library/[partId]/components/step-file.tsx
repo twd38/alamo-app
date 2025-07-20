@@ -74,7 +74,6 @@ const StepFile: React.FC<StepFileProps> = ({
         }
 
         const result = await response.json();
-        console.log('APS Upload result:', result);
         setUploadProgress('File uploaded, starting translation...');
 
         // Wait for translation to complete
@@ -92,17 +91,10 @@ const StepFile: React.FC<StepFileProps> = ({
             );
             if (statusResponse.ok) {
               const status = await statusResponse.json();
-              console.log('Translation status:', status);
 
               if (status.isComplete) {
                 translationComplete = true;
                 setUploadProgress('Translation complete, saving...');
-
-                console.log(
-                  'Translation complete, saving URN:',
-                  result.translationUrn
-                );
-                console.log('Part ID:', partId);
 
                 // Save the APS URN to the part
                 try {
@@ -110,10 +102,8 @@ const StepFile: React.FC<StepFileProps> = ({
                     id: partId,
                     apsUrn: result.translationUrn
                   });
-                  console.log('Update part result:', updateResult);
 
                   if (updateResult.success) {
-                    console.log('Successfully saved APS URN to part');
                     toast.success(
                       '3D model uploaded and translated successfully!'
                     );

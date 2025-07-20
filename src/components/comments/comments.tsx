@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Comment } from './comment';
 import { CommentInput } from './comment-input';
 import { getEntityComments } from '@/lib/comment-utils';
@@ -19,28 +19,23 @@ export function Comments({
   entityUrl,
   className = ''
 }: CommentsProps) {
-  const [comments, setComments] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadComments = async () => {
-    try {
-      const result = await getEntityComments(entityType, entityId);
-      if (result.success) {
-        setComments(result.data || []);
-      }
-    } catch (error) {
-      console.error('Failed to load comments:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    data: commentsResult,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['comments', entityType, entityId],
+    queryFn: () => getEntityComments(entityType, entityId)
+  });
 
-  useEffect(() => {
-    loadComments();
-  }, [entityType, entityId]);
+  const comments = commentsResult?.success ? commentsResult.data || [] : [];
 
   const handleCommentCreated = () => {
-    loadComments();
+    queryClient.invalidateQueries({
+      queryKey: ['comments', entityType, entityId]
+    });
   };
 
   return (
@@ -50,6 +45,10 @@ export function Comments({
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="text-muted-foreground">Loading comments...</div>
+            </div>
+          ) : error ? (
+            <div className="flex justify-center py-8">
+              <div className="text-destructive">Failed to load comments</div>
             </div>
           ) : comments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -61,7 +60,7 @@ export function Comments({
               <Comment
                 key={comment.id}
                 comment={comment}
-                onUpdate={loadComments}
+                onUpdate={handleCommentCreated}
               />
             ))
           )}

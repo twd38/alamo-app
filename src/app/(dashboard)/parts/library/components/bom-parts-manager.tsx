@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X, Trash2 } from 'lucide-react';
@@ -58,33 +58,8 @@ export const BOMPartsManager = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Auto-search when debounced query changes
-  useEffect(() => {
-    if (debouncedQuery && showSearchResults) {
-      void searchParts();
-    }
-  }, [debouncedQuery, showSearchResults]);
-
-  // Handle click outside search results
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (
-        !target.closest('.search-container') &&
-        !target.closest('.search-results')
-      ) {
-        setShowSearchResults(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   // Search for parts
-  const searchParts = async (): Promise<void> => {
+  const searchParts = useCallback(async (): Promise<void> => {
     if (!debouncedQuery.trim()) {
       setSearchResults([]);
       return;
@@ -107,7 +82,32 @@ export const BOMPartsManager = ({
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [debouncedQuery]);
+
+  // Auto-search when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery && showSearchResults) {
+      void searchParts();
+    }
+  }, [debouncedQuery, showSearchResults, searchParts]);
+
+  // Handle click outside search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        !target.closest('.search-container') &&
+        !target.closest('.search-results')
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Add part to BOM
   const addPartToBOM = (part: Part): void => {

@@ -109,7 +109,6 @@ export default function CreateBoardDialog({
   };
 
   const onSubmit = async (data: FormValues) => {
-    console.log(data);
     try {
       const result = await createBoard({
         name: data.boardName,

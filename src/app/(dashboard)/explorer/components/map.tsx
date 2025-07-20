@@ -93,9 +93,43 @@ const Map = () => {
     planMinLotArea ? String(planMinLotArea) : ''
   );
 
+  /**
+   * Count developable parcels from the full tileset source using the current minimum lot area filter.
+   * @returns The total number of parcels meeting the developable criteria.
+   */
+  const getDevelopableParcelCount = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return 0;
+
+    // Query all vector-source features (no bounding box filter)
+    const features: mapboxgl.MapboxGeoJSONFeature[] = map.querySourceFeatures(
+      PARCEL_SOURCE_ID,
+      { sourceLayer: PARCEL_SOURCE_LAYER }
+    );
+
+    // Filter by area and count
+    const count = features.reduce<number>((count, feature) => {
+      const props = feature.properties as Record<string, unknown>;
+      const lotAreaSqft: number =
+        typeof props.ll_gissqft === 'number'
+          ? props.ll_gissqft
+          : typeof props.gisacre === 'number'
+            ? acresToSquareFeet(props.gisacre)
+            : 0;
+
+      const isDevelopable =
+        planMinLotArea === null ||
+        (Number.isFinite(lotAreaSqft) && lotAreaSqft >= planMinLotArea);
+
+      return isDevelopable ? count + 1 : count;
+    }, 0);
+
+    setFullDevelopableCount(count);
+  }, [planMinLotArea]);
+
   useEffect(() => {
     getDevelopableParcelCount();
-  }, [developmentPlan]);
+  }, [developmentPlan, getDevelopableParcelCount]);
 
   // Fetch development-plan details whenever the id changes
   useEffect(() => {
@@ -115,10 +149,8 @@ const Map = () => {
             ? minArea
             : null
         );
-        // eslint-disable-next-line no-console
-        console.log('[Development-Plan] Loaded – minimumLotArea:', minArea);
+        console.warn('[Development-Plan] Loaded – minimumLotArea:', minArea);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('Failed to load development plan:', err);
         setPlanMinLotArea(null);
       }
@@ -134,9 +166,42 @@ const Map = () => {
     }
   }, [planMinLotArea]);
 
+  const handleMapClick = useCallback(
+    async (e: mapboxgl.MapMouseEvent) => {
+      setParcelData(null);
+      setZoningData(null);
+
+      const features = mapRef?.current?.queryRenderedFeatures(e.point, {
+        layers: [PARCEL_FILL_LAYER_ID]
+      });
+
+      if (!features || features.length === 0) return;
+
+      const props = features[0].properties as { [k: string]: unknown };
+      const address = (props.address ?? '') as string;
+      const city = (props.city ?? props.scity ?? '') as string;
+      const state = (props.state2 ?? props.state ?? '') as string;
+      const zip = (props.szip ?? props.szip5 ?? '') as string;
+      const fullAddress = `${address}, ${city}, ${state} ${zip}`;
+
+      const { lng, lat } = e.lngLat;
+
+      // update the center of the map
+      if (markerRef.current && mapRef.current) {
+        mapRef.current.flyTo({
+          center: [lng, lat]
+        });
+
+        markerRef.current.setLngLat([lng, lat]).addTo(mapRef.current);
+      }
+
+      router.push(`/explorer?view=property_detail&address=${fullAddress}`);
+    },
+    [router]
+  );
+
   // Initialize the map and add layers
   useEffect(() => {
-    console.log('LOADING MAP');
     if (!mapContainerRef.current) return;
 
     mapboxgl.accessToken = mapboxAccessToken;
@@ -161,14 +226,13 @@ const Map = () => {
     // Add parcel vector tiles (Mapbox tileset) once the base style has loaded
     mapRef.current.on('load', () => {
       // Build the Mapbox vector source URL. It must have the `mapbox://` prefix.
-      // If you defined NEXT_PUBLIC_PARCELS_TILESET_ID as "<username>.tx_travis_parcels" this will resolve correctly.
+      // If you defined NEXT_PUBLIC_PARCELS_TILESET_ID as &ldquo;&lt;username&gt;.tx_travis_parcels&rdquo; this will resolve correctly.
       const sourceUrl = `mapbox://${parcelsTilesetId}`;
 
       // Bail early if the URL is not well formed – helps during local development
       if (!sourceUrl.startsWith('mapbox://')) {
-        // eslint-disable-next-line no-console
         console.error(
-          'Invalid parcels tileset id. Expected format "<username>.tx_travis_parcels"'
+          'Invalid parcels tileset id. Expected format &ldquo;&lt;username&gt;.tx_travis_parcels&rdquo;'
         );
         return;
       }
@@ -345,7 +409,7 @@ const Map = () => {
     return () => {
       mapRef.current?.remove();
     };
-  }, []);
+  }, [center, zoom, mapboxAccessToken, parcelsTilesetId, handleMapClick]);
 
   // Fetch parcel data when an address is selected
   useEffect(() => {
@@ -705,7 +769,7 @@ const Map = () => {
       setDevelopableList(developableTempList);
     } catch (err) {
       setError('Failed to identify developable parcels.');
-      // eslint-disable-next-line no-console
+
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -752,8 +816,6 @@ const Map = () => {
     const lng = properties.coordinates.longitude;
     const lat = properties.coordinates.latitude;
 
-    console.log(lat, lng);
-
     if (properties) {
       // Update marker on the map
       if (mapRef.current && properties.coordinates) {
@@ -769,37 +831,6 @@ const Map = () => {
         }
       }
     }
-  };
-
-  const handleMapClick = async (e: mapboxgl.MapMouseEvent) => {
-    setParcelData(null);
-    setZoningData(null);
-
-    const features = mapRef?.current?.queryRenderedFeatures(e.point, {
-      layers: [PARCEL_FILL_LAYER_ID]
-    });
-
-    if (!features || features.length === 0) return;
-
-    const props = features[0].properties as { [k: string]: unknown };
-    const address = (props.address ?? '') as string;
-    const city = (props.city ?? props.scity ?? '') as string;
-    const state = (props.state2 ?? props.state ?? '') as string;
-    const zip = (props.szip ?? props.szip5 ?? '') as string;
-    const fullAddress = `${address  }, ${  city  }, ${  state  } ${  zip}`;
-
-    const { lng, lat } = e.lngLat;
-
-    // update the center of the map
-    if (markerRef.current && mapRef.current) {
-      mapRef.current.flyTo({
-        center: [lng, lat]
-      });
-
-      markerRef.current.setLngLat([lng, lat]).addTo(mapRef.current);
-    }
-
-    router.push(`/explorer?view=property_detail&address=${fullAddress}`);
   };
 
   const handleClosePropertyDetail = () => {
@@ -868,42 +899,6 @@ const Map = () => {
       );
     });
   }, [developmentPlan]);
-
-  /**
-   * Count developable parcels from the full tileset source using the current minimum lot area filter.
-   * @returns The total number of parcels meeting the developable criteria.
-   */
-  const getDevelopableParcelCount = () => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return 0;
-
-    // Query all vector-source features (no bounding box filter)
-    const features: mapboxgl.MapboxGeoJSONFeature[] = map.querySourceFeatures(
-      PARCEL_SOURCE_ID,
-      { sourceLayer: PARCEL_SOURCE_LAYER }
-    );
-
-    // Filter by area and count
-    const count = features.reduce<number>((count, feature) => {
-      const props = feature.properties as Record<string, unknown>;
-      const lotAreaSqft: number =
-        typeof props.ll_gissqft === 'number'
-          ? props.ll_gissqft
-          : typeof props.gisacre === 'number'
-            ? acresToSquareFeet(props.gisacre)
-            : 0;
-
-      const isDevelopable =
-        planMinLotArea === null ||
-        (Number.isFinite(lotAreaSqft) && lotAreaSqft >= planMinLotArea);
-
-      return isDevelopable ? count + 1 : count;
-    }, 0);
-
-    console.log('Developable Parcel Count:', count);
-
-    setFullDevelopableCount(count);
-  };
 
   return (
     <div className="flex flex-row h-full w-full">

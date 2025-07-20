@@ -21,8 +21,6 @@ export async function convertStepToGltf(
   error?: string;
 }> {
   try {
-    console.log(`Starting conversion of ${fileName} from STEP to GLTF`);
-
     // Convert buffer to base64 string for the API
     const base64Data = Buffer.from(fileBuffer).toString('base64');
 
@@ -69,8 +67,6 @@ export async function convertStepToGltf(
     // Generate output filename
     const baseFileName = fileName.replace(/\.(step|stp)$/i, '');
     const outputFileName = `${baseFileName}.gltf`;
-
-    console.log(`Successfully converted ${fileName} to ${outputFileName}`);
 
     return {
       success: true,

@@ -127,11 +127,14 @@ export function renderMentionList() {
       const [users, setUsers] = useState<MentionUser[]>([]);
       const [isLoading, setIsLoading] = useState(true);
 
+      // Extract query from props to make it a proper dependency
+      const query = props.query;
+
       useEffect(() => {
         async function fetchUsers() {
           setIsLoading(true);
           try {
-            const result = await getUsersForMention(props.query, 10);
+            const result = await getUsersForMention(query, 10);
             if (result.success) {
               setUsers(result.data);
             } else {
@@ -154,7 +157,7 @@ export function renderMentionList() {
         return () => {
           clearTimeout(timeoutId);
         };
-      }, [props.query]);
+      }, [query]);
 
       if (isLoading) {
         return (

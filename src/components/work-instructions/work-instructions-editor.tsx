@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -48,7 +48,9 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
 }) => {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
-  const steps = workInstructions?.[0]?.steps || [];
+  const steps = useMemo(() => {
+    return workInstructions?.[0]?.steps || [];
+  }, [workInstructions]);
 
   // Auto-select first step when data loads
   useEffect(() => {
@@ -70,7 +72,6 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
   }
 
   const handleUpdateWorkInstructionStepFiles = async (files: File[]) => {
-    console.log(files);
     const file = files[0];
     const stepId = selectedStep?.id;
 
@@ -103,12 +104,10 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
   };
 
   const handleDeleteWorkInstructionStepFile = async (file: PrismaFile) => {
-    console.log(file);
     const stepId = selectedStep?.id;
     const updatedFilesArray = selectedStep?.files?.filter(
       (f: PrismaFile) => f.id !== file.id
     );
-    console.log(updatedFilesArray);
 
     const updatedStep = await updateWorkInstructionStep({
       stepId,

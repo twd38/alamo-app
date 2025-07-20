@@ -28,7 +28,6 @@ export async function updateTask(
     epicId?: string;
   }
 ) {
-  console.log('Updating task', taskId, data);
   try {
     const session = await auth();
     const actorUserId = session?.user?.id;
@@ -165,7 +164,6 @@ export async function updateTask(
     }
 
     // Revalidate the board page to reflect changes
-    console.log('revalidating board', `/board/${result.boardId}`);
     revalidatePath(`/board/${result.boardId}`);
 
     return { success: true, data: result };

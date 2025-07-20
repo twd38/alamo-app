@@ -29,8 +29,9 @@ import { TextButtons } from './selectors/text-buttons';
 import { slashCommand, suggestionItems } from './slash-command';
 import { ControllerRenderProps } from 'react-hook-form';
 import { cn } from '@/lib/utils';
+import hljs from 'highlight.js';
 
-const hljs = require('highlight.js');
+// const hljs = require('highlight.js');
 
 interface MarkdownEditorProps {
   initialContent: string | null | undefined;
@@ -130,9 +131,9 @@ export const MarkdownEditor = ({
       );
       setSaveStatus('Saved');
 
-      await updateContent(JSON.stringify(json));
+      updateContent(JSON.stringify(json));
     },
-    2000
+    300
   );
 
   const initialContentJson = initialContent ? JSON.parse(initialContent) : null;

@@ -6,6 +6,7 @@ import {
 } from '../server/r2';
 import { prisma } from '../db';
 import { File as PrismaFile } from '@prisma/client';
+import { downloadFile } from '../file-utils';
 
 export async function getFileUrlFromKey(key: string, fileName?: string) {
   try {
@@ -42,6 +43,22 @@ export async function createFile(file: PrismaFile) {
       size: file.size
     }
   });
+}
+
+export async function deleteFile(fileId: string) {
+  try {
+    await prisma.file.delete({
+      where: { id: fileId }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete file'
+    };
+  }
 }
 
 /**

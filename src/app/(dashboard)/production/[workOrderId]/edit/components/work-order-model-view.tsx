@@ -16,9 +16,7 @@ export function WorkOrderModelView({ apsUrn }: WorkOrderModelViewProps) {
           urn={apsUrn}
           height="100%"
           className="rounded-lg shadow-sm"
-          onLoad={(viewer: any) => {
-            console.log('Autodesk viewer loaded:', viewer);
-          }}
+          onLoad={(viewer: any) => {}}
           onError={(error: Error) => {
             console.error('Autodesk viewer error:', error);
             toast.error(`Viewer Error: ${error.message}`);

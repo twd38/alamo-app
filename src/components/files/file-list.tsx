@@ -139,7 +139,6 @@ export function FileList({
     }
 
     const uploadedFiles: Prisma.FileCreateInput[] = [];
-    console.log('uploading to R2', files, uploadPath);
     await Promise.all(
       files.map(async (file) => {
         const uploadUrl = await getUploadUrl(file.name, file.type, uploadPath);
@@ -190,15 +189,11 @@ export function FileList({
       size: file.size
     }));
 
-    console.log('uploading files', filesToUpload);
-    console.log('new loading files', newLoadingFiles);
-
     setLoadingFiles((prev) => [...prev, ...newLoadingFiles]);
 
     try {
       const uploadedFiles = await uploadToR2(filesToUpload);
       if (uploadedFiles) {
-        console.log('uploaded files', uploadedFiles);
         await onUpload(uploadedFiles);
       }
     } catch (error) {

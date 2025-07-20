@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { X, Upload, File, ImageIcon, Loader2 } from 'lucide-react';
@@ -208,10 +209,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 aspect-square relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center">
             {isImage(files[0]) ? (
-              <img
+              <Image
                 src={secureUrl}
                 alt={files[0].name}
-                className="w-full h-full object-cover rounded-md"
+                fill
+                className="object-cover rounded-md"
               />
             ) : (
               <FileIcon

@@ -14,7 +14,9 @@ import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
 import { FileList } from '@/components/files/file-list';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
+import { getSecureImageUrl } from '@/lib/file-utils';
 import { Package, FileText } from 'lucide-react';
+import Image from 'next/image';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
   include: { part: true };
@@ -126,17 +128,14 @@ const Details = ({ part }: PartDetailsProps) => {
               <div className="flex-shrink-0">
                 <div className="w-48 h-48 rounded-lg flex items-center justify-center">
                   {part.partImage?.url ? (
-                    // <Image
-                    //   src={`/api/files/${part.partImageId}`}
-                    //   alt={part.name || 'Part image'}
-                    //   width={192}
-                    //   height={192}
-                    //   className="rounded-lg object-cover"
-                    // />
-                    <img
-                      src={`/api/files/${part.partImageId}`}
+                    <Image
+                      src={getSecureImageUrl(part.partImageId!)}
                       alt={part.name || 'Part image'}
+                      width={192}
+                      height={192}
                       className="rounded-lg object-cover"
+                      // unoptimized
+                      // priority
                     />
                   ) : (
                     // <FileUpload

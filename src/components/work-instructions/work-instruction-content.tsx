@@ -112,7 +112,7 @@ export const WorkInstructionContent: React.FC<WorkInstructionContentProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, 400);
+  }, 300);
 
   // Debounced save specifically for title updates
   const debouncedSaveTitle = useDebouncedCallback(async (title: string) => {
@@ -145,7 +145,7 @@ export const WorkInstructionContent: React.FC<WorkInstructionContentProps> = ({
       setIsSaving(false);
       isTypingTitle.current = false;
     }
-  }, 800); // Longer delay for title to allow for continuous typing
+  }, 300); // Longer delay for title to allow for continuous typing
 
   // Separate debounced function for instructions with slightly longer delay
   const debouncedSaveInstructions = useDebouncedCallback(
@@ -161,7 +161,6 @@ export const WorkInstructionContent: React.FC<WorkInstructionContentProps> = ({
         previousValues.current?.estimatedLabourTime === data.estimatedLabourTime
       ) {
         setIsEditing(false);
-        setIsSaving(false);
         setSaveError(false);
         return;
       }
@@ -180,7 +179,7 @@ export const WorkInstructionContent: React.FC<WorkInstructionContentProps> = ({
         setIsSaving(false);
       }
     },
-    500
+    300
   );
 
   // Handle title changes with local state
@@ -200,6 +199,7 @@ export const WorkInstructionContent: React.FC<WorkInstructionContentProps> = ({
   const handleInstructionsChange = (content: string) => {
     setInstructions(content);
     setIsEditing(true);
+
     setSaveError(false);
     form.setValue('instructions', content, { shouldDirty: true });
     debouncedSaveInstructions(content);

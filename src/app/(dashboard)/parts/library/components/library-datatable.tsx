@@ -187,9 +187,10 @@ export function LibraryDataTable({
     [router, pathname, searchParams]
   );
 
-  const debouncedUpdateQuery = useCallback(debounce(updateSearchQuery, 500), [
-    updateSearchQuery
-  ]);
+  const debouncedUpdateQuery = useMemo(
+    () => debounce(updateSearchQuery, 300),
+    [updateSearchQuery]
+  );
 
   const navigateToPart = (partNumber: string) => {
     router.push(`/parts/library/${partNumber}`);
@@ -223,10 +224,8 @@ export function LibraryDataTable({
     [router, pathname, searchParams]
   );
 
-  if (!parts) return null;
-
   const table = useReactTable({
-    data: parts,
+    data: parts || [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -242,6 +241,8 @@ export function LibraryDataTable({
       rowSelection
     }
   });
+
+  if (!parts) return null;
 
   return (
     <div className="w-full">

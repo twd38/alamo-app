@@ -11,7 +11,6 @@ interface WorkOrderPageProps {
 const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
   const { workOrderId } = await params;
   const workOrder = await getWorkOrder(workOrderId);
-  console.log(workOrder);
   if (!workOrder) {
     return <div>Work order not found</div>;
   }

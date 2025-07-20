@@ -15,7 +15,6 @@ const PartFiles = (props: PartFilesProps) => {
 
   // TODO: fix type error
   const handleUpload = async (value: any) => {
-    console.log('handleUpload', value);
     const newFileList = [...fileList, ...value];
     setFileList(newFileList);
     await onChange(newFileList);

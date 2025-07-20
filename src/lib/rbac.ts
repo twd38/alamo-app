@@ -420,29 +420,33 @@ export async function isResourceOwner(
   resourceId: string
 ): Promise<boolean> {
   switch (resourceType) {
-    case 'board':
+    case 'board': {
       const board = await prisma.board.findFirst({
         where: { id: resourceId, createdById: userId }
       });
       return !!board;
+    }
 
-    case 'task':
+    case 'task': {
       const task = await prisma.task.findFirst({
         where: { id: resourceId, createdById: userId }
       });
       return !!task;
+    }
 
-    case 'work_order':
+    case 'work_order': {
       const workOrder = await prisma.workOrder.findFirst({
         where: { id: resourceId, createdById: userId }
       });
       return !!workOrder;
+    }
 
-    case 'work_instruction':
+    case 'work_instruction': {
       const workInstruction = await prisma.workInstruction.findFirst({
         where: { id: resourceId, createdById: userId }
       });
       return !!workInstruction;
+    }
 
     default:
       return false;
@@ -458,7 +462,7 @@ export async function isResourceCollaborator(
   resourceId: string
 ): Promise<boolean> {
   switch (resourceType) {
-    case 'board':
+    case 'board': {
       const board = await prisma.board.findFirst({
         where: {
           id: resourceId,
@@ -466,8 +470,9 @@ export async function isResourceCollaborator(
         }
       });
       return !!board;
+    }
 
-    case 'work_order':
+    case 'work_order': {
       const workOrder = await prisma.workOrder.findFirst({
         where: {
           id: resourceId,
@@ -475,8 +480,9 @@ export async function isResourceCollaborator(
         }
       });
       return !!workOrder;
+    }
 
-    case 'task':
+    case 'task': {
       const task = await prisma.task.findFirst({
         where: {
           id: resourceId,
@@ -484,6 +490,7 @@ export async function isResourceCollaborator(
         }
       });
       return !!task;
+    }
 
     default:
       return false;

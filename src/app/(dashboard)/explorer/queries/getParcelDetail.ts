@@ -143,7 +143,7 @@ export async function getParcelDetail(
     const toNum = (val: unknown): number | null => {
       if (val === undefined || val === null || val === '' || val === 'NA')
         return null;
-      const num = Number(String(val).replace(/[^0-9.\-]/g, ''));
+      const num = Number(String(val).replace(/[^0-9.-]/g, ''));
       return Number.isFinite(num) ? num : null;
     };
 
