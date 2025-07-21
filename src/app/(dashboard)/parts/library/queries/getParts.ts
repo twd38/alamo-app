@@ -32,6 +32,9 @@ export async function getParts({
         }
       ]
     },
+    include: {
+      partImage: true
+    },
     orderBy: {
       [sortBy]: sortOrder
     },

@@ -1,20 +1,16 @@
 'use client';
 
 import { Column } from '@/components/parts-table';
-import PageContainer from '@/components/page-container';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddBOMPartsDialog } from './add-bom-parts-dialog';
 import { PartsTable } from '@/components/parts-table';
 import { Prisma, Part, File as PrismaFile } from '@prisma/client';
-import PartFiles from './files';
 import { updatePart, addFilesToPart, removeFilesFromPart } from '../../actions';
-import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
 import { FileList } from '@/components/files/file-list';
 import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
-import { getSecureImageUrl } from '@/lib/file-utils';
 import { Package, FileText } from 'lucide-react';
 import Image from 'next/image';
 
@@ -129,13 +125,11 @@ const Details = ({ part }: PartDetailsProps) => {
                 <div className="w-48 h-48 rounded-lg flex items-center justify-center">
                   {part.partImage?.url ? (
                     <Image
-                      src={getSecureImageUrl(part.partImageId!)}
+                      src={part.partImage.key}
                       alt={part.name || 'Part image'}
                       width={192}
                       height={192}
                       className="rounded-lg object-cover"
-                      // unoptimized
-                      // priority
                     />
                   ) : (
                     // <FileUpload

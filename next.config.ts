@@ -7,7 +7,10 @@ module.exports = {
   transpilePackages: ['three'],
   images: {
     loader: 'custom',
-    loaderFile: './imageLoader.ts',
+    loaderFile: './src/lib/imageLoader.ts',
+    domains: [
+      'https://0a1c1daebffa04c4354e44a3fddb1a9b.r2.cloudflarestorage.com'
+    ],
     remotePatterns: [
       {
         protocol: 'https',
@@ -33,7 +36,7 @@ module.exports = {
       // Replace with your actual R2 public domain
       {
         protocol: 'https',
-        hostname: '0a1c1daebffa04c4354e44a3fddb1a9b.r2.cloudflarestorage.com',
+        hostname: 'r2.americanhousing.co',
         pathname: '/**'
       },
       {

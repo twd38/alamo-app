@@ -33,11 +33,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         >
           {/* <Command className="size-8 max-w-4" /> */}
           <Image
-            src="/alamo_logo.svg"
+            src="/images/alamo_logo.svg"
             alt="Logo"
             width={32}
             height={32}
             className=""
+            unoptimized
           />
         </Link>
       </SidebarHeader>

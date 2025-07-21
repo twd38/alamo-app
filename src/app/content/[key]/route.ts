@@ -8,9 +8,11 @@ export async function GET(
 ) {
   try {
     const { key } = await params;
+    // Have to append the content folder to the key because its stripped from the api call
     const fullKey = `content/${key}`;
-    const url = await getSignedDownloadUrl(fullKey);
-    return NextResponse.redirect(url);
+    const signedUrl = await getSignedDownloadUrl(fullKey);
+
+    return NextResponse.redirect(signedUrl);
   } catch (error) {
     console.error('Error getting content:', error);
     return NextResponse.json(

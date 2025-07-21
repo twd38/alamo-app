@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import debounce from 'lodash/debounce';
 import {
@@ -39,13 +38,20 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Part } from '@prisma/client';
 import { NewPartDialog } from './new-part-dialog';
 import { formatPartType } from '@/lib/utils';
+import { Prisma } from '@prisma/client';
+import Image from 'next/image';
 // Define the Part type based on the schema
 
+type PartWithImage = Prisma.PartGetPayload<{
+  include: {
+    partImage: true;
+  };
+}>;
+
 // Define the columns for the table
-const columns: ColumnDef<Part>[] = [
+const columns: ColumnDef<PartWithImage>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -83,7 +89,7 @@ const columns: ColumnDef<Part>[] = [
     cell: ({ row }) => (
       <div className="flex items-center space-x-2">
         <Image
-          src="/placeholder.svg"
+          src={row.original?.partImage?.key || '/images/placeholder.svg'}
           alt={row.getValue('name')}
           width={32}
           height={32}
@@ -149,7 +155,7 @@ export function LibraryDataTable({
   parts,
   totalCount
 }: {
-  parts: Part[];
+  parts: PartWithImage[];
   totalCount: number;
 }) {
   const router = useRouter();

@@ -18,7 +18,7 @@ const r2Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
-const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
+const PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!;
 const UPLOAD_URL_EXPIRY = 3600; // 1 hour
 const DOWNLOAD_URL_EXPIRY = 3600; // 1 hour
 

@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     siteName: 'Alamo',
     images: [
       {
-        url: '/ahc-logo.png',
+        url: '/images/ahc-logo.png',
         width: 1200,
         height: 630,
         alt: 'Alamo - American Housing Corporation Operating System'
@@ -51,12 +51,12 @@ export const metadata: Metadata = {
     title: 'Alamo',
     description:
       'Alamo is the operating system for the American Housing Corporation.',
-    images: ['/ahc-logo.png']
+    images: ['/images/ahc-logo.png']
   },
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
-    apple: '/alamo_logo.png'
+    apple: '/images/alamo_logo.png'
   },
   manifest: '/manifest.json',
   robots: {
@@ -96,15 +96,51 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
 
         {/* Apple Touch Icons */}
-        <link rel="apple-touch-icon" sizes="180x180" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="144x144" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="120x120" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="114x114" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="76x76" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="72x72" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="60x60" href="/alamo_logo.png" />
-        <link rel="apple-touch-icon" sizes="57x57" href="/alamo_logo.png" />
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="152x152"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="144x144"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="120x120"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="114x114"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="76x76"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="72x72"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="60x60"
+          href="/images/alamo_logo.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="57x57"
+          href="/images/alamo_logo.png"
+        />
 
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />

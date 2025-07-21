@@ -38,6 +38,36 @@ const tiptapLink = TiptapLink.configure({
   }
 });
 
+// const tiptapImage = TiptapImage.extend({
+//   addProseMirrorPlugins() {
+//     return [
+//       UploadImagesPlugin({
+//         imageClass: cx('opacity-40 rounded-lg border border-stone-200')
+//       })
+//     ];
+//   },
+//   addAttributes() {
+//     return {
+//       ...this.parent?.(),
+//       src: {
+//         default: null,
+//         parseHTML: (element) => {
+//           const src = element.getAttribute('src');
+//           return src || null;
+//         },
+//         renderHTML: (attributes) => {
+//           return { src: 'attributes.src' };
+//         }
+//       }
+//     };
+//   }
+// }).configure({
+//   allowBase64: true,
+//   HTMLAttributes: {
+//     class: cx('rounded-lg border border-muted')
+//   }
+// });
+
 const tiptapImage = TiptapImage.extend({
   addProseMirrorPlugins() {
     return [
@@ -45,21 +75,6 @@ const tiptapImage = TiptapImage.extend({
         imageClass: cx('opacity-40 rounded-lg border border-stone-200')
       })
     ];
-  },
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      src: {
-        default: null,
-        parseHTML: (element) => {
-          const src = element.getAttribute('src');
-          return src || null;
-        },
-        renderHTML: (attributes) => {
-          return { src: 'attributes.src' };
-        }
-      }
-    };
   }
 }).configure({
   allowBase64: true,

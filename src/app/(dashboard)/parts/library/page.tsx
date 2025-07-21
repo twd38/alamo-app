@@ -5,7 +5,6 @@ import { getPartsCount } from './queries/getPartsCount';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
 import type { Metadata } from 'next';
-import { prisma } from '@/lib/db';
 
 interface InventoryPageProps {
   searchParams: Promise<{
