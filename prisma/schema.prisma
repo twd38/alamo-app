@@ -92,12 +92,14 @@ model File {
   partId          String?
   stepId          String?
   stepFileId      String?
+  workOrderWorkInstructionStepId String?
   commentId       String?
   key             String                     @default("")
   workOrder       WorkOrder?                 @relation(fields: [workOrderId], references: [id])
   part            Part?                      @relation("PartFiles", fields: [partId], references: [id])
   step            WorkInstructionStep?       @relation("StepImages", fields: [stepId], references: [id])
   stepFile        WorkInstructionStep?       @relation("StepFiles", fields: [stepFileId], references: [id])
+  workOrderWorkInstructionStep WorkOrderWorkInstructionStep? @relation("WorkOrderWorkInstructionStepFiles", fields: [workOrderWorkInstructionStepId], references: [id])
   task            Task?                      @relation(fields: [taskId], references: [id])
   comment         Comment?                   @relation("CommentFiles", fields: [commentId], references: [id])
   partImagePart   Part?                      @relation("PartImage")
@@ -421,6 +423,7 @@ model WorkOrderWorkInstructionStep {
   workOrderInstruction      WorkOrderWorkInstruction            @relation(fields: [workOrderInstructionId], references: [id], onDelete: Cascade)
   originalStep              WorkInstructionStep?                @relation("WorkOrderStepSource", fields: [originalStepId], references: [id])
   actions                   WorkOrderWorkInstructionStepAction[]
+  files                     File[]                              @relation("WorkOrderWorkInstructionStepFiles")
   
   @@index([workOrderInstructionId])
 }
