@@ -43,6 +43,6 @@ export async function getWorkOrderWorkInstructions(
   }
 }
 
-export type WorkOrderWorkInstructions = NonNullable<
-  Prisma.PromiseReturnType<typeof getWorkOrderWorkInstructions>
+export type WorkOrderWorkInstructions = Prisma.PromiseReturnType<
+  typeof getWorkOrderWorkInstructions
 >;
