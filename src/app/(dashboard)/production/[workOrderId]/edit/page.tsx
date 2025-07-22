@@ -22,20 +22,13 @@ async function WorkOrderEditContent({ workOrderId }: { workOrderId: string }) {
     notFound();
   }
 
-  const workInstructions = await getWorkOrderWorkInstructions(
-    workOrder.workInstruction.id
-  );
   const users = await getUsers();
-
-  if (!workInstructions) {
-    notFound();
-  }
 
   return (
     <WorkOrderEditorWrapper
       workOrder={workOrder}
       users={users}
-      workInstructions={workInstructions}
+      workInstructions={workOrder.workInstruction}
     />
   );
 }
