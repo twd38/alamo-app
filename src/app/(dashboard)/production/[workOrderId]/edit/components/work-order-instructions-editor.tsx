@@ -2,7 +2,6 @@
 
 import { WorkInstructionsEditor } from '@/components/work-instructions';
 import { Prisma } from '@prisma/client';
-import { WorkOrderWorkInstructions } from '../queries/getWorkOrderWorkInstructions';
 import {
   updateWorkOrderWorkInstructionStep,
   createWorkOrderWorkInstructionStep,
@@ -11,6 +10,18 @@ import {
   addFilesToWorkOrderWorkInstructionStep,
   deleteFilesFromWorkOrderWorkInstructionStep
 } from '@/lib/actions';
+
+type WorkOrderWorkInstructions = Prisma.WorkOrderWorkInstructionGetPayload<{
+  include: {
+    steps: {
+      include: {
+        actions: true;
+        files: true;
+      };
+    };
+  };
+  workOrder: true;
+}>;
 
 interface WorkOrderInstructionsEditorProps {
   workInstructions: WorkOrderWorkInstructions;
