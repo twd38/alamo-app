@@ -35,7 +35,7 @@ export async function getUploadUrl(
   fileName: string,
   contentType: string,
   path: string
-): Promise<{ url: string; key: string; publicUrl: string }> {
+): Promise<{ url: string; key: string; publicUrl: string; name: string }> {
   // Generate unique key with UUID to prevent collisions
   const sanitizedName = sanitizeFileName(fileName);
   const key = `${path}/${randomUUID()}-${sanitizedName}`;
@@ -51,6 +51,7 @@ export async function getUploadUrl(
   });
 
   return {
+    name: fileName,
     url: presignedUrl,
     key,
     publicUrl: `${PUBLIC_URL}/${key}`

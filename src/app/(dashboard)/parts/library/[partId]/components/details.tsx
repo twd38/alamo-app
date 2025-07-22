@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { formatPartType } from '@/lib/utils';
 import { Package, FileText } from 'lucide-react';
 import Image from 'next/image';
+import { EditPartDialog } from './edit-part-dialog';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
   include: { part: true };
@@ -113,10 +114,11 @@ const Details = ({ part }: PartDetailsProps) => {
       <div className="space-y-4">
         {/* Part Details Card */}
         <Card className="w-full">
-          <CardHeader className="hidden">
+          <CardHeader className="flex-row justify-between items-center pb-0">
             <CardTitle className="text-lg font-semibold">
               Part Details
             </CardTitle>
+            <EditPartDialog part={part} />
           </CardHeader>
           <CardContent className="space-y-6 p-6">
             {/* Part Image and Basic Info */}

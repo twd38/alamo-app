@@ -23,44 +23,23 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User } from '@prisma/client';
+import { User, Prisma } from '@prisma/client';
 
-type WorkOrder = {
-  id: string;
-  workOrderNumber: string;
-  partQty: number;
-  dueDate: Date | null;
-  status: string;
-  notes: string | null;
-  part: {
-    id: string;
-    name: string | null;
-    description: string | null;
-    partNumber: string;
-    unit: string;
-    bomParts: Array<{
-      id: string;
-      qty: number;
-      part: {
-        partNumber: string;
-        name: string | null;
-        description: string | null;
-        unit: string;
-      } | null;
-    }>;
+type WorkOrder = Prisma.WorkOrderGetPayload<{
+  include: {
+    part: {
+      include: {
+        bomParts: {
+          include: {
+            part: true;
+          };
+        };
+      };
+    };
+    assignees: true;
+    files: true;
   };
-  assignees: Array<{
-    userId: string;
-    user: User;
-  }>;
-  files: Array<{
-    id: string;
-    name: string;
-    type: string;
-    size: number;
-    url: string;
-  }>;
-};
+}>;
 
 interface WorkOrderDetailsEditorProps {
   workOrder: WorkOrder;

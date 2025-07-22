@@ -5,71 +5,38 @@ import { WorkOrderTabs, TabContent } from './work-order-tabs';
 import { WorkOrderDetailsEditor } from './work-order-details-editor';
 import { WorkOrderModelView } from './work-order-model-view';
 import { WorkOrderInstructionsEditor } from './work-order-instructions-editor';
-import { User } from '@prisma/client';
+import { User, Prisma } from '@prisma/client';
 
-type WorkOrder = {
-  id: string;
-  workOrderNumber: string;
-  partQty: number;
-  dueDate: Date | null;
-  status: string;
-  notes: string | null;
-  part: {
-    id: string;
-    name: string | null;
-    description: string | null;
-    partNumber: string;
-    unit: string;
-    apsUrn?: string | null;
-    bomParts: Array<{
-      id: string;
-      qty: number;
-      part: {
-        partNumber: string;
-        name: string | null;
-        description: string | null;
-        unit: string;
-      } | null;
-    }>;
+type WorkOrder = Prisma.WorkOrderGetPayload<{
+  include: {
+    part: {
+      include: {
+        bomParts: {
+          include: {
+            part: true;
+          };
+        };
+      };
+    };
+    assignees: true;
+    files: true;
   };
-  assignees: Array<{
-    userId: string;
-    user: User;
-  }>;
-  files: Array<{
-    id: string;
-    name: string;
-    type: string;
-    size: number;
-    url: string;
-  }>;
-};
+}>;
 
-type WorkInstruction = {
-  id: string;
-  steps: Array<{
-    id: string;
-    stepNumber: number;
-    title: string;
-    instructions: string;
-    estimatedLabourTime: number;
-    actions: Array<{
-      id: string;
-      type: string;
-      label: string;
-      uploadedFile?: {
-        id: string;
-        name: string;
-        url: string;
+type WorkInstruction = Prisma.WorkInstructionGetPayload<{
+  include: {
+    steps: {
+      include: {
+        actions: {
+          include: {
+            uploadedFile: true;
+            executionFile: true;
+          };
+        };
       };
-      executionFile?: {
-        id: string;
-        name: string;
-        url: string;
-      };
-    }>;
-  }>;
-};
+    };
+  };
+}>;
 
 interface WorkOrderEditorWrapperProps {
   workOrder: WorkOrder;

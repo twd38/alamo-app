@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger
 } from 'src/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { BadgeQRDialog } from './badge-qr-dialog';
+import { BadgeQRDialog } from '../badge-qr-dialog';
 
 export async function User() {
   const session = await auth();

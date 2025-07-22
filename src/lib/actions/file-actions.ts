@@ -25,8 +25,12 @@ export async function getUploadUrl(
   path: string
 ) {
   try {
-    const { url, key } = await getUploadUrlR2(fileName, contentType, path);
-    return { success: true, url, key };
+    const { url, key, name } = await getUploadUrlR2(
+      fileName,
+      contentType,
+      path
+    );
+    return { success: true, url, key, name };
   } catch (error) {
     console.error('Error getting upload URL:', error);
     return { success: false, error: 'Failed to get upload URL' };

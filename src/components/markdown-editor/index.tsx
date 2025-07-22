@@ -116,25 +116,22 @@ export const MarkdownEditor = ({
     return new XMLSerializer().serializeToString(doc);
   };
 
-  const debouncedUpdates = useDebouncedCallback(
-    async (editor: EditorInstance) => {
-      const json = editor.getJSON();
-      setCharsCount(editor.storage.characterCount.words());
-      window.localStorage.setItem(
-        'html-content',
-        highlightCodeblocks(editor.getHTML())
-      );
-      window.localStorage.setItem('novel-content', JSON.stringify(json));
-      window.localStorage.setItem(
-        'markdown',
-        editor.storage.markdown.getMarkdown()
-      );
-      setSaveStatus('Saved');
+  const updateContentFunction = (editor: EditorInstance) => {
+    const json = editor.getJSON();
+    setCharsCount(editor.storage.characterCount.words());
+    window.localStorage.setItem(
+      'html-content',
+      highlightCodeblocks(editor.getHTML())
+    );
+    window.localStorage.setItem('novel-content', JSON.stringify(json));
+    window.localStorage.setItem(
+      'markdown',
+      editor.storage.markdown.getMarkdown()
+    );
+    setSaveStatus('Saved');
 
-      updateContent(JSON.stringify(json));
-    },
-    300
-  );
+    updateContent(JSON.stringify(json));
+  };
 
   const initialContentJson = initialContent ? JSON.parse(initialContent) : null;
 
@@ -192,7 +189,7 @@ export const MarkdownEditor = ({
           }}
           onUpdate={({ editor }) => {
             if (!readOnly) {
-              debouncedUpdates(editor);
+              updateContentFunction(editor);
               setSaveStatus('Unsaved');
             }
           }}

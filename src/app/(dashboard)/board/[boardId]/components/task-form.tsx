@@ -39,12 +39,10 @@ import {
   User,
   Task,
   TaskTag,
-  Epic,
   File as PrismaFile
 } from '@prisma/client';
 import { ComboBox } from '@/components/ui/combo-box';
 import {
-  createTask,
   deleteTask,
   duplicateTask,
   updateTask,
@@ -62,7 +60,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
 import { MarkdownEditor } from '@/components/markdown-editor';
-import { getStatusConfig, formatFileSize } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateRandomColor } from '@/lib/utils';

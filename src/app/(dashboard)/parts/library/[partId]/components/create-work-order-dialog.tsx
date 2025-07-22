@@ -42,6 +42,7 @@ import { WorkOrderStatus, type User, type WorkOrderTag } from '@prisma/client';
 import { createWorkOrder, createWorkOrderTag } from '@/lib/actions';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Prisma } from '@prisma/client';
 
 // -----------------------------------------------------------------------------
 // Validation schema & types
@@ -66,15 +67,11 @@ type FormValues = z.infer<typeof formSchema>;
 // Component
 // -----------------------------------------------------------------------------
 interface CreateWorkOrderDialogProps {
-  /** The part for which this work order is being created */
-  part: {
-    id: string;
-    partNumber: string;
-    description: string;
-    partImageId: string | null;
-    name: string;
-    partRevision: string;
-  };
+  part: Prisma.PartGetPayload<{
+    include: {
+      partImage: true;
+    };
+  }>;
 }
 
 export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
@@ -225,11 +222,7 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
               <div className="space-y-4 border rounded-lg p-4">
                 <div className="relative w-full aspect-square">
                   <Image
-                    src={
-                      part.partImageId
-                        ? `/api/files/${part.partImageId}`
-                        : '/placeholder.svg'
-                    }
+                    src={part.partImage?.key || '/placeholder.svg'}
                     alt={part.description}
                     fill
                     className="rounded-md object-cover"

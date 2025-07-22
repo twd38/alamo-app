@@ -38,6 +38,9 @@ export default function TaskDetailSheet({
       taskId: null,
       kanbanSectionId: null
     });
+
+    // Refresh the page data to ensure we have the latest task information
+    router.refresh();
   };
 
   const isOpen = activeTask.type === 'edit';

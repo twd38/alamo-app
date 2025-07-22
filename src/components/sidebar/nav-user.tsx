@@ -29,7 +29,7 @@ import {
 } from 'src/components/ui/sidebar';
 import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
-import { BadgeQRDialog } from './badge-qr-dialog';
+import { BadgeQRDialog } from '../badge-qr-dialog';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
 import packageJson from '../../../package.json';
