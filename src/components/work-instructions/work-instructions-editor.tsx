@@ -9,12 +9,16 @@ import {
   ResizablePanel,
   ResizableHandle
 } from '@/components/ui/resizable';
-import { File as PrismaFile } from '@prisma/client';
+import { File as PrismaFile, Prisma } from '@prisma/client';
 import { WorkInstructionStepList } from './work-instruction-step-list';
 import { WorkInstructionContent } from './work-instruction-content';
 import { StepDetails } from './step-details';
 import { WorkInstructionStepActions } from './work-instruction-step-actions';
-import { updateWorkInstructionStep } from '@/lib/actions';
+import {
+  updateWorkInstructionStep,
+  addFilesToWorkOrderWorkInstructionStep,
+  deleteFilesFromWorkOrderWorkInstructionStep
+} from '@/lib/actions';
 import { uploadFileToR2AndDatabase } from '@/lib/actions/file-actions';
 import { FileList } from '@/components/files/file-list';
 
@@ -26,6 +30,8 @@ interface WorkInstructionsEditorProps {
   onRemoveStep: (stepId: string) => void;
   onReorderSteps: (stepIds: string[]) => Promise<void>;
   onCreateWorkInstruction?: () => void;
+  onAddFilesToStep: (stepId: string, files: Prisma.FileCreateInput[]) => void;
+  onDeleteFilesFromStep: (stepId: string, fileIds: string[]) => void;
   revalidate: () => void;
   isWorkOrder?: boolean;
   workOrder?: {
@@ -42,6 +48,8 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
   onRemoveStep,
   onReorderSteps,
   onCreateWorkInstruction,
+  onAddFilesToStep,
+  onDeleteFilesFromStep,
   revalidate,
   isWorkOrder = false,
   workOrder
@@ -49,7 +57,7 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   const steps = useMemo(() => {
-    return workInstructions?.[0]?.steps || [];
+    return workInstructions?.steps || [];
   }, [workInstructions]);
 
   // Auto-select first step when data loads
@@ -71,51 +79,15 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
     );
   }
 
-  const handleUpdateWorkInstructionStepFiles = async (files: File[]) => {
-    const file = files[0];
-    const stepId = selectedStep?.id;
-
-    try {
-      // 1. Upload files
-      const uploadedFile = await uploadFileToR2AndDatabase(
-        file,
-        'work-instructions',
-        {
-          stepId
-        }
-      );
-
-      // 2. Update work instruction step
-      const updatedFilesArray = [
-        ...(selectedStep?.files || []),
-        uploadedFile.data?.id
-      ];
-      const updatedStep = await updateWorkInstructionStep({
-        stepId,
-        files: updatedFilesArray
-      });
-
-      if (updatedStep.success) {
-        revalidate();
-      }
-    } catch (error) {
-      console.error('Error updating work instruction step files:', error);
+  const handleUploadFilesToStep = (files: Prisma.FileCreateInput[]) => {
+    if (selectedStep?.id) {
+      onAddFilesToStep(selectedStep.id, files);
     }
   };
 
-  const handleDeleteWorkInstructionStepFile = async (file: PrismaFile) => {
-    const stepId = selectedStep?.id;
-    const updatedFilesArray = selectedStep?.files?.filter(
-      (f: PrismaFile) => f.id !== file.id
-    );
-
-    const updatedStep = await updateWorkInstructionStep({
-      stepId,
-      files: updatedFilesArray
-    });
-
-    if (updatedStep.success) {
-      revalidate();
+  const handleDeleteFilesFromStep = (file: PrismaFile) => {
+    if (selectedStep?.id) {
+      onDeleteFilesFromStep(selectedStep.id, [file.id]);
     }
   };
 
@@ -209,11 +181,12 @@ export const WorkInstructionsEditor: React.FC<WorkInstructionsEditorProps> = ({
             />
           </TabsContent>
           <TabsContent value="files" className="mt-0 h-[calc(100%-3rem)] p-4">
-            {/* <FileList
+            <FileList
               files={selectedStep?.files || []}
-              onUpload={handleUpdateWorkInstructionStepFiles}
-              onDelete={handleDeleteWorkInstructionStepFile}
-            /> */}
+              uploadPath="work-instructions"
+              onUpload={handleUploadFilesToStep}
+              onDelete={handleDeleteFilesFromStep}
+            />
           </TabsContent>
         </Tabs>
       </ResizablePanel>

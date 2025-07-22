@@ -21,7 +21,8 @@ import {
 import { useState, useEffect } from 'react';
 import {
   WorkOrderWorkInstructionStep,
-  WorkOrderWorkInstructionStepAction
+  WorkOrderWorkInstructionStepAction,
+  Prisma
 } from '@prisma/client';
 import { ProductionSidebar } from './production-sidebar';
 import { WorkInstructionStepItem } from './work-instruction-step-item';
@@ -32,12 +33,15 @@ import { useSearchParams } from 'next/navigation';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
-type WorkInstructionStepWithActions = WorkOrderWorkInstructionStep & {
-  actions: WorkOrderWorkInstructionStepAction[];
-};
+type WorkOrderInstructionStep = Prisma.WorkOrderWorkInstructionStepGetPayload<{
+  include: {
+    actions: true;
+    files: true;
+  };
+}>;
 
 interface WorkInstructionsViewerProps {
-  steps: WorkInstructionStepWithActions[];
+  steps: WorkOrderInstructionStep[];
   workOrder: WorkOrder;
   className?: string;
 }
@@ -76,7 +80,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
     ]
   });
 
-  const printLabelsStep: WorkInstructionStepWithActions = {
+  const printLabelsStep: WorkOrderInstructionStep = {
     id: 'print-labels-step',
     workOrderInstructionId: workOrder?.workInstruction?.id || '',
     originalStepId: null,
@@ -92,7 +96,8 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
     timeTaken: null,
     status: workOrder?.labelsPrinted ? 'COMPLETED' : 'PENDING', // Always pending until user completes the work order
     activeWorkers: 0,
-    actions: []
+    actions: [],
+    files: []
   };
 
   // Combine regular steps with the virtual print labels step
@@ -249,7 +254,10 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
                   {selectedStep ? selectedStep.title : 'Overview'}
                 </CardTitle>
                 {selectedStep && (
-                  <Badge className="px-2 py-1" variant="secondary">
+                  <Badge
+                    className="px-2 py-1 shrink-0 align-top"
+                    variant="secondary"
+                  >
                     <Clock className="h-3 w-3 mr-1" />
                     {selectedStep.estimatedLabourTime} min
                   </Badge>

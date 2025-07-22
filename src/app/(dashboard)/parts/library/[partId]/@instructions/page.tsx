@@ -7,13 +7,15 @@ import {
   getPartWorkInstructions,
   PartWorkInstructions
 } from '../queries/getPartWorkInstructions';
-import { WorkInstructionStep } from '@prisma/client';
+import { WorkInstructionStep, Prisma } from '@prisma/client';
 import {
   createWorkInstruction,
   createWorkInstructionStep,
   updateWorkInstructionStep,
   deleteWorkInstructionStep,
-  reorderWorkInstructionSteps
+  reorderWorkInstructionSteps,
+  addFilesToWorkInstructionStep,
+  deleteFilesFromWorkInstructionStep
 } from '@/lib/actions';
 import { WorkInstructionsEditor } from '@/components/work-instructions';
 
@@ -31,7 +33,7 @@ const PartWorkInstructionsEditor: React.FC = () => {
     () => getPartWorkInstructions(partId)
   );
 
-  const workInstructionId = workInstructions?.[0]?.id;
+  const workInstructionId = workInstructions?.id;
 
   const handleCreateWorkInstruction = async () => {
     if (!partId) return;
@@ -62,7 +64,7 @@ const PartWorkInstructionsEditor: React.FC = () => {
   const handleAddStep = async () => {
     if (!workInstructionId) return;
     try {
-      const steps = workInstructions?.[0]?.steps || [];
+      const steps = workInstructions?.steps;
       await createWorkInstructionStep({
         workInstructionId,
         stepNumber: steps.length + 1,
@@ -105,18 +107,35 @@ const PartWorkInstructionsEditor: React.FC = () => {
     }
   };
 
+  const handleAddFilesToStep = async (
+    stepId: string,
+    files: Prisma.FileCreateInput[]
+  ) => {
+    await addFilesToWorkInstructionStep(stepId, files);
+    mutate();
+  };
+
+  const handleDeleteFilesFromStep = async (
+    stepId: string,
+    fileIds: string[]
+  ) => {
+    await deleteFilesFromWorkInstructionStep(stepId, fileIds);
+    mutate();
+  };
   const handleUpdateStep = async (
     stepId: string,
     updates: Partial<WorkInstructionStep>
   ) => {
     try {
       // Optimistically update the UI
-      const optimisticData = workInstructions?.map((wi) => ({
-        ...wi,
-        steps: wi.steps.map((step) =>
-          step.id === stepId ? { ...step, ...updates } : step
-        )
-      }));
+      const optimisticData = workInstructions
+        ? {
+            ...workInstructions,
+            steps: workInstructions.steps.map((step) =>
+              step.id === stepId ? { ...step, ...updates } : step
+            )
+          }
+        : undefined;
 
       // Update the cache immediately
       mutate(optimisticData, false);
@@ -151,6 +170,8 @@ const PartWorkInstructionsEditor: React.FC = () => {
       onRemoveStep={handleRemoveStep}
       onReorderSteps={handleReorderSteps}
       onCreateWorkInstruction={handleCreateWorkInstruction}
+      onAddFilesToStep={handleAddFilesToStep}
+      onDeleteFilesFromStep={handleDeleteFilesFromStep}
       revalidate={() => mutate()}
     />
   );

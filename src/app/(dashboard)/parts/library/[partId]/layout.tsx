@@ -2,7 +2,7 @@ import BasicTopBar from '@/components/layouts/basic-top-bar';
 import { getPart } from './queries/getPart';
 import { TabList, ActiveTab } from './components/part-tabs';
 import { CreateWorkOrderDialog } from './components/create-work-order-dialog';
-import { Part } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { BreadcrumbConfig } from '@/components/breadcrumbs';
 
 type PartDetailLayoutProps = {
@@ -12,6 +12,12 @@ type PartDetailLayoutProps = {
   instructions: React.ReactNode;
   inventory: React.ReactNode;
 };
+
+type Part = Prisma.PartGetPayload<{
+  include: {
+    partImage: true;
+  };
+}>;
 
 const TopBarActions = ({ part }: { part: Part | null }) => {
   if (!part) {

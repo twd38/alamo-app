@@ -5,11 +5,18 @@ import { Prisma } from '@prisma/client';
 
 export async function getPartWorkInstructions(partId: string) {
   try {
-    const result = await prisma.workInstruction.findMany({
+    const part = await prisma.part.findUnique({
       where: {
-        part: {
-          id: partId
-        }
+        id: partId
+      },
+      include: {
+        workInstructions: true
+      }
+    });
+
+    const result = await prisma.workInstruction.findUnique({
+      where: {
+        id: part?.workInstructions[0].id
       },
       include: {
         steps: {

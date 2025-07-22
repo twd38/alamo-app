@@ -1,41 +1,29 @@
 'use client';
 
 import { WorkInstructionsEditor } from '@/components/work-instructions';
+import { Prisma } from '@prisma/client';
 import {
   updateWorkOrderWorkInstructionStep,
   createWorkOrderWorkInstructionStep,
   deleteWorkOrderWorkInstructionStep,
-  reorderWorkOrderWorkInstructionSteps
+  reorderWorkOrderWorkInstructionSteps,
+  addFilesToWorkOrderWorkInstructionStep,
+  deleteFilesFromWorkOrderWorkInstructionStep
 } from '@/lib/actions';
 
-type WorkInstruction = {
-  id: string;
-  steps: Array<{
-    id: string;
-    stepNumber: number;
-    title: string;
-    instructions: string;
-    estimatedLabourTime: number;
-    actions: Array<{
-      id: string;
-      type: string;
-      label: string;
-      uploadedFile?: {
-        id: string;
-        name: string;
-        url: string;
+type WorkInstruction = Prisma.WorkOrderWorkInstructionGetPayload<{
+  include: {
+    steps: {
+      include: {
+        actions: true;
+        files: true;
       };
-      executionFile?: {
-        id: string;
-        name: string;
-        url: string;
-      };
-    }>;
-  }>;
-};
+    };
+  };
+}>;
 
 interface WorkOrderInstructionsEditorProps {
-  workInstructions: WorkInstruction[] | undefined;
+  workInstructions: WorkInstruction;
   isLoading: boolean;
   onUpdate: () => void;
   workOrder?: {
@@ -50,12 +38,12 @@ export function WorkOrderInstructionsEditor({
   onUpdate,
   workOrder
 }: WorkOrderInstructionsEditorProps) {
-  const workInstructionId = workInstructions?.[0]?.id;
+  const workInstructionId = workInstructions.id;
 
   const handleAddStep = async () => {
     if (!workInstructionId) return;
     try {
-      const steps = workInstructions?.[0]?.steps || [];
+      const steps = workInstructions.steps || [];
       await createWorkOrderWorkInstructionStep({
         workOrderInstructionId: workInstructionId,
         stepNumber: steps.length + 1,
@@ -119,6 +107,26 @@ export function WorkOrderInstructionsEditor({
     }
   };
 
+  const handleAddFilesToStep = async (
+    stepId: string,
+    files: Prisma.FileCreateInput[]
+  ) => {
+    await addFilesToWorkOrderWorkInstructionStep(stepId, files);
+    onUpdate();
+  };
+
+  const handleDeleteFilesFromStep = async (
+    stepId: string,
+    fileIds: string[]
+  ) => {
+    await deleteFilesFromWorkOrderWorkInstructionStep(stepId, fileIds);
+    onUpdate();
+  };
+
+  if (!workInstructions) {
+    return null;
+  }
+
   return (
     <WorkInstructionsEditor
       workInstructions={workInstructions}
@@ -127,6 +135,8 @@ export function WorkOrderInstructionsEditor({
       onAddStep={handleAddStep}
       onRemoveStep={handleRemoveStep}
       onReorderSteps={handleReorderSteps}
+      onAddFilesToStep={handleAddFilesToStep}
+      onDeleteFilesFromStep={handleDeleteFilesFromStep}
       revalidate={onUpdate}
       isWorkOrder={true}
       workOrder={workOrder}

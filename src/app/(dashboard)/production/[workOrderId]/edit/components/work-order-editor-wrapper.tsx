@@ -23,7 +23,7 @@ type WorkOrder = Prisma.WorkOrderGetPayload<{
   };
 }>;
 
-type WorkInstruction = Prisma.WorkInstructionGetPayload<{
+type WorkInstruction = Prisma.WorkOrderWorkInstructionGetPayload<{
   include: {
     steps: {
       include: {
@@ -33,6 +33,7 @@ type WorkInstruction = Prisma.WorkInstructionGetPayload<{
             executionFile: true;
           };
         };
+        files: true;
       };
     };
   };
@@ -41,7 +42,7 @@ type WorkInstruction = Prisma.WorkInstructionGetPayload<{
 interface WorkOrderEditorWrapperProps {
   workOrder: WorkOrder;
   users: User[];
-  workInstructions: WorkInstruction[];
+  workInstructions: WorkInstruction;
 }
 
 export function WorkOrderEditorWrapper({

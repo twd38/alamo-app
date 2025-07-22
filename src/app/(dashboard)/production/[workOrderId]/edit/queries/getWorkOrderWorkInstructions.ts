@@ -3,45 +3,25 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
-export async function getWorkOrderWorkInstructions(workOrderId: string) {
+export async function getWorkOrderWorkInstructions(
+  workOrderWorkInstructionId: string
+) {
   try {
-    const result = await prisma.workOrderWorkInstruction.findMany({
+    const result = await prisma.workOrderWorkInstruction.findUnique({
       where: {
-        workOrderId
+        id: workOrderWorkInstructionId
       },
-      select: {
-        id: true,
+      include: {
+        workOrder: true,
         steps: {
-          select: {
-            id: true,
-            stepNumber: true,
-            title: true,
-            instructions: true,
-            estimatedLabourTime: true,
+          include: {
             actions: {
-              select: {
-                id: true,
-                actionType: true,
-                description: true,
-                uploadedFile: {
-                  select: {
-                    id: true,
-                    name: true,
-                    url: true
-                  }
-                },
-                executionFile: {
-                  select: {
-                    id: true,
-                    name: true,
-                    url: true
-                  }
-                }
+              include: {
+                uploadedFile: true,
+                executionFile: true
               }
-            }
-          },
-          orderBy: {
-            stepNumber: 'asc'
+            },
+            files: true
           }
         }
       }

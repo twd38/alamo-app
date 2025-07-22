@@ -127,7 +127,7 @@ export async function updateWorkInstructionStep({
   title?: string;
   instructions?: string;
   estimatedLabourTime?: number;
-  files?: string[];
+  files?: Prisma.FileCreateInput[];
 }) {
   try {
     const result = await prisma.workInstructionStep.update({
@@ -137,7 +137,7 @@ export async function updateWorkInstructionStep({
         instructions,
         estimatedLabourTime,
         files: {
-          connect: files?.map((file) => ({ id: file }))
+          connect: files?.map((file) => ({ id: file.id }))
         }
       }
     });
@@ -262,6 +262,60 @@ export async function updateWorkInstructionStepAction({
   }
 }
 
+export async function addFilesToWorkInstructionStep(
+  stepId: string,
+  files: Prisma.FileCreateInput[]
+) {
+  try {
+    const result = await prisma.workInstructionStep.update({
+      where: { id: stepId },
+      data: {
+        files: {
+          create: files.map((file) => ({
+            url: file.url,
+            key: file.key,
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
+        }
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error adding files to work instruction step:', error);
+    return {
+      success: false,
+      error: 'Failed to add files to work instruction step'
+    };
+  }
+}
+
+export async function deleteFilesFromWorkInstructionStep(
+  stepId: string,
+  fileIds: string[]
+) {
+  try {
+    const result = await prisma.workInstructionStep.update({
+      where: { id: stepId },
+      data: {
+        files: {
+          deleteMany: {
+            id: { in: fileIds }
+          }
+        }
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error deleting files from work instruction step:', error);
+    return {
+      success: false,
+      error: 'Failed to delete files from work instruction step'
+    };
+  }
+}
+
 export async function deleteWorkInstructionStepAction(actionId: string) {
   try {
     await prisma.workInstructionStepAction.delete({
@@ -283,12 +337,14 @@ export async function updateWorkOrderWorkInstructionStep({
   stepId,
   title,
   instructions,
-  estimatedLabourTime
+  estimatedLabourTime,
+  files
 }: {
   stepId: string;
   title: string;
   instructions: string;
   estimatedLabourTime: number;
+  files?: Prisma.FileCreateInput[];
 }) {
   try {
     const result = await prisma.workOrderWorkInstructionStep.update({
@@ -296,7 +352,10 @@ export async function updateWorkOrderWorkInstructionStep({
       data: {
         title,
         instructions,
-        estimatedLabourTime
+        estimatedLabourTime,
+        files: {
+          connect: files?.map((file) => ({ id: file.id }))
+        }
       }
     });
     return { success: true, data: result };
@@ -314,13 +373,15 @@ export async function createWorkOrderWorkInstructionStep({
   stepNumber,
   title,
   instructions,
-  estimatedLabourTime
+  estimatedLabourTime,
+  files
 }: {
   workOrderInstructionId: string;
   stepNumber: number;
   title: string;
   instructions: string;
   estimatedLabourTime: number;
+  files?: Prisma.FileCreateInput[];
 }) {
   try {
     const result = await prisma.workOrderWorkInstructionStep.create({
@@ -332,7 +393,10 @@ export async function createWorkOrderWorkInstructionStep({
         estimatedLabourTime,
         requiredTools: [],
         status: 'PENDING',
-        activeWorkers: 0
+        activeWorkers: 0,
+        files: {
+          connect: files?.map((file) => ({ id: file.id }))
+        }
       }
     });
     return { success: true, data: result };
@@ -379,6 +443,66 @@ export async function reorderWorkOrderWorkInstructionSteps(
     return {
       success: false,
       error: 'Failed to reorder work order work instruction steps'
+    };
+  }
+}
+
+export async function addFilesToWorkOrderWorkInstructionStep(
+  stepId: string,
+  files: Prisma.FileCreateInput[]
+) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStep.update({
+      where: { id: stepId },
+      data: {
+        files: {
+          create: files.map((file) => ({
+            url: file.url,
+            key: file.key,
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
+        }
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(
+      'Error adding files to work order work instruction step:',
+      error
+    );
+    return {
+      success: false,
+      error: 'Failed to add files to work order work instruction step'
+    };
+  }
+}
+
+export async function deleteFilesFromWorkOrderWorkInstructionStep(
+  stepId: string,
+  fileIds: string[]
+) {
+  try {
+    const result = await prisma.workOrderWorkInstructionStep.update({
+      where: { id: stepId },
+      data: {
+        files: {
+          deleteMany: {
+            id: { in: fileIds }
+          }
+        }
+      }
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(
+      'Error deleting files from work order work instruction step:',
+      error
+    );
+    return {
+      success: false,
+      error: 'Failed to delete files from work order work instruction step'
     };
   }
 }
@@ -841,7 +965,8 @@ export async function createWorkOrder({
             include: {
               steps: {
                 include: {
-                  actions: true
+                  actions: true,
+                  files: true
                 },
                 orderBy: { stepNumber: 'asc' }
               }
@@ -952,7 +1077,18 @@ export async function createWorkOrder({
                       updatedAt: new Date(),
                       // Initialize execution state
                       status: 'PENDING',
-                      activeWorkers: 0
+                      activeWorkers: 0,
+                      // Copy files from original work instruction step
+                      files: {
+                        create:
+                          step.files?.map((file: PrismaFile) => ({
+                            url: file.url,
+                            key: file.key,
+                            name: file.name,
+                            type: file.type,
+                            size: file.size
+                          })) || []
+                      }
                     }
                   });
 

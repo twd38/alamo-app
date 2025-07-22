@@ -125,30 +125,13 @@ const Details = ({ part }: PartDetailsProps) => {
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-shrink-0">
                 <div className="w-48 h-48 rounded-lg flex items-center justify-center">
-                  {part.partImage?.url ? (
-                    <Image
-                      src={part.partImage.key}
-                      alt={part.name || 'Part image'}
-                      width={192}
-                      height={192}
-                      className="rounded-lg object-cover"
-                    />
-                  ) : (
-                    // <FileUpload
-                    //   value={undefined}
-                    //   onChange={() => {}}
-                    //   onUpload={handleUploadPartImage}
-                    //   uploadPath="parts"
-                    //   multiple={false}
-                    //   accept={{
-                    //     'image/*': ['.png', '.jpg', '.jpeg']
-                    //   }}
-                    // />
-                    <div className="flex flex-col items-center justify-center h-full w-full text-gray-400 text-center border-2 border-dashed bg-gray-50 border-gray-300">
-                      <Package className="w-12 h-12 mx-auto mb-2" />
-                      <div className="text-sm">No image available</div>
-                    </div>
-                  )}
+                  <Image
+                    src={part.partImage?.key || '/images/placeholder.svg'}
+                    alt={part.name || 'Part image'}
+                    width={192}
+                    height={192}
+                    className="rounded-lg object-cover"
+                  />
                 </div>
               </div>
 

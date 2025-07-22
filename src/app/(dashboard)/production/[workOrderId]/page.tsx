@@ -31,10 +31,7 @@ const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
   return (
     <div className="max-h-screen">
       <ProductionTopBar workOrder={workOrder} />
-      <WorkInstructionsViewer
-        steps={mappedSteps as any}
-        workOrder={workOrder}
-      />
+      <WorkInstructionsViewer steps={mappedSteps} workOrder={workOrder} />
     </div>
   );
 };

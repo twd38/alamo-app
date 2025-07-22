@@ -44,7 +44,8 @@ export async function getWorkOrder(workOrderId: string) {
                   uploadedFile: true,
                   executionFile: true
                 }
-              }
+              },
+              files: true
             },
             orderBy: {
               stepNumber: 'asc'

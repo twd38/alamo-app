@@ -34,6 +34,7 @@ interface LoadingFileItemProps {
 interface FileListProps {
   files: PrismaFile[] | [];
   uploadPath: string; // The path to upload the files to on R2
+  readOnly?: boolean;
   onUpload: (files: Prisma.FileCreateInput[]) => void | Promise<void>;
   onDelete: (file: PrismaFile) => void | Promise<void>;
 }
@@ -49,16 +50,16 @@ function FileItem({ file, isDeleting, onDelete }: FileItemProps) {
         isDeleting ? 'bg-secondary/50 opacity-50 animate-pulse' : 'bg-secondary'
       }`}
     >
-      <div className="flex items-center justify-between gap-2 w-full">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <FileIcon
             fileName={file.name}
-            className={`h-4 w-4 ${isDeleting ? 'text-muted-foreground' : ''}`}
+            className={`h-4 w-4 flex-shrink-0 ${isDeleting ? 'text-muted-foreground' : ''}`}
           />
           <Button
             variant="link"
             onClick={() => downloadFile(file)}
-            className={`text-sm font-medium p-0 h-auto justify-start min-w-0 flex-1 max-w-[300px] sm:max-w-full truncate ${
+            className={`text-sm font-medium p-0 h-auto justify-start min-w-0 truncate ${
               isDeleting ? 'text-muted-foreground' : ''
             }`}
             disabled={isDeleting}
@@ -66,26 +67,28 @@ function FileItem({ file, isDeleting, onDelete }: FileItemProps) {
             <span className="truncate block">{file.name}</span>
           </Button>
         </div>
-        <span
-          className={`text-xs ${isDeleting ? 'text-muted-foreground' : 'text-muted-foreground'}`}
-        >
-          {isDeleting ? 'Deleting...' : formatFileSize(file.size)}
-        </span>
-      </div>
-      {isDeleting ? (
-        <div className="w-8 h-8 flex items-center justify-center">
-          <div className="w-4 h-4 bg-muted-foreground/20 rounded animate-pulse" />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className={`text-xs whitespace-nowrap ${isDeleting ? 'text-muted-foreground' : 'text-muted-foreground'}`}
+          >
+            {isDeleting && 'Deleting...'}
+          </span>
+          {isDeleting ? (
+            <div className="w-8 h-8 flex items-center justify-center">
+              <div className="w-4 h-4 bg-muted-foreground/20 rounded animate-pulse" />
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(file)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(file)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
+      </div>
     </div>
   );
 }
@@ -125,6 +128,7 @@ FILE LIST COMPONENT
 export function FileList({
   files,
   uploadPath,
+  readOnly = false,
   onUpload,
   onDelete
 }: FileListProps) {
@@ -212,7 +216,7 @@ export function FileList({
   return (
     <div>
       {/* File List */}
-      {(files.length > 0 || loadingFiles.length > 0) && (
+      {(files?.length > 0 || loadingFiles.length > 0) && (
         <div className="space-y-2">
           {/* Existing files */}
           {files.map((file, index: number) => {
@@ -233,23 +237,25 @@ export function FileList({
           ))}
         </div>
       )}
-      <DropzoneInput
-        label={'Upload Files'}
-        onFilesChange={(files) => {
-          // Validate file size (10MB limit)
-          const invalidFiles = files.filter(
-            (file) => file.size > 10 * 1024 * 1024
-          );
-          if (invalidFiles.length > 0) {
-            toast.error('Files must be less than 10MB');
-            return;
-          }
+      {!readOnly && (
+        <DropzoneInput
+          label={'Upload Files'}
+          onFilesChange={(files) => {
+            // Validate file size (10MB limit)
+            const invalidFiles = files.filter(
+              (file) => file.size > 10 * 1024 * 1024
+            );
+            if (invalidFiles.length > 0) {
+              toast.error('Files must be less than 10MB');
+              return;
+            }
 
-          handleUpload(files);
-        }}
-        isLoading={loadingFiles.length > 0}
-        className="mt-2"
-      />
+            handleUpload(files);
+          }}
+          isLoading={loadingFiles.length > 0}
+          className="mt-2"
+        />
+      )}
     </div>
   );
 }

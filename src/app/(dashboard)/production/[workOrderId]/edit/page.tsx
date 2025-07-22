@@ -17,27 +17,30 @@ interface WorkOrderEditPageProps {
 
 async function WorkOrderEditContent({ workOrderId }: { workOrderId: string }) {
   const workOrder = await getWorkOrder(workOrderId);
-  const rawWorkInstructions = await getWorkOrderWorkInstructions(workOrderId);
+  const workInstructions = await getWorkOrderWorkInstructions(
+    workOrder?.workInstruction?.id!
+  );
   const users = await getUsers();
 
-  if (!workOrder) {
+  if (!workOrder || !workInstructions) {
     notFound();
   }
 
   // Transform the data to match the expected structure
-  const workInstructions = rawWorkInstructions.map((instruction) => ({
-    ...instruction,
-    steps: instruction.steps.map((step) => ({
-      ...step,
-      actions: step.actions.map((action) => ({
-        id: action.id,
-        type: String(action.actionType),
-        label: action.description,
-        uploadedFile: action.uploadedFile || undefined,
-        executionFile: action.executionFile || undefined
-      }))
-    }))
-  }));
+  // const workInstructions = rawWorkInstructions.map((instruction) => ({
+  //   ...instruction,
+  //   steps: instruction.steps.map((step) => ({
+  //     ...step,
+  //     actions: step.actions.map((action) => ({
+  //       id: action.id,
+  //       type: String(action.actionType),
+  //       label: action.description,
+  //       uploadedFile: action.uploadedFile || undefined,
+  //       executionFile: action.executionFile || undefined
+  //     })),
+  //     files: step.files || []
+  //   }))
+  // }));
 
   return (
     <WorkOrderEditorWrapper

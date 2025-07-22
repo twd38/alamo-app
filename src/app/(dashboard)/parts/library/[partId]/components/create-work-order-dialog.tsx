@@ -180,7 +180,14 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
           console.log('Work order created', result.data);
           form.reset();
           setOpen(false);
-          toast.success('Work order created');
+          toast.success('Work order created', {
+            action: {
+              label: 'View Work Order',
+              onClick: () => {
+                window.open(`/production/${result.data.id}/edit`, '_blank');
+              }
+            }
+          });
         } else {
           console.error(result?.error);
           toast.error(result?.error ?? 'Failed to create work order');
@@ -222,7 +229,7 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
               <div className="space-y-4 border rounded-lg p-4">
                 <div className="relative w-full aspect-square">
                   <Image
-                    src={part.partImage?.key || '/placeholder.svg'}
+                    src={part.partImage?.key || '/images/placeholder.svg'}
                     alt={part.description}
                     fill
                     className="rounded-md object-cover"

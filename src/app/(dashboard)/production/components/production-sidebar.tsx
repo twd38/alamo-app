@@ -7,7 +7,8 @@ import {
   ActionType,
   WorkOrderStatus,
   WorkOrderWorkInstructionStep,
-  WorkOrderWorkInstructionStepAction
+  WorkOrderWorkInstructionStepAction,
+  Prisma
 } from '@prisma/client';
 import { ProductionActionItem } from './actions';
 import { CircleCheck } from 'lucide-react';
@@ -21,15 +22,19 @@ import { useState, useEffect } from 'react';
 import { Comments } from '@/components/comments';
 import { useSearchParams } from 'next/navigation';
 import { WorkOrderCompletionDialog } from './work-order-completion-dialog';
+import { FileList } from '@/components/files/file-list';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
-type WorkOrderInstructionStepWithActions = WorkOrderWorkInstructionStep & {
-  actions: WorkOrderWorkInstructionStepAction[];
-};
+type WorkOrderInstructionStep = Prisma.WorkOrderWorkInstructionStepGetPayload<{
+  include: {
+    actions: true;
+    files: true;
+  };
+}>;
 
 interface ProductionSidebarProps {
-  step: WorkOrderInstructionStepWithActions | null;
+  step: WorkOrderInstructionStep | null;
   workOrder: WorkOrder;
   onStepCompleted?: (stepId: string) => void;
 }
@@ -358,7 +363,7 @@ export function ProductionSidebar({
           <TabsContent value="comments" className="mt-0 min-h-0 h-full">
             <ProductionComments step={step} workOrderId={workOrder?.id} />
           </TabsContent>
-          <TabsContent value="files" className="mt-0 flex-1 min-h-0">
+          <TabsContent value="files" className="mt-0 min-h-0 h-full">
             <ProductionFiles step={step} />
           </TabsContent>
         </Tabs>
@@ -382,7 +387,7 @@ function ProductionActions({
   workOrder,
   isWorkOrderInProgress
 }: {
-  step: WorkOrderInstructionStepWithActions | null;
+  step: WorkOrderInstructionStep | null;
   workOrder: WorkOrder;
   isWorkOrderInProgress: boolean;
 }) {
@@ -424,7 +429,7 @@ function ProductionComments({
   step,
   workOrderId
 }: {
-  step: WorkOrderInstructionStepWithActions | null;
+  step: WorkOrderInstructionStep | null;
   workOrderId?: string;
 }) {
   if (!step) {
@@ -445,11 +450,7 @@ function ProductionComments({
 }
 
 // Placeholder component for Files
-function ProductionFiles({
-  step
-}: {
-  step: WorkOrderInstructionStepWithActions | null;
-}) {
+function ProductionFiles({ step }: { step: WorkOrderInstructionStep | null }) {
   if (!step) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -459,12 +460,14 @@ function ProductionFiles({
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-4">
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-          <p>Files functionality coming soon</p>
-        </div>
-      </div>
+    <div className="h-full overflow-y-auto p-4">
+      <FileList
+        files={step.files}
+        uploadPath="work-instructions"
+        onUpload={() => {}}
+        onDelete={() => {}}
+        readOnly={true}
+      />
     </div>
   );
 }
