@@ -11,6 +11,8 @@ import {
  *
  * This endpoint receives print requests from the client and sends them
  * to the registered Zebra printer using the cloud-based API.
+ * Supports printing multiple labels based on the quantity specified in labelData.
+ * Quantity defaults to 1 if not provided and is limited to a maximum of 100.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +27,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate quantity if provided
+    const quantity = labelData.quantity || 1;
+    if (quantity < 1 || quantity > 100) {
+      return NextResponse.json(
+        { error: 'Quantity must be between 1 and 100' },
+        { status: 400 }
+      );
+    }
+
     // Validate environment variables
     if (!process.env.ZEBRA_API_KEY || !process.env.ZEBRA_TENANT) {
       return NextResponse.json(
@@ -33,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate ZPL code from label data
+    // Generate ZPL code from label data (includes quantity for multiple copies)
     const zplCode = generatePartLabelZPL(labelData as PartLabelData);
 
     // Send to printer via Zebra Cloud API
@@ -41,9 +52,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Label sent to printer successfully via Zebra Cloud API',
+      message: `${quantity} label${quantity > 1 ? 's' : ''} sent to printer successfully via Zebra Cloud API`,
       method: 'Zebra Cloud API',
-      printerSerialNumber
+      printerSerialNumber,
+      quantity
     });
   } catch (error) {
     console.error('Print label API error:', error);

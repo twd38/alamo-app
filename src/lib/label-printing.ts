@@ -17,6 +17,7 @@ export interface PartLabelData {
  * Generates ZPL code for a part label with QR code
  * Designed for 2.25" x 1.25" labels (457x254 dots at 203 DPI)
  * Includes: Work Order Number, Part Number, Part Name (optional), and QR Code
+ * Supports printing multiple copies based on quantity
  */
 export function generatePartLabelZPL(data: PartLabelData): string {
   const {
@@ -33,9 +34,13 @@ export function generatePartLabelZPL(data: PartLabelData): string {
   const qrCodeUrl =
     workOrderId && baseUrl ? `${baseUrl}/production/${workOrderId}` : null;
 
+  // Determine print quantity (default to 1 if not specified or invalid)
+  const printQuantity = quantity && quantity > 0 ? quantity : 1;
+
   // ZPL template for part label (2.25" x 1.25" - 457x254 dots at 203 DPI)
   const zpl = `
 ^XA
+^PQ${printQuantity}
 ^CF0,35
 ^FO25,55^FD${workOrderNumber}^FS
 
