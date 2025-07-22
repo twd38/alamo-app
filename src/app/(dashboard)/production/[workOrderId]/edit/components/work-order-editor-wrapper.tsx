@@ -39,11 +39,11 @@ type WorkInstruction = Prisma.WorkOrderWorkInstructionGetPayload<{
   };
 }>;
 
-interface WorkOrderEditorWrapperProps {
+type WorkOrderEditorWrapperProps = {
   workOrder: WorkOrder;
   users: User[];
   workInstructions: WorkInstruction;
-}
+};
 
 export function WorkOrderEditorWrapper({
   workOrder,
