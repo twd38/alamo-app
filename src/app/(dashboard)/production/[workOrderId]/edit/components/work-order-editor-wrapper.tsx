@@ -6,6 +6,7 @@ import { WorkOrderDetailsEditor } from './work-order-details-editor';
 import { WorkOrderModelView } from './work-order-model-view';
 import { WorkOrderInstructionsEditor } from './work-order-instructions-editor';
 import { User, Prisma } from '@prisma/client';
+import { WorkOrderWorkInstructions } from '../queries/getWorkOrderWorkInstructions';
 
 type WorkOrder = Prisma.WorkOrderGetPayload<{
   include: {
@@ -23,26 +24,10 @@ type WorkOrder = Prisma.WorkOrderGetPayload<{
   };
 }>;
 
-type WorkInstruction = Prisma.WorkOrderWorkInstructionGetPayload<{
-  include: {
-    steps: {
-      include: {
-        actions: {
-          include: {
-            uploadedFile: true;
-            executionFile: true;
-          };
-        };
-        files: true;
-      };
-    };
-  };
-}>;
-
 type WorkOrderEditorWrapperProps = {
   workOrder: WorkOrder;
   users: User[];
-  workInstructions: WorkInstruction;
+  workInstructions: WorkOrderWorkInstructions;
 };
 
 export function WorkOrderEditorWrapper({

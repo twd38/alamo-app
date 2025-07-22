@@ -22,10 +22,20 @@ export async function getWorkOrderWorkInstructions(
               }
             },
             files: true
+          },
+          orderBy: {
+            stepNumber: 'asc'
           }
         }
       }
     });
+
+    if (!result) {
+      throw new Error(
+        `Work order work instruction with id ${workOrderWorkInstructionId} not found`
+      );
+    }
+
     return result;
   } catch (error) {
     console.error('Error fetching work order work instructions:', error);
@@ -33,6 +43,6 @@ export async function getWorkOrderWorkInstructions(
   }
 }
 
-export type WorkOrderWorkInstructions = Prisma.PromiseReturnType<
-  typeof getWorkOrderWorkInstructions
+export type WorkOrderWorkInstructions = NonNullable<
+  Prisma.PromiseReturnType<typeof getWorkOrderWorkInstructions>
 >;
