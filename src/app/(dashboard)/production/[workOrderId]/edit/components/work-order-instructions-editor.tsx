@@ -15,7 +15,12 @@ type WorkInstruction = Prisma.WorkOrderWorkInstructionGetPayload<{
   include: {
     steps: {
       include: {
-        actions: true;
+        actions: {
+          include: {
+            uploadedFile: true;
+            executionFile: true;
+          };
+        };
         files: true;
       };
     };
