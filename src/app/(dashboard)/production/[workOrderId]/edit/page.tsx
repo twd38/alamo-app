@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { getWorkOrder } from '../../queries/getWorkOrder';
+import { getWorkOrder } from '../../queries';
 import { getWorkOrderWorkInstructions } from './queries/getWorkOrderWorkInstructions';
 import { getUsers } from './queries/getUsers';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
