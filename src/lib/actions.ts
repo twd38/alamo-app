@@ -1579,6 +1579,43 @@ export async function completeWorkOrderAndClockOut(workOrderId: string) {
   }
 }
 
+/**
+ * Mark labels as printed for a work order
+ */
+export async function markLabelsAsPrinted(workOrderId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Verify work order exists
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      select: { id: true }
+    });
+
+    if (!workOrder) {
+      return { success: false, error: 'Work order not found' };
+    }
+
+    // Update labelsPrinted field
+    const updatedWorkOrder = await prisma.workOrder.update({
+      where: { id: workOrderId },
+      data: { labelsPrinted: true }
+    });
+
+    revalidatePath(`/production/${workOrderId}`);
+
+    return { success: true, data: updatedWorkOrder };
+  } catch (error) {
+    console.error('Error marking labels as printed:', error);
+    return { success: false, error: 'Failed to mark labels as printed' };
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Work Order Step Execution actions
 // -----------------------------------------------------------------------------

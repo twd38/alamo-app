@@ -26,6 +26,7 @@ import {
 import { ProductionSidebar } from './production-sidebar';
 import { WorkInstructionStepItem } from './work-instruction-step-item';
 import { PrintLabelButton } from './print-label-button';
+import { WorkOrderOverview } from './work-order-overview';
 import { getWorkOrder } from '../queries/getWorkOrder';
 import { useSearchParams } from 'next/navigation';
 
@@ -49,6 +50,54 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
   const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
   const searchParams = useSearchParams();
 
+  // Create virtual Print Labels step that always appears as the last step
+  const printLabelsInstructions = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: 'Print the required labels for this work order using the Print Label button below.'
+          }
+        ]
+      },
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            marks: [{ type: 'bold' }],
+            text: 'This step must be completed before finishing the work order.'
+          }
+        ]
+      }
+    ]
+  });
+
+  const printLabelsStep: WorkInstructionStepWithActions = {
+    id: 'print-labels-step',
+    workOrderInstructionId: workOrder?.workInstruction?.id || '',
+    originalStepId: null,
+    stepNumber: (steps.length || 0) + 1,
+    title: 'Print Labels',
+    instructions: printLabelsInstructions,
+    estimatedLabourTime: 1,
+    requiredTools: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    startedAt: null,
+    completedAt: workOrder?.labelsPrinted ? new Date() : null, // Virtual step is never pre-completed
+    timeTaken: null,
+    status: workOrder?.labelsPrinted ? 'COMPLETED' : 'PENDING', // Always pending until user completes the work order
+    activeWorkers: 0,
+    actions: []
+  };
+
+  // Combine regular steps with the virtual print labels step
+  const allSteps = [...steps, printLabelsStep];
+
   useEffect(() => {
     // If URL has a step query param, use that to select the step
     const stepId = searchParams.get('step');
@@ -58,7 +107,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
   }, [searchParams]);
 
   const selectedStep = selectedStepId
-    ? steps.find((step) => step.id === selectedStepId) || null
+    ? allSteps.find((step) => step.id === selectedStepId) || null
     : null;
 
   // Go to Overview
@@ -68,11 +117,11 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
 
   // Function to advance to the next step
   const advanceToNextStep = (currentStepId: string) => {
-    const currentStepIndex = steps.findIndex(
+    const currentStepIndex = allSteps.findIndex(
       (step) => step.id === currentStepId
     );
-    if (currentStepIndex !== -1 && currentStepIndex < steps.length - 1) {
-      const nextStep = steps[currentStepIndex + 1];
+    if (currentStepIndex !== -1 && currentStepIndex < allSteps.length - 1) {
+      const nextStep = allSteps[currentStepIndex + 1];
       setSelectedStepId(nextStep.id);
     }
   };
@@ -162,6 +211,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
                     variant="outline"
                     className="w-full"
                     onClick={openModelDialog}
+                    disabled={!workOrder?.part?.apsUrn}
                   >
                     <Box className="h-4 w-4 mr-2" /> View Model
                   </Button>
@@ -169,7 +219,7 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
 
                 <div className="h-px bg-border mb-4 " />
 
-                {steps.map((step) => (
+                {allSteps.map((step) => (
                   <WorkInstructionStepItem
                     key={step.id}
                     step={step}
@@ -218,129 +268,30 @@ export function WorkInstructionsViewer(props: WorkInstructionsViewerProps) {
                         readOnly
                       />
                     </div>
+
+                    {/* Show Print Label button for the print labels step */}
+                    {selectedStep.id === 'print-labels-step' && (
+                      <div className="flex justify-center pt-4">
+                        <PrintLabelButton
+                          workOrderNumber={workOrder?.workOrderNumber || 'N/A'}
+                          partNumber={workOrder?.part?.partNumber || 'N/A'}
+                          partName={workOrder?.part?.name}
+                          quantity={workOrder?.partQty}
+                          dueDate={
+                            workOrder?.dueDate
+                              ? new Date(workOrder.dueDate).toLocaleDateString()
+                              : undefined
+                          }
+                          workOrderId={workOrder?.id}
+                          variant="default"
+                          size="lg"
+                          className="w-full px-8"
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="space-y-6 h-[calc(100vh-16rem)] overflow-y-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">
-                          Part Details
-                        </h3>
-                        <div className="space-y-2">
-                          <div>
-                            <span className="font-medium">Part Name:</span>
-                            <p className="text-sm text-muted-foreground">
-                              {workOrder?.part?.name || 'N/A'}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Part Number:</span>
-                            <p className="text-sm text-muted-foreground">
-                              {workOrder?.part?.partNumber || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">
-                          Order Details
-                        </h3>
-                        <div className="space-y-2">
-                          <div>
-                            <span className="font-medium">Due Date:</span>
-                            <p className="text-sm text-muted-foreground">
-                              {workOrder?.dueDate
-                                ? new Date(
-                                    workOrder.dueDate
-                                  ).toLocaleDateString()
-                                : 'N/A'}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Quantity:</span>
-                            <p className="text-sm text-muted-foreground">
-                              {workOrder?.partQty || 'N/A'}
-                            </p>
-                          </div>
-                          <div>
-                            <PrintLabelButton
-                              workOrderNumber={
-                                workOrder?.workOrderNumber || 'N/A'
-                              }
-                              partNumber={workOrder?.part?.partNumber || 'N/A'}
-                              partName={workOrder?.part?.name}
-                              quantity={workOrder?.partQty || undefined}
-                              dueDate={
-                                workOrder?.dueDate
-                                  ? new Date(
-                                      workOrder.dueDate
-                                    ).toLocaleDateString()
-                                  : undefined
-                              }
-                              workOrderId={workOrder?.id}
-                              variant="outline"
-                              size="default"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Tags</h3>
-                      <div className="space-y-2">
-                        {workOrder?.tags && workOrder.tags.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {workOrder.tags.map((tag) => (
-                              <Badge key={tag.id} color={tag.color}>
-                                {tag.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            No tags assigned
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Assignees</h3>
-                      <div className="space-y-2">
-                        {workOrder?.assignees &&
-                        workOrder.assignees.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {workOrder.assignees.map((assignee: any) => (
-                              <Badge key={assignee.user.id} variant="secondary">
-                                {assignee.user.name || assignee.user.email}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            No assignees specified
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Status</h3>
-                      <Badge
-                        variant={
-                          workOrder?.status === 'COMPLETED'
-                            ? 'default'
-                            : workOrder?.status === 'IN_PROGRESS'
-                              ? 'secondary'
-                              : 'outline'
-                        }
-                      >
-                        {workOrder?.status || 'N/A'}
-                      </Badge>
-                    </div>
-                  </div>
+                  <WorkOrderOverview workOrder={workOrder} />
                 )}
               </CardContent>
             </Card>

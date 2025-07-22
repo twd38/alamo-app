@@ -116,6 +116,7 @@ model WorkOrder {
   dueDate         DateTime?
   createdById     String
   deletedOn       DateTime?
+  labelsPrinted   Boolean                  @default(false) // Track if labels have been printed
   files           File[]
   createdBy       User                     @relation("CreatedByRelation", fields: [createdById], references: [id])
   assignees       WorkOrderAssignee[]

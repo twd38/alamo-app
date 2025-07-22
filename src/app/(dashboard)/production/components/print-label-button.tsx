@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import { type PartLabelData } from '@/lib/label-printing';
 import { toast } from 'sonner';
+import { markLabelsAsPrinted } from '@/lib/actions';
+import { useRouter } from 'next/navigation';
 
 interface PrintLabelButtonProps {
   workOrderNumber: string;
@@ -30,6 +32,8 @@ export function PrintLabelButton({
   size = 'default',
   className
 }: PrintLabelButtonProps) {
+  const router = useRouter();
+
   // Get base URL for QR code
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -63,6 +67,21 @@ export function PrintLabelButton({
         toast.success(
           `Label sent to printer ${result.printerSerialNumber} via ${result.method}`
         );
+
+        // Mark labels as printed if workOrderId is provided
+        if (workOrderId) {
+          const markResult = await markLabelsAsPrinted(workOrderId);
+          if (markResult.success) {
+            // Refresh the page to update the UI
+            router.refresh();
+          } else {
+            console.error(
+              'Failed to mark labels as printed:',
+              markResult.error
+            );
+            // Don't show error toast as the print itself was successful
+          }
+        }
       } else {
         toast.error(result.error || 'Failed to send label to printer');
       }
@@ -80,7 +99,7 @@ export function PrintLabelButton({
       onClick={handlePrint}
     >
       <Printer className="h-4 w-4 mr-2" />
-      Print Label
+      Print Labels
     </Button>
   );
 }

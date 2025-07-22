@@ -14,7 +14,8 @@ export async function getWorkOrder(workOrderId: string) {
             }
           },
           cadFile: true,
-          gltfFile: true
+          gltfFile: true,
+          partImage: true
         }
       },
       files: true,

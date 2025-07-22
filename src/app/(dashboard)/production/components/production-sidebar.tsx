@@ -124,9 +124,11 @@ export function ProductionSidebar({
   // Find the corresponding work order step (execution tracking is embedded)
   const isStepCompleted = step?.status === 'COMPLETED';
 
-  // Find if this is the last step in the work order
-  const isLastStep =
-    workOrder?.workInstruction?.steps.length === step?.stepNumber;
+  // Find if this is the last step in the work order (considering virtual print labels step)
+  const totalStepsWithPrintLabels =
+    (workOrder?.workInstruction?.steps.length || 0) + 1;
+  const isLastStep = step?.stepNumber === totalStepsWithPrintLabels;
+  const isPrintLabelsStep = step?.id === 'print-labels-step';
 
   // Check if all required actions are completed
   const requiredActions =
@@ -146,28 +148,40 @@ export function ProductionSidebar({
     requiredActions.length === 0 ||
     completedRequiredActions.length === requiredActions.length;
 
-  const canCompleteStep =
-    isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
+  // For the print labels step, require that labels have been printed
+  const canCompleteStep = isPrintLabelsStep
+    ? isWorkOrderInProgress && workOrder?.labelsPrinted && !isStepCompleted
+    : isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
 
   const handleCompleteStep = async () => {
     if (!step || !workOrder) return;
 
     setIsCompleting(true);
     try {
-      const result = await completeWorkOrderWorkInstructionStep({
-        workOrderId: workOrder.id,
-        stepId: step.id
-      });
-
-      if (result.success) {
-        // Advance to next step if callback is provided
+      // Handle virtual print labels step differently
+      if (isPrintLabelsStep) {
+        // For print labels step, just advance to next step (or complete work order if it's the last)
         if (onStepCompleted) {
           onStepCompleted(step.id);
         }
         router.refresh();
       } else {
-        console.error('Failed to complete step:', result.error);
-        // You could show a toast notification here
+        // Handle regular steps
+        const result = await completeWorkOrderWorkInstructionStep({
+          workOrderId: workOrder.id,
+          stepId: step.id
+        });
+
+        if (result.success) {
+          // Advance to next step if callback is provided
+          if (onStepCompleted) {
+            onStepCompleted(step.id);
+          }
+          router.refresh();
+        } else {
+          console.error('Failed to complete step:', result.error);
+          // You could show a toast notification here
+        }
       }
     } catch (error) {
       console.error('Error completing step:', error);
@@ -181,14 +195,9 @@ export function ProductionSidebar({
 
     setIsCompleting(true);
     try {
-      // For the last step, complete the step first, then complete the work order
-      const stepResult = await completeWorkOrderWorkInstructionStep({
-        workOrderId: workOrder.id,
-        stepId: step.id
-      });
-
-      if (stepResult.success) {
-        // Complete the work order
+      // Handle virtual print labels step differently
+      if (isPrintLabelsStep) {
+        // For print labels step, skip step completion and go directly to work order completion
         const workOrderResult = await completeWorkOrder(workOrder.id);
 
         if (workOrderResult.success) {
@@ -208,8 +217,36 @@ export function ProductionSidebar({
           // You could show a toast notification here
         }
       } else {
-        console.error('Failed to complete step:', stepResult.error);
-        // You could show a toast notification here
+        // For regular steps, complete the step first, then complete the work order
+        const stepResult = await completeWorkOrderWorkInstructionStep({
+          workOrderId: workOrder.id,
+          stepId: step.id
+        });
+
+        if (stepResult.success) {
+          // Complete the work order
+          const workOrderResult = await completeWorkOrder(workOrder.id);
+
+          if (workOrderResult.success) {
+            // Show completion dialog
+            setIsCompletionDialogOpen(true);
+
+            // Advance to next step if callback is provided
+            if (onStepCompleted) {
+              onStepCompleted(step.id);
+            }
+            router.refresh();
+          } else {
+            console.error(
+              'Failed to complete work order:',
+              workOrderResult.error
+            );
+            // You could show a toast notification here
+          }
+        } else {
+          console.error('Failed to complete step:', stepResult.error);
+          // You could show a toast notification here
+        }
       }
     } catch (error) {
       console.error('Error completing work order:', error);
@@ -270,7 +307,27 @@ export function ProductionSidebar({
                 </div>
               )}
 
-              {!allActionsCompleted &&
+              {/* Show appropriate message based on step type */}
+              {isPrintLabelsStep &&
+                isWorkOrderInProgress &&
+                !isStepCompleted &&
+                !workOrder?.labelsPrinted && (
+                  <div className="mb-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                    Print labels before completing this step
+                  </div>
+                )}
+
+              {isPrintLabelsStep &&
+                isWorkOrderInProgress &&
+                !isStepCompleted &&
+                workOrder?.labelsPrinted && (
+                  <div className="mb-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                    Labels printed! Ready to complete work order.
+                  </div>
+                )}
+
+              {!isPrintLabelsStep &&
+                !allActionsCompleted &&
                 isWorkOrderInProgress &&
                 !isStepCompleted && (
                   <div className="mb-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
