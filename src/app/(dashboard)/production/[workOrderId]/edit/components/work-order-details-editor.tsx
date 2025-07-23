@@ -141,7 +141,7 @@ export function WorkOrderDetailsEditor({
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
     setEditingStatus(newStatus);
-
+    console.log('newStatus', newStatus);
     try {
       const result = await updateWorkOrder({
         workOrderId: workOrder.id,
@@ -160,31 +160,10 @@ export function WorkOrderDetailsEditor({
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'NOT_STARTED':
-        return 'bg-gray-100 text-gray-800';
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      case 'ON_HOLD':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status
-      .replace(/_/g, ' ')
-      .toLowerCase()
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
   const getStatusOptions = () => {
     return [
       { value: WorkOrderStatus.TODO, label: 'To Do' },
+      { value: WorkOrderStatus.HOLD, label: 'Hold' },
       { value: WorkOrderStatus.IN_PROGRESS, label: 'In Progress' },
       { value: WorkOrderStatus.PAUSED, label: 'Paused' },
       { value: WorkOrderStatus.COMPLETED, label: 'Completed' },

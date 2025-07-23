@@ -247,6 +247,7 @@ model MissionMessage {
 model Part {
   id               String                 @id @default(uuid())
   partNumber       String                 @unique
+  supplierPartNumber String?
   name             String                 @default("")
   description      String                 @default("")
   partImageId      String?                @unique
@@ -585,6 +586,7 @@ enum PartType {
 
 enum WorkOrderStatus {
   PAUSED
+  HOLD
   TODO
   IN_PROGRESS
   COMPLETED

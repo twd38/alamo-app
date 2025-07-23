@@ -13,6 +13,8 @@ export function ProductionStatusBadge({
     switch (status) {
       case 'TODO':
         return 'todo';
+      case 'HOLD':
+        return 'hold';
       case 'IN_PROGRESS':
         return 'in-progress';
       case 'COMPLETED':
