@@ -72,8 +72,6 @@ export function TaskCardCreate({
       toast.error('Error creating task');
     } finally {
       // Ensure UI stays in sync
-      await revalidatePath('/production');
-      router.refresh();
       reset();
     }
   };

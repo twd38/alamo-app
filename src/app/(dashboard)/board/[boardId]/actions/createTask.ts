@@ -75,7 +75,6 @@ export async function createTask(data: {
 
     // Revalidate the board and production pages so UI reflects the new task order immediately
     revalidatePath(`/board/${data.boardId}`);
-    revalidatePath('/production');
 
     return { success: true, data: result };
   } catch (error) {
