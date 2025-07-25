@@ -428,7 +428,7 @@ export function KanbanBoard({
   ];
 
   return (
-    <div className="">
+    <div className="h-full">
       <ScrollArea className="whitespace-nowrap">
         <div className="flex gap-2 py-4 w-max">
           <DndContext

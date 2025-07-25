@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getWorkOrders } from './queries';
+import { WorkOrderStatus } from '@prisma/client';
 
 const ProductionLoadingSkeleton = () => (
   <div className="h-full bg-zinc-50 dark:bg-zinc-900">
@@ -47,11 +48,12 @@ const ProductionPageContent = () => {
   const limit = Number(searchParams.get('limit')) || 10;
   const sortBy = searchParams.get('sortBy') || 'dueDate';
   const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
-
+  const status = (searchParams.get('status') as WorkOrderStatus) || WorkOrderStatus.TODO;
+  
   // Create SWR key that updates when params change
   const swrKey = useMemo(
-    () => ['work-orders', query, currentPage, limit, sortBy, sortOrder],
-    [query, currentPage, limit, sortBy, sortOrder]
+    () => ['work-orders', query, currentPage, limit, sortBy, sortOrder, status],
+    [query, currentPage, limit, sortBy, sortOrder, status]
   );
 
   // Fetch data with SWR
@@ -60,6 +62,7 @@ const ProductionPageContent = () => {
     () =>
       getWorkOrders({
         query,
+        status,
         page: currentPage,
         limit,
         sortBy,

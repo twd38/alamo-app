@@ -43,13 +43,15 @@ export function BoardViewContainer({
   };
 
   return (
-    <div>
+    <div className="">
       <ActionPanel
         views={views}
         boardId={boardId}
         onViewTypeChange={handleViewTypeChange}
       />
+      <div className="max-h-[calc(100vh-120px)] overflow-clip">
       {renderView()}
+      </div>
     </div>
   );
 }

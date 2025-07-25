@@ -1,7 +1,6 @@
 'use client';
-import { useState } from 'react';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import { useState, useRef, useEffect } from 'react';
+import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
 import { useTheme } from 'next-themes';
 type EmojiPickerComponentProps = {
   icon?: string;
@@ -15,28 +14,42 @@ export default function EmojiPickerComponent({
   className
 }: EmojiPickerComponentProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // get current theme
   const { theme } = useTheme();
 
-  const handleEmojiClick = (emojiData: any) => {
-    onEmojiClick(emojiData.native);
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    onEmojiClick(emojiData.emoji);
     setShowEmojiPicker(false);
   };
 
-  const handleClickOutside = (e: React.MouseEvent<HTMLDivElement>) => {
-    // if click is outside of the emoji picker button, close the picker
-    if (
-      e.target instanceof HTMLElement &&
-      !e.target.closest('#emoji-picker-button')
-    ) {
-      setShowEmojiPicker(false);
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        pickerRef.current &&
+        buttonRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-  };
+  }, [showEmojiPicker]);
 
   return (
     <div>
       <button
+        ref={buttonRef}
         type="button"
         id="emoji-picker-button"
         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -45,14 +58,14 @@ export default function EmojiPickerComponent({
         {icon || '🇺🇸'}
       </button>
       {showEmojiPicker && (
-        <div className="absolute z-50 mt-2 max-h-[434px] overflow-y-auto">
-          <Picker
-            data={data}
-            onEmojiSelect={handleEmojiClick}
-            onClickOutside={handleClickOutside}
-            autoFocus={true}
-            previewPosition="none"
-            theme={theme}
+        <div ref={pickerRef} className="absolute z-50 mt-2">
+          <EmojiPicker
+            onEmojiClick={handleEmojiClick}
+            autoFocusSearch={true}
+            theme={theme === 'dark' ? Theme.DARK : Theme.LIGHT}
+            height={434}
+            width={350}
+            previewConfig={{ showPreview: false }}
           />
         </div>
       )}

@@ -1,16 +1,18 @@
 'use server';
 
 import { prisma } from '@/lib/db';
-import { Prisma } from '@prisma/client';
+import { Prisma, WorkOrderStatus } from '@prisma/client';
 
 export async function getWorkOrders({
   query,
+  status,
   page,
   limit,
   sortBy,
   sortOrder
 }: {
   query: string;
+  status: WorkOrderStatus;
   page: number;
   limit: number;
   sortBy: string;
@@ -19,6 +21,7 @@ export async function getWorkOrders({
   // Create reusable WHERE clause to avoid duplication
   const whereClause = {
     deletedOn: null,
+    status,
     OR: [
       {
         workOrderNumber: {

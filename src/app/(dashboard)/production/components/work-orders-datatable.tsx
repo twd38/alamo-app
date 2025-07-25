@@ -39,6 +39,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { UserAvatarList } from '@/components/ui/user-avatar-list';
 import { DeleteAlert } from '@/components/delete-alert';
@@ -46,6 +47,7 @@ import { WorkOrders } from '../queries';
 import { deleteWorkOrder } from '@/lib/actions';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
+import { WorkOrderStatus } from '@prisma/client';
 
 // WorkOrderData is the type of the work orders that are returned from the database
 type WorkOrderData = WorkOrders['workOrders'][0];
@@ -208,6 +210,7 @@ export function WorkOrdersDataTable({
   const initialQuery = searchParams.get('query') || '';
   const initialPage = Number(searchParams.get('page') || '1');
   const initialLimit = Number(searchParams.get('limit') || '10');
+  const initialStatus = searchParams.get('status') || WorkOrderStatus.TODO;
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -217,6 +220,7 @@ export function WorkOrdersDataTable({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workOrderToDelete, setWorkOrderToDelete] =
     useState<WorkOrderData | null>(null);
+  const [statusFilter, setStatusFilter] = useState<WorkOrderStatus>(WorkOrderStatus.TODO);
 
   // Debounced URL update on search
   const updateSearchQuery = useCallback(
@@ -240,14 +244,10 @@ export function WorkOrdersDataTable({
     [updateSearchQuery]
   );
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setSearchValue(value);
-      debouncedUpdateQuery(value);
-    },
-    [debouncedUpdateQuery]
-  );
+  const handleStatusFilterChange = useCallback((value: string) => {
+    setStatusFilter(value as WorkOrderStatus);
+    router.push(`${pathname}?status=${value}`);
+  }, [router, pathname]);
 
   useEffect(() => {
     return () => {
@@ -321,12 +321,19 @@ export function WorkOrdersDataTable({
   return (
     <div className="w-full">
       <div className="flex items-center pb-4">
-        <Input
-          placeholder="Filter work orders..."
-          value={searchValue}
-          onChange={handleSearchChange}
-          className="max-w-sm"
-        />
+        <Tabs
+          defaultValue={initialStatus}
+          className="mr-auto"
+          onValueChange={(value) => handleStatusFilterChange(value)}
+        >
+          <TabsList>
+            <TabsTrigger value={WorkOrderStatus.TODO}>Todo</TabsTrigger>
+            <TabsTrigger value={WorkOrderStatus.IN_PROGRESS}>In Progress</TabsTrigger>
+            <TabsTrigger value={WorkOrderStatus.COMPLETED}>Completed</TabsTrigger>
+            <TabsTrigger value={WorkOrderStatus.HOLD}>Hold</TabsTrigger>
+            <TabsTrigger value={WorkOrderStatus.SCRAPPED}>Scrapped</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
