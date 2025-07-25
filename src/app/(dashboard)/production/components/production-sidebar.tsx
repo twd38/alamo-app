@@ -155,7 +155,7 @@ export function ProductionSidebar({
 
   // For the print labels step, require that labels have been printed
   const canCompleteStep = isPrintLabelsStep
-    ? isWorkOrderInProgress && workOrder?.labelsPrinted && !isStepCompleted
+    ? isWorkOrderInProgress && workOrder?.labelsPrinted && isStepCompleted
     : isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
 
   const handleCompleteStep = async () => {

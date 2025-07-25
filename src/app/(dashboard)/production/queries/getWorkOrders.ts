@@ -12,16 +12,26 @@ export async function getWorkOrders({
   sortOrder
 }: {
   query: string;
-  status: WorkOrderStatus;
+  status: WorkOrderStatus | WorkOrderStatus[];
   page: number;
   limit: number;
   sortBy: string;
   sortOrder: Prisma.SortOrder;
 }) {
+  // If status is todo, then we need to include the work order that is in progress, todo, and paused
+  if (status === WorkOrderStatus.TODO) {
+    status = [
+      WorkOrderStatus.IN_PROGRESS,
+      WorkOrderStatus.TODO,
+      WorkOrderStatus.PAUSED
+    ];
+  }
   // Create reusable WHERE clause to avoid duplication
   const whereClause = {
     deletedOn: null,
-    status,
+    status: {
+      in: Array.isArray(status) ? status : [status]
+    },
     OR: [
       {
         workOrderNumber: {

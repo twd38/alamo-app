@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlayIcon, PauseIcon, ChevronLeft } from 'lucide-react';
 import { Timer } from './timer';
@@ -153,6 +153,16 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     return <></>;
   };
 
+  const handleReturnClick = () => {
+    if (workOrderStatus === WorkOrderStatus.IN_PROGRESS) {
+      alert(
+        'The work order is currently in progress. Please pause the work order before leaving the page.'
+      );
+      return;
+    }
+    router.push('/production');
+  };
+
   return (
     <div
       className={cn(
@@ -166,7 +176,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/production')}
+            onClick={handleReturnClick}
             className="text-white hover:bg-white/20 p-2 mr-2 h-8 w-8"
           >
             <ChevronLeft className="w-4 h-4" />
