@@ -201,8 +201,10 @@ const TaskForm = ({
       // Guard clauses – only auto-save when editing (task exists) and the
       // form has unsaved changes.
 
+      console.log('values', values);
+
       if (!task) return;
-      if (!form.formState.isDirty) return;
+      // if (!form.formState.isDirty) return;
       if (isSaving) return;
 
       setIsSaving(true);
@@ -243,6 +245,7 @@ const TaskForm = ({
   );
 
   useEffect(() => {
+    console.log('task', task);
     if (!task) return;
 
     // Subscribe to all form value changes.
