@@ -51,6 +51,9 @@ const eslintConfig = [
       'object-shorthand': 'error',
       'prefer-template': 'error',
 
+      // Allow img elements (disable Next.js img rule)
+      '@next/next/no-img-element': 'off',
+
       // Disable syntax error rules that cause parsing issues
       'no-unexpected-multiline': 'off',
       'no-unreachable': 'off'

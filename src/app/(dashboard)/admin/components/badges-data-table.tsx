@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Plus, Trash2, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Trash2, MoreHorizontal, Eye, Printer } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -19,7 +19,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AccessBadgeWithRelations } from '@/lib/queries';
+import { BadgePreviewDialog } from './badge-preview-dialog';
 
 interface BadgesDataTableProps {
   badges: AccessBadgeWithRelations[];
@@ -35,6 +37,8 @@ export function BadgesDataTable({
   isLoading
 }: BadgesDataTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [previewBadge, setPreviewBadge] = useState<AccessBadgeWithRelations | null>(null);
+  const [selectedBadges, setSelectedBadges] = useState<Set<string>>(new Set());
 
   // Filter badges based on search query
   const filteredBadges = badges.filter(
@@ -205,6 +209,12 @@ export function BadgesDataTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          onClick={() => setPreviewBadge(badge)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Preview & Print
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() =>
                             handleDeleteClick(badge.id, badge.user?.name)
                           }
@@ -222,6 +232,12 @@ export function BadgesDataTable({
           </TableBody>
         </Table>
       </div>
+
+      <BadgePreviewDialog
+        badge={previewBadge}
+        isOpen={!!previewBadge}
+        onClose={() => setPreviewBadge(null)}
+      />
     </div>
   );
 }

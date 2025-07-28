@@ -15,7 +15,7 @@ import {
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -23,14 +23,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ProductionStatusBadge } from './production-status-badge';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+
 import {
   Table,
   TableBody,
@@ -39,7 +38,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { UserAvatarList } from '@/components/ui/user-avatar-list';
 import { DeleteAlert } from '@/components/delete-alert';
@@ -196,11 +194,13 @@ const columns: ColumnDef<WorkOrderData>[] = [
 export function WorkOrdersDataTable({
   workOrders,
   totalCount,
-  refetch
+  refetch,
+  onTableReady
 }: {
   workOrders: WorkOrderData[];
   totalCount: number;
   refetch: () => void;
+  onTableReady?: (table: any) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -210,7 +210,6 @@ export function WorkOrdersDataTable({
   const initialQuery = searchParams.get('query') || '';
   const initialPage = Number(searchParams.get('page') || '1');
   const initialLimit = Number(searchParams.get('limit') || '10');
-  const initialStatus = searchParams.get('status') || WorkOrderStatus.TODO;
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -220,7 +219,6 @@ export function WorkOrdersDataTable({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workOrderToDelete, setWorkOrderToDelete] =
     useState<WorkOrderData | null>(null);
-  const [statusFilter, setStatusFilter] = useState<WorkOrderStatus>(WorkOrderStatus.TODO);
 
   // Debounced URL update on search
   const updateSearchQuery = useCallback(
@@ -243,11 +241,6 @@ export function WorkOrdersDataTable({
     () => debounce(updateSearchQuery, 500),
     [updateSearchQuery]
   );
-
-  const handleStatusFilterChange = useCallback((value: string) => {
-    setStatusFilter(value as WorkOrderStatus);
-    router.push(`${pathname}?status=${value}`);
-  }, [router, pathname]);
 
   useEffect(() => {
     return () => {
@@ -317,46 +310,16 @@ export function WorkOrdersDataTable({
   // Early return after hooks are called
   if (!workOrders) return null;
 
+  // Notify parent component when table is ready
+  useEffect(() => {
+    if (onTableReady) {
+      onTableReady(table);
+    }
+  }, [table, onTableReady]);
+
   // ------------------------------- Render -------------------------------
   return (
     <div className="w-full">
-      <div className="flex items-center pb-4">
-        <Tabs
-          defaultValue={initialStatus}
-          className="mr-auto"
-          onValueChange={(value) => handleStatusFilterChange(value)}
-        >
-          <TabsList>
-            <TabsTrigger value={WorkOrderStatus.TODO}>Todo</TabsTrigger>
-            <TabsTrigger value={WorkOrderStatus.IN_PROGRESS}>In Progress</TabsTrigger>
-            <TabsTrigger value={WorkOrderStatus.COMPLETED}>Completed</TabsTrigger>
-            <TabsTrigger value={WorkOrderStatus.HOLD}>Hold</TabsTrigger>
-            <TabsTrigger value={WorkOrderStatus.SCRAPPED}>Scrapped</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>

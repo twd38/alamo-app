@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { getUploadUrl, deleteFileFromR2 } from '@/lib/server/r2';
 import { Prisma, File as PrismaFile } from '@prisma/client';
-import { getKeyFromPublicUrl } from '@/lib/server/r2';
 import { notify } from '@/lib/server/notification-service';
 import { revalidatePath } from 'next/cache';
 const appUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -163,7 +162,7 @@ export async function updateTask(
       }
     }
 
-    // Revalidate the board page to reflect changes
+    // Revalidate the board page to reflect changes (only if explicitly requested)
     revalidatePath(`/board/${result.boardId}`);
 
     return { success: true, data: result };

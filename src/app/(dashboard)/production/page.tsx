@@ -1,12 +1,14 @@
 'use client';
 
-import { useMemo, Suspense } from 'react';
+import { useMemo, Suspense, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkOrdersDataTable } from './components/work-orders-datatable';
+import { WorkOrderStatusTabs } from './components/work-order-status-tabs';
+import { WorkOrderColumnVisibility } from './components/work-order-column-visibility';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,32 +16,24 @@ import { getWorkOrders } from './queries';
 import { WorkOrderStatus } from '@prisma/client';
 
 const ProductionLoadingSkeleton = () => (
-  <div className="h-full bg-zinc-50 dark:bg-zinc-900">
-    <BasicTopBar />
-    <PageContainer>
-      <Card>
-        <CardHeader>
-          <CardTitle>Work Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <div className="flex justify-between">
-              <Skeleton className="h-8 w-32" />
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-20" />
-                <Skeleton className="h-8 w-20" />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </PageContainer>
+  <div className="space-y-4">
+    <Skeleton className="h-10 w-full" />
+    <Skeleton className="h-64 w-full" />
+    <div className="flex justify-between">
+      <Skeleton className="h-8 w-32" />
+      <div className="flex gap-2">
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-8 w-20" />
+      </div>
+    </div>
   </div>
 );
 
-const ProductionPageContent = () => {
+const ProductionPageContent = ({
+  onTableReady
+}: {
+  onTableReady?: (table: any) => void;
+}) => {
   const searchParams = useSearchParams();
 
   // Extract URL parameters
@@ -48,8 +42,9 @@ const ProductionPageContent = () => {
   const limit = Number(searchParams.get('limit')) || 10;
   const sortBy = searchParams.get('sortBy') || 'dueDate';
   const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
-  const status = (searchParams.get('status') as WorkOrderStatus) || WorkOrderStatus.TODO;
-  
+  const status =
+    (searchParams.get('status') as WorkOrderStatus) || WorkOrderStatus.TODO;
+
   // Create SWR key that updates when params change
   const swrKey = useMemo(
     () => ['work-orders', query, currentPage, limit, sortBy, sortOrder, status],
@@ -85,28 +80,16 @@ const ProductionPageContent = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="h-full bg-zinc-50 dark:bg-zinc-900">
-        <BasicTopBar />
-        <PageContainer>
-          <Card>
-            <CardHeader>
-              <CardTitle>Work Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-64 w-full" />
-                <div className="flex justify-between">
-                  <Skeleton className="h-8 w-32" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-8 w-20" />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </PageContainer>
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+        <div className="flex justify-between">
+          <Skeleton className="h-8 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -114,26 +97,34 @@ const ProductionPageContent = () => {
   // Error state
   if (error) {
     return (
-      <div className="h-full bg-zinc-50 dark:bg-zinc-900">
-        <BasicTopBar />
-        <PageContainer>
-          <Card>
-            <CardHeader>
-              <CardTitle>Work Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Failed to load work orders. Please try refreshing the page.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </PageContainer>
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load work orders. Please try refreshing the page.
+        </AlertDescription>
+      </Alert>
     );
   }
+
+  return (
+    <WorkOrdersDataTable
+      workOrders={data?.workOrders || []}
+      totalCount={data?.totalCount || 0}
+      refetch={mutate}
+      onTableReady={onTableReady}
+    />
+  );
+};
+
+const ProductionPageWrapper = () => {
+  const searchParams = useSearchParams();
+  const [table, setTable] = useState<any>(null);
+  const status =
+    (searchParams.get('status') as WorkOrderStatus) || WorkOrderStatus.TODO;
+
+  const handleTableReady = useCallback((tableInstance: any) => {
+    setTable(tableInstance);
+  }, []);
 
   return (
     <div className="h-full bg-zinc-50 dark:bg-zinc-900">
@@ -144,11 +135,13 @@ const ProductionPageContent = () => {
             <CardTitle>Work Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <WorkOrdersDataTable
-              workOrders={data?.workOrders || []}
-              totalCount={data?.totalCount || 0}
-              refetch={mutate}
-            />
+            <div className="flex items-center justify-between pb-4">
+              <WorkOrderStatusTabs initialStatus={status} />
+              {table && <WorkOrderColumnVisibility table={table} />}
+            </div>
+            <Suspense fallback={<ProductionLoadingSkeleton />}>
+              <ProductionPageContent onTableReady={handleTableReady} />
+            </Suspense>
           </CardContent>
         </Card>
       </PageContainer>
@@ -156,10 +149,29 @@ const ProductionPageContent = () => {
   );
 };
 
+const ProductionPageFullSkeleton = () => (
+  <div className="h-full bg-zinc-50 dark:bg-zinc-900">
+    <BasicTopBar />
+    <PageContainer>
+      <Card>
+        <CardHeader>
+          <CardTitle>Work Orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center pb-4">
+            <Skeleton className="h-10 w-64" />
+          </div>
+          <ProductionLoadingSkeleton />
+        </CardContent>
+      </Card>
+    </PageContainer>
+  </div>
+);
+
 const ProductionPage = () => {
   return (
-    <Suspense fallback={<ProductionLoadingSkeleton />}>
-      <ProductionPageContent />
+    <Suspense fallback={<ProductionPageFullSkeleton />}>
+      <ProductionPageWrapper />
     </Suspense>
   );
 };

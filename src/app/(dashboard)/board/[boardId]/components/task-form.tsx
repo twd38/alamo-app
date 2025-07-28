@@ -33,14 +33,7 @@ import useSWR from 'swr';
 import { getAllUsers } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import {
-  Prisma,
-  Status,
-  User,
-  Task,
-  TaskTag,
-  File as PrismaFile
-} from '@prisma/client';
+import { Prisma, Status, User, Task, TaskTag } from '@prisma/client';
 import { ComboBox } from '@/components/ui/combo-box';
 import {
   deleteTask,
@@ -119,6 +112,7 @@ const TaskForm = ({
   const [activeTask, setActiveTask] = useAtom(taskModal);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isMoveTaskDialogOpen, setIsMoveTaskDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
   const { data: users } = useSWR('allUsers', getAllUsers);
@@ -145,44 +139,6 @@ const TaskForm = ({
       tags: task?.tags
     }
   });
-
-  // Handle form submission
-  const submitForm = useCallback(
-    async (data: z.infer<typeof formSchema>) => {
-      try {
-        if (!task) return;
-
-        // Update existing task
-        const result = await updateTask(task.id, {
-          name: data.name,
-          taskNumber: data.taskNumber,
-          priority: data.priority,
-          epicId: data.epicId,
-          dueDate: data.dueDate,
-          description: data.description,
-          assignees: data.assignees,
-          kanbanSectionId: data.kanbanSectionId,
-          taskOrder: task.taskOrder,
-          files: data.files,
-          tags: data.tags
-        });
-
-        if (!result.success) {
-          console.error('Failed to save task:', result.error);
-          toast.error('Failed to save task');
-          return;
-        }
-
-        // Reset the form so that formState.isDirty becomes false and
-        // subsequent auto-saves only trigger on new changes.
-        form.reset(data);
-      } catch (error) {
-        console.error('Error submitting form:', error);
-        toast.error('Error saving task');
-      }
-    },
-    [form, task]
-  );
 
   const handleDuplicateTask = async () => {
     if (!task) return;
@@ -228,7 +184,7 @@ const TaskForm = ({
     }
   };
 
-  const isLoading = form.formState.isSubmitting || form.formState.isDirty;
+  const isLoading = form.formState.isSubmitting || isSaving;
 
   /*
    * ---------------------------------------------------------------------
@@ -244,8 +200,16 @@ const TaskForm = ({
     async (values: z.infer<typeof formSchema>) => {
       // Guard clauses – only auto-save when editing (task exists) and the
       // form has unsaved changes.
+
       if (!task) return;
       if (!form.formState.isDirty) return;
+      if (isSaving) return;
+
+      setIsSaving(true);
+
+      // Reset the form immediately to prevent race conditions
+      // This marks the form as clean while we save the current values
+      form.reset(values);
 
       try {
         // Update existing task
@@ -268,13 +232,11 @@ const TaskForm = ({
           toast.error('Failed to save task');
           return;
         }
-
-        // Reset the form so that formState.isDirty becomes false and
-        // subsequent auto-saves only trigger on new changes.
-        form.reset(values);
       } catch (error) {
         console.error('Error submitting form:', error);
         toast.error('Error saving task');
+      } finally {
+        setIsSaving(false);
       }
     },
     300
@@ -296,7 +258,7 @@ const TaskForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submitForm)}>
+      <form>
         <div className="h-full">
           {/* header */}
           <div className="flex items-center justify-end pr-10 border-b h-12 gap-1">
@@ -623,7 +585,7 @@ const TaskForm = ({
         onConfirm={handleDeleteTask}
         resourceName="task"
       />
-
+      {/* 
       {task && boards && (
         <MoveTaskDialog
           isOpen={isMoveTaskDialogOpen}
@@ -633,7 +595,7 @@ const TaskForm = ({
           currentBoardId={boardId}
           boards={boards}
         />
-      )}
+      )} */}
     </Form>
   );
 };
