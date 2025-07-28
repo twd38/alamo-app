@@ -33,7 +33,7 @@ import useSWR from 'swr';
 import { getAllUsers } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Prisma, Status, User, Task, TaskTag } from '@prisma/client';
+import { Prisma, Status, User, Task } from '@prisma/client';
 import { ComboBox } from '@/components/ui/combo-box';
 import {
   deleteTask,
