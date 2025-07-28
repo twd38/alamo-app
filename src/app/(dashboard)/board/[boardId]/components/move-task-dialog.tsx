@@ -85,16 +85,12 @@ export function MoveTaskDialog({
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
-      const result = await updateTask(
-        taskId,
-        {
-          boardId: data.boardId,
-          kanbanSectionId: data.kanbanSectionId,
-          taskOrder: 0,
-          tags: []
-        },
-        { revalidate: true }
-      );
+      const result = await updateTask(taskId, {
+        boardId: data.boardId,
+        kanbanSectionId: data.kanbanSectionId,
+        taskOrder: 0,
+        tags: []
+      });
 
       if (!result.success) {
         throw new Error(result.error);
