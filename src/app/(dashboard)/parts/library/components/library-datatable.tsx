@@ -39,6 +39,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { NewPartDialog } from './new-part-dialog';
+import { DuplicatePartDialog } from './duplicate-part-dialog';
 import { formatPartType } from '@/lib/utils';
 import { Prisma } from '@prisma/client';
 import Image from 'next/image';
@@ -144,6 +145,15 @@ const columns: ColumnDef<PartWithImage>[] = [
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>Edit part</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <DuplicatePartDialog
+                partId={part.id}
+                partName={part.name}
+              >
+                <div className="w-full">Duplicate part</div>
+              </DuplicatePartDialog>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
