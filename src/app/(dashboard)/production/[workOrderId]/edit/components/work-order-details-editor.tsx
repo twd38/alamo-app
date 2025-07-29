@@ -162,6 +162,7 @@ export function WorkOrderDetailsEditor({
 
   const getStatusOptions = () => {
     return [
+      { value: WorkOrderStatus.DRAFT, label: 'Draft' },
       { value: WorkOrderStatus.TODO, label: 'To Do' },
       { value: WorkOrderStatus.HOLD, label: 'Hold' },
       { value: WorkOrderStatus.IN_PROGRESS, label: 'In Progress' },

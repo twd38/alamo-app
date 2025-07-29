@@ -585,6 +585,7 @@ enum PartType {
 }
 
 enum WorkOrderStatus {
+  DRAFT
   PAUSED
   HOLD
   TODO

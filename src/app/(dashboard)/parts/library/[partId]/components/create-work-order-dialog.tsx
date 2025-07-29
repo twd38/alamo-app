@@ -145,7 +145,7 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
       operation: 'Manufacture', // reasonable default
       dueDate: undefined, // filled by user
       assigneeIds: [],
-      status: 'TODO',
+      status: WorkOrderStatus.DRAFT,
       timeEstimate: '',
       notes: '',
       tagIds: []

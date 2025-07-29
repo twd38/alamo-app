@@ -11,6 +11,8 @@ export function ProductionStatusBadge({
 }: ProductionStatusBadgeProps) {
   const getStatusVariant = (status: string) => {
     switch (status) {
+      case 'DRAFT':
+        return 'secondary';
       case 'TODO':
         return 'todo';
       case 'HOLD':

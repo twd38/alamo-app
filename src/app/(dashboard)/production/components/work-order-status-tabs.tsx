@@ -35,7 +35,7 @@ export function WorkOrderStatusTabs({
         </TabsTrigger>
         <TabsTrigger value={WorkOrderStatus.COMPLETED}>Completed</TabsTrigger>
         <TabsTrigger value={WorkOrderStatus.HOLD}>Hold</TabsTrigger>
-        <TabsTrigger value={WorkOrderStatus.SCRAPPED}>Scrapped</TabsTrigger>
+        <TabsTrigger value={WorkOrderStatus.DRAFT}>Draft</TabsTrigger>
       </TabsList>
     </Tabs>
   );
