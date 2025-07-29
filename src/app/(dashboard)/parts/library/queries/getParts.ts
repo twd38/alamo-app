@@ -37,8 +37,8 @@ export async function getParts({
     },
     orderBy: {
       [sortBy]: sortOrder
-    }
-    // skip: (page - 1) * limit,
+    },
+    skip: (page - 1) * limit
     // take: limit
   });
 }
