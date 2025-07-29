@@ -83,7 +83,7 @@ export const AddBOMPartsDialog = (props: AddBOMPartsDialogProps) => {
         <DialogHeader className="py-2">
           <DialogTitle>Add Materials</DialogTitle>
         </DialogHeader>
-        <div className="overflow-y-auto px-1 py-2 flex-1">
+        <div className="overflow-y-auto px-1 py-2 min-h-[50vh]">
           <BOMPartsManager onChange={onChange} defaultValues={defaultValues} />
         </div>
         <DialogFooter>

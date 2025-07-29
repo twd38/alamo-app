@@ -53,7 +53,7 @@ export const BOMPartsManager = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -70,8 +70,8 @@ export const BOMPartsManager = ({
       const results = await getParts({
         query: debouncedQuery,
         page: 1,
-        limit: 10,
-        sortBy: 'partNumber',
+        limit: 20,
+        sortBy: 'name',
         sortOrder: 'asc'
       });
 
@@ -151,6 +151,7 @@ export const BOMPartsManager = ({
     setBomParts(updatedComponents);
   };
 
+  console.log(searchResults);
   return (
     <div className="space-y-4">
       <div className="flex flex-col space-y-2">
@@ -218,9 +219,7 @@ export const BOMPartsManager = ({
                         >
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">
-                                {part.description}
-                              </span>
+                              <span className="font-medium">{part.name}</span>
                             </div>
                             <span className="text-sm text-muted-foreground truncate max-w-xs">
                               {part.partNumber}
@@ -267,7 +266,7 @@ export const BOMPartsManager = ({
               bomParts.map((bomPart, index) => (
                 <TableRow key={bomPart.id}>
                   <TableCell className="flex flex-col">
-                    {bomPart.part.description}
+                    {bomPart.part.name}
                     <span className="text-xs text-muted-foreground">
                       {bomPart.part.partNumber}
                     </span>
