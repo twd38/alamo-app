@@ -36,7 +36,7 @@ export default async function InventoryPage(props: InventoryPageProps) {
   const query = searchParams?.query || '';
   const currentPage = Number(searchParams?.page) || 1;
   const limit = Number(searchParams?.limit) || 10;
-  const sortBy = searchParams?.sortBy || 'description';
+  const sortBy = searchParams?.sortBy || 'name';
   const sortOrder = searchParams?.sortOrder || 'asc';
   const page = Number(searchParams?.page) || 1;
   // const totalPages = await fetchInvoicesPages(query);

@@ -19,7 +19,7 @@ export async function getParts({
     where: {
       OR: [
         {
-          description: {
+          name: {
             contains: query,
             mode: 'insensitive'
           }
@@ -37,8 +37,8 @@ export async function getParts({
     },
     orderBy: {
       [sortBy]: sortOrder
-    },
-    skip: (page - 1) * limit,
-    take: limit
+    }
+    // skip: (page - 1) * limit,
+    // take: limit
   });
 }
