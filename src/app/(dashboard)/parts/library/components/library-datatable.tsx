@@ -39,6 +39,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { NewPartDialog } from './new-part-dialog';
+import { DuplicatePartDialog } from './duplicate-part-dialog';
 import { formatPartType } from '@/lib/utils';
 import { Prisma } from '@prisma/client';
 import Image from 'next/image';
@@ -133,17 +134,31 @@ const columns: ColumnDef<PartWithImage>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(part.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(part.id);
+              }}
             >
               Copy part ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
               <Link href={`/parts/library/${part.partNumber}`}>
                 View part details
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Edit part</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+              Edit part
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DuplicatePartDialog partId={part.id} partName={part.name}>
+              <DropdownMenuItem
+                onClick={(e) => e.stopPropagation()}
+                onSelect={(e) => e.preventDefault()}
+              >
+                Duplicate part
+              </DropdownMenuItem>
+            </DuplicatePartDialog>
           </DropdownMenuContent>
         </DropdownMenu>
       );
