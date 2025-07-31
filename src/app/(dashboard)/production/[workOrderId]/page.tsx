@@ -18,8 +18,6 @@ const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
     return <div>Work order not found</div>;
   }
 
-  console.log('Render Work Order Production Page');
-
   const workInstructions = workOrder.workInstruction;
   const steps = workInstructions?.steps || [];
 
