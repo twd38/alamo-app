@@ -876,7 +876,7 @@ export async function createWorkOrder({
   partId,
   partQty,
   operation,
-  status = WorkOrderStatus.TODO,
+  status,
   timeEstimate = '',
   dueDate,
   assigneeIds = [],
@@ -886,7 +886,7 @@ export async function createWorkOrder({
   partId: string;
   partQty: number;
   operation: string;
-  status?: WorkOrderStatus;
+  status: WorkOrderStatus;
   timeEstimate?: string;
   dueDate?: Date;
   assigneeIds?: string[];

@@ -27,6 +27,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger
@@ -367,6 +374,51 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                         multiSelect
                         placeholder="Select assignees"
                       />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Status */}
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={WorkOrderStatus.DRAFT}>
+                            Draft
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.TODO}>
+                            To Do
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.IN_PROGRESS}>
+                            In Progress
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.PAUSED}>
+                            Paused
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.HOLD}>
+                            Hold
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.COMPLETED}>
+                            Completed
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.SCRAPPED}>
+                            Scrapped
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
