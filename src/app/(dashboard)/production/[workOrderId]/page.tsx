@@ -2,6 +2,9 @@ import { getWorkOrder } from '../queries';
 import { ProductionTopBar } from '../components/production-top-bar';
 import { WorkInstructionsViewer } from '../components/work-instructions-viewer';
 
+// Revalidate every 60 seconds
+export const revalidate = 60;
+
 interface WorkOrderPageProps {
   params: Promise<{
     workOrderId: string;
@@ -14,6 +17,8 @@ const WorkOrderProductionPage = async ({ params }: WorkOrderPageProps) => {
   if (!workOrder) {
     return <div>Work order not found</div>;
   }
+
+  console.log('Render Work Order Production Page');
 
   const workInstructions = workOrder.workInstruction;
   const steps = workInstructions?.steps || [];

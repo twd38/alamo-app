@@ -14,6 +14,7 @@ import { formatPartType } from '@/lib/utils';
 import { Package, FileText } from 'lucide-react';
 import Image from 'next/image';
 import { EditPartDialog } from './edit-part-dialog';
+import { TeamcenterLink } from '@/components/teamcenter-link';
 
 type BOMPartWithPart = Prisma.BOMPartGetPayload<{
   include: { part: true };
@@ -137,8 +138,9 @@ const Details = ({ part }: PartDetailsProps) => {
 
               <div className="flex-1 space-y-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
+                  <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-3">
                     {part.name || 'Unnamed Part'}
+                    <TeamcenterLink partNumber={part.partNumber} />
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
                     {part.description || 'No description available'}

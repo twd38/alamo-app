@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle
 } from 'src/components/ui/card';
-import ahcLogo from './assets/ahc-logo.png';
 
 export function LoginForm({
   className,
