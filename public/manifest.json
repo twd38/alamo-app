@@ -1,7 +1,7 @@
 {
   "name": "Alamo by the American Housing Corporation",
   "short_name": "Alamo",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",

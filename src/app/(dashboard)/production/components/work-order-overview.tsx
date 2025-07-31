@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { getWorkOrder } from '../queries/getWorkOrder';
 import { Package, Users, Tag, Calendar } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type WorkOrder = Awaited<ReturnType<typeof getWorkOrder>>;
 
@@ -67,12 +68,16 @@ export function WorkOrderOverview({ workOrder }: WorkOrderOverviewProps) {
             </h4>
             <div className="space-y-3 text-sm">
               <div>
-                <span className="text-gray-600">Part Number:</span>
-                <p className="font-medium">
+                <div className="text-gray-600">Part Number:</div>
+                <Link
+                  href={`/parts/library/${workOrder?.part?.id}`}
+                  className="font-medium underline"
+                  target="_blank"
+                >
                   {workOrder?.part?.partNumber
                     ? `${workOrder.part.partNumber}/${workOrder.part.partRevision}`
                     : 'N/A'}
-                </p>
+                </Link>
               </div>
               <div>
                 <span className="text-gray-600">Part Name:</span>

@@ -37,7 +37,7 @@ export function ClockInModal(props: ClockInModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isClockingOut, setIsClockingOut] = useState(false);
+  const [isClockingOut, setIsClockingOut] = useState('');
   const [activeTab, setActiveTab] = useState('clock-in');
 
   const handleScan = useCallback(
@@ -128,7 +128,7 @@ export function ClockInModal(props: ClockInModalProps) {
   }, []);
 
   const handleClockOut = async (userId: string) => {
-    setIsClockingOut(true);
+    setIsClockingOut(userId);
     try {
       const result = await clockOutUsersFromWorkOrder([userId], workOrderId);
 
@@ -141,7 +141,7 @@ export function ClockInModal(props: ClockInModalProps) {
       console.error('Clock out error:', error);
       toast.error('Failed to clock out user');
     } finally {
-      setIsClockingOut(false);
+      setIsClockingOut('');
     }
   };
 
@@ -188,17 +188,13 @@ export function ClockInModal(props: ClockInModalProps) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:w-[425px]">
+        <DialogContent className="sm:w-[500px] overflow-clip">
           <DialogHeader>
             <DialogTitle>Clock In / Out</DialogTitle>
           </DialogHeader>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="w-full ">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="">
+            <TabsList className="w-full">
               <TabsTrigger
                 value="clock-in"
                 className="flex items-center gap-2 w-full"
@@ -266,7 +262,7 @@ export function ClockInModal(props: ClockInModalProps) {
                           </Avatar>
                           <div>
                             <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground ">
                               {user.email}
                             </p>
                           </div>
@@ -297,38 +293,35 @@ export function ClockInModal(props: ClockInModalProps) {
             <TabsContent value="clock-out" className="space-y-4 min-h-[400px]">
               {/* Currently Clocked In Users */}
               {clockedInUsers.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="space-y-2 max-h-[350px] overflow-y-auto">
-                    {clockedInUsers.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-800"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={user.image ?? undefined} />
-                            <AvatarFallback>{user.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {user.email}
-                            </p>
-                          </div>
+                <div className="space-y-2 max-h-[350px]">
+                  {clockedInUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-800"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={user.image ?? undefined} />
+                          <AvatarFallback>{user.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{user.name}</p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleClockOut(user.id)}
-                          disabled={isClockingOut}
-                          className="flex items-center gap-2"
-                        >
-                          <LogOut className="h-3 w-3" />
-                          {isClockingOut ? 'Clocking out...' : 'Clock Out'}
-                        </Button>
                       </div>
-                    ))}
-                  </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClockOut(user.id)}
+                        disabled={isClockingOut === user.id}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="h-3 w-3" />
+                        {isClockingOut === user.id
+                          ? 'Clocking out...'
+                          : 'Clock Out'}
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground py-8 flex flex-col items-center justify-center h-full">
