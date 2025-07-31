@@ -188,12 +188,12 @@ export function ClockInModal(props: ClockInModalProps) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:w-[500px] overflow-clip">
+        <DialogContent className="w-[500px] h-[600px] overflow-clip content-start">
           <DialogHeader>
             <DialogTitle>Clock In / Out</DialogTitle>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-4">
             <TabsList className="w-full">
               <TabsTrigger
                 value="clock-in"
@@ -211,7 +211,7 @@ export function ClockInModal(props: ClockInModalProps) {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="clock-in" className="space-y-4 min-h-[400px]">
+            <TabsContent value="clock-in" className="space-y-4">
               {/* QR Scanner */}
               <div className="space-y-2">
                 <div className="aspect-square w-full overflow-hidden rounded-lg border">
@@ -227,16 +227,16 @@ export function ClockInModal(props: ClockInModalProps) {
                     <Scanner
                       constraints={{
                         facingMode: 'environment',
-                        width: { min: 360, ideal: 640, max: 1920 },
-                        height: { min: 240, ideal: 480, max: 1080 }
+                        width: { min: 450, max: 450 },
+                        height: { min: 450, max: 450 }
                       }}
                       onScan={handleScan}
                       onError={handleError}
                       classNames={{
-                        container: 'w-full h-full'
+                        container: 'w-[450px] h-[450px] mx-auto'
                       }}
                       styles={{
-                        video: { objectFit: 'cover' }
+                        video: { objectFit: 'contain' }
                       }}
                       scanDelay={1000} // Increased delay between scans to reduce errors
                       allowMultiple
@@ -287,7 +287,7 @@ export function ClockInModal(props: ClockInModalProps) {
               )}
             </TabsContent>
 
-            <TabsContent value="clock-out" className="space-y-4 min-h-[400px]">
+            <TabsContent value="clock-out" className="space-y-4">
               {/* Currently Clocked In Users */}
               {clockedInUsers.length > 0 ? (
                 <div className="space-y-2 max-h-[350px]">
