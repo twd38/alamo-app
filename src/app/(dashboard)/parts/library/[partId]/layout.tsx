@@ -47,12 +47,12 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
   ];
 
   return (
-    <div className="h-full bg-zinc-50 dark:bg-zinc-900">
+    <div className="sticky top-0 bg-zinc-50 dark:bg-zinc-900">
       <BasicTopBar
         breadcrumbs={breadcrumbs}
         actions={<TopBarActions part={part} />}
       />
-      <div className="sticky top-0 z-10 h-12 border-b px-4 bg-white dark:bg-gray-900 flex justify-between gap-2 shrink-0 transition-[width,height] ease-linear">
+      <div className=" z-10 h-12 border-b px-4 bg-white dark:bg-gray-900 flex justify-between gap-2 shrink-0 transition-[width,height] ease-linear">
         <div className="flex items-center gap-2">
           <h1 className="font-medium">{part?.name}</h1>
           <h2 className="text-sm text-gray-500">
@@ -62,12 +62,14 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
         </div>
         <TabList />
       </div>
-      <ActiveTab
-        details={details}
-        model={model}
-        instructions={instructions}
-        inventory={inventory}
-      />
+      <div className="h-[calc(100vh-96px)]">
+        <ActiveTab
+          details={details}
+          model={model}
+          instructions={instructions}
+          inventory={inventory}
+        />
+      </div>
     </div>
   );
 };

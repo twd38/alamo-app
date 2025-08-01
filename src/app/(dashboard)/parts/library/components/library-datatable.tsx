@@ -88,7 +88,10 @@ const columns: ColumnDef<PartWithImage>[] = [
       );
     },
     cell: ({ row }) => (
-      <div className="flex items-center space-x-2">
+      <Link
+        href={`/parts/library/${row.original.id}`}
+        className="flex items-center space-x-2"
+      >
         <Image
           src={row.original?.partImage?.key || '/images/placeholder.svg'}
           alt={row.getValue('name')}
@@ -100,7 +103,7 @@ const columns: ColumnDef<PartWithImage>[] = [
           <span>{row.getValue('name')}</span>
           <span className="text-xs text-muted-foreground">{`${row.original.partNumber}/${row.original.partRevision}`}</span>
         </div>
-      </div>
+      </Link>
     )
   },
   {
@@ -325,24 +328,7 @@ export function LibraryDataTable({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement;
-                    // Ignore clicks originating from interactive elements
-                    if (
-                      target.closest('button') ||
-                      target.closest('input') ||
-                      target.closest('label') ||
-                      target.closest('svg')
-                    ) {
-                      return;
-                    }
-                    navigateToPart(row.original.id);
-                  }}
-                  className="cursor-pointer hover:bg-muted/50"
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(

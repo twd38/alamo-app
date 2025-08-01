@@ -188,7 +188,7 @@ export function ClockInModal(props: ClockInModalProps) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[500px] h-[600px] overflow-clip content-start">
+        <DialogContent className="w-[500px] min-h-[600px] overflow-clip content-start">
           <DialogHeader>
             <DialogTitle>Clock In / Out</DialogTitle>
           </DialogHeader>
