@@ -39,14 +39,22 @@ interface DuplicatePartDialogProps {
   partId: string;
   partName: string;
   children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export const DuplicatePartDialog = ({
   partId,
   partName,
-  children
+  children,
+  open: propOpen,
+  onOpenChange,
+  onSuccess
 }: DuplicatePartDialogProps) => {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = propOpen !== undefined ? propOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const router = useRouter();
 
   const form = useForm<FormData>({
@@ -69,8 +77,13 @@ export const DuplicatePartDialog = ({
         toast.success('Part duplicated successfully');
         setOpen(false);
         form.reset();
-        // Navigate to the new part page using part ID
-        router.push(`/parts/library/${result.data.id}`);
+        
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Navigate to the new part page using part ID
+          router.push(`/parts/library/${result.data.id}`);
+        }
       } else {
         toast.error(result.error || 'Failed to duplicate part');
       }
@@ -91,15 +104,17 @@ export const DuplicatePartDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="ghost" size="sm">
-            <Copy className="h-4 w-4 mr-2" />
-            Duplicate part
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      {!propOpen && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button variant="ghost" size="sm">
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate part
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent
         className="sm:max-w-md"
         onClick={(e) => e.stopPropagation()}

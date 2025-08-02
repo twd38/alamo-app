@@ -277,6 +277,7 @@ model Part {
   gltfFile         File?                  @relation("PartGLTFFile", fields: [gltfFileId], references: [id])
   workInstructions WorkInstruction[]
   workOrders       WorkOrder[]
+  routings         Routing[]
 
   @@unique([partNumber, partRevision])
 }
@@ -815,4 +816,123 @@ enum CommentableEntityType {
   WORK_ORDER_WORK_INSTRUCTION_STEP
   BOARD
   EPIC
+}
+
+// MES Phase 1: Core Tables
+
+model WorkCenter {
+  id               String            @id @default(uuid())
+  code             String            @unique
+  name             String
+  description      String?
+  type             WorkCenterType
+  capacity         Float             @default(1) // Units per hour
+  efficiency       Float             @default(1) // 0-1 efficiency factor
+  setupTime        Int               @default(0) // Setup time in minutes
+  isActive         Boolean           @default(true)
+  costPerHour      Float             @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relationships
+  operations       Operation[]
+  routingSteps     RoutingStep[]
+}
+
+model Operation {
+  id               String            @id @default(uuid())
+  code             String            @unique
+  name             String
+  description      String?
+  workCenterId     String
+  defaultDuration  Int               // Default duration in minutes
+  setupTime        Int               @default(0) // Setup time in minutes
+  requiresSkill    String?           // Optional skill requirement
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relationships
+  workCenter       WorkCenter        @relation(fields: [workCenterId], references: [id])
+  procedures       Procedure[]
+  routingSteps     RoutingStep[]
+  
+  @@index([workCenterId])
+}
+
+model Procedure {
+  id               String            @id @default(uuid())
+  operationId      String
+  stepNumber       Int
+  title            String
+  instructions     String            @db.Text
+  estimatedTime    Int               // Time in minutes
+  requiredTools    String[]
+  safetyNotes      String?
+  qualityChecks    String[]
+  imageUrls        String[]
+  videoUrl         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relationships
+  operation        Operation         @relation(fields: [operationId], references: [id])
+  
+  @@unique([operationId, stepNumber])
+  @@index([operationId])
+}
+
+// Routing System (for future phases)
+model Routing {
+  id               String            @id @default(uuid())
+  partId           String
+  routingNumber    String
+  version          Int               @default(1)
+  isActive         Boolean           @default(true)
+  effectiveDate    DateTime          @default(now())
+  expiryDate       DateTime?
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relationships
+  part             Part              @relation(fields: [partId], references: [id])
+  steps            RoutingStep[]
+  
+  @@unique([partId, routingNumber, version])
+  @@index([partId])
+}
+
+model RoutingStep {
+  id               String            @id @default(uuid())
+  routingId        String
+  stepNumber       Int
+  operationId      String
+  workCenterId     String
+  setupTime        Int               @default(0) // Minutes
+  runTime          Int               // Minutes per unit
+  queueTime        Int               @default(0) // Minutes
+  moveTime         Int               @default(0) // Minutes
+  notes            String?
+  
+  // Relationships
+  routing          Routing           @relation(fields: [routingId], references: [id])
+  operation        Operation         @relation(fields: [operationId], references: [id])
+  workCenter       WorkCenter        @relation(fields: [workCenterId], references: [id])
+  
+  @@unique([routingId, stepNumber])
+  @@index([routingId])
+  @@index([operationId])
+  @@index([workCenterId])
+}
+
+enum WorkCenterType {
+  MACHINING
+  ASSEMBLY
+  INSPECTION
+  PACKAGING
+  SHIPPING
+  RECEIVING
+  MAINTENANCE
+  OTHER
 }
