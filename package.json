@@ -145,6 +145,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.31.0",
     "@next/eslint-plugin-next": "^15.4.2",
+    "@playwright/test": "^1.54.2",
     "@types/forge-apis": "^0.9.7",
     "@types/three": "^0.173.0",
     "@types/ws": "^8.5.14",
