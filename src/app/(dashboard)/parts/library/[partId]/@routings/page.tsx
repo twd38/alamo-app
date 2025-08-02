@@ -1,5 +1,4 @@
 import { PartRoutingsManager } from '../components/part-routings-manager';
-import { PartRoutingsManagerTest } from '../components/part-routings-manager-test';
 import { getPart } from '../queries/getPart';
 
 export default async function RoutingsPage({
