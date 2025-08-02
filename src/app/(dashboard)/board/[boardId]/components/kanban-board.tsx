@@ -1,13 +1,7 @@
 'use client';
 
-import { useState, startTransition, useMemo, useEffect } from 'react';
-import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core';
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  useSortable,
-  sortableKeyboardCoordinates
-} from '@dnd-kit/sortable';
+import { useState, startTransition, useMemo, useEffect, useCallback } from 'react';
+import { DragDropContext, DropResult, DragStart, DragUpdate, Droppable } from '@hello-pangea/dnd';
 import { KanbanColumn } from './kanban-column';
 import { TaskCard } from './task-card';
 import type { KanbanSection, Task, User, TaskTag } from '@prisma/client';
@@ -19,7 +13,6 @@ import {
 } from '../actions';
 import { useOptimistic } from 'react';
 import { toast } from 'sonner';
-import { MouseSensor, KeyboardSensor, TouchSensor } from '@/lib/dnd-sensors';
 import TaskDetailSheet from './task-detail-sheet';
 import { useAtom } from 'jotai';
 import { taskModal, filterStateAtom, FilterType } from './utils';
@@ -236,25 +229,28 @@ export function KanbanBoard({
     });
   }, [sortableColumns, filterState, sortKey, sortDir]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+  const handleDragEnd = useCallback((result: DropResult) => {
+    const { source, destination, type, draggableId } = result;
 
-    if (active.id === over?.id) return;
-    if (!over) return;
+    // Dropped outside the list
+    if (!destination) {
+      return;
+    }
 
-    const activeColumnIndex = sortableColumns.findIndex(
-      (column: KanbanSectionWithTasks) => column.name === active.id
-    );
-    const overColumnIndex = sortableColumns.findIndex(
-      (column: KanbanSectionWithTasks) => column.name === over.id
-    );
+    // No movement
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
 
-    if (activeColumnIndex !== -1 && overColumnIndex !== -1) {
+    if (type === 'column') {
       // Handle column reordering
       startTransition(() => {
         const updatedColumns = [...sortableColumns];
-        const [movedColumn] = updatedColumns.splice(activeColumnIndex, 1);
-        updatedColumns.splice(overColumnIndex, 0, movedColumn);
+        const [movedColumn] = updatedColumns.splice(source.index, 1);
+        updatedColumns.splice(destination.index, 0, movedColumn);
 
         // Update kanbanOrder for each column
         updatedColumns.forEach((column, index) => {
@@ -275,94 +271,124 @@ export function KanbanBoard({
         });
       });
     } else {
-      // Handle task reordering
-      const activeTaskId = active.id as string;
-      const overTaskId = over.id as string;
-
-      // Find the source and target columns
-      const sourceColumn = sortableColumns.find((column) =>
-        column.tasks.some((task) => task.id === activeTaskId)
+      // Handle task movement
+      // Use filteredColumns to get the correct task references
+      const sourceColumn = filteredColumns.find(
+        (col) => col.id === source.droppableId
       );
-      const targetColumn =
-        sortableColumns.find((column) =>
-          column.tasks.some((task) => task.id === overTaskId)
-        ) || sortableColumns.find((column) => column.name === over.id);
+      const destColumn = filteredColumns.find(
+        (col) => col.id === destination.droppableId
+      );
 
-      if (!sourceColumn || !targetColumn) return;
+      if (!sourceColumn || !destColumn) return;
+
+      // Get the task being moved from the filtered view
+      const taskToMove = sourceColumn.tasks[source.index];
+      if (!taskToMove) return;
 
       startTransition(() => {
-        // Create a new array of columns
-        const updatedColumns = [...sortableColumns];
-
-        // Find the task to move
-        const taskToMove = sourceColumn.tasks.find(
-          (task) => task.id === activeTaskId
-        );
-        if (!taskToMove) return;
-
-        // Remove task from source column
+        // Create a deep copy of columns to avoid mutations
+        const updatedColumns = sortableColumns.map(col => ({
+          ...col,
+          tasks: [...col.tasks]
+        }));
+        
         const sourceColumnIndex = updatedColumns.findIndex(
-          (col) => col.id === sourceColumn.id
+          (col) => col.id === source.droppableId
         );
-        const sourceTasks = sourceColumn.tasks.filter(
-          (task) => task.id !== activeTaskId
+        const destColumnIndex = updatedColumns.findIndex(
+          (col) => col.id === destination.droppableId
         );
-        updatedColumns[sourceColumnIndex] = {
-          ...sourceColumn,
-          tasks: sourceTasks
-        };
 
-        // Add task to target column
-        const targetColumnIndex = updatedColumns.findIndex(
-          (col) => col.id === targetColumn.id
-        );
-        let targetTasks: typeof sourceColumn.tasks;
-        let newTaskOrder: number;
+        if (sourceColumnIndex === -1 || destColumnIndex === -1) return;
 
-        if (sourceColumn.id === targetColumn.id) {
-          // If reordering within the same column
-          targetTasks = [...sourceTasks];
-          if (overTaskId === targetColumn.name) {
-            // If dropping on the column itself, add to the end
-            newTaskOrder = targetTasks.length;
-            targetTasks.push(taskToMove);
+        // For same column reordering
+        if (source.droppableId === destination.droppableId) {
+          const column = updatedColumns[sourceColumnIndex];
+          const tasks = [...column.tasks];
+          
+          // Find the task in the original unfiltered list
+          const taskIndex = tasks.findIndex(t => t.id === taskToMove.id);
+          if (taskIndex === -1) return;
+          
+          // Remove the task from its current position
+          tasks.splice(taskIndex, 1);
+          
+          // Calculate where to insert based on the filtered view
+          const filteredTasks = sourceColumn.tasks.filter(t => t.id !== taskToMove.id);
+          
+          if (destination.index >= filteredTasks.length) {
+            // Add to the end
+            tasks.push(taskToMove);
           } else {
-            // If dropping on another task, insert at that position
-            const overTaskIndex = targetTasks.findIndex(
-              (task) => task.id === overTaskId
-            );
-            newTaskOrder = overTaskIndex;
-            targetTasks.splice(overTaskIndex, 0, taskToMove);
+            // Find the task that should be after our moved task
+            const afterTask = filteredTasks[destination.index];
+            const afterIndex = tasks.findIndex(t => t.id === afterTask.id);
+            
+            if (afterIndex !== -1) {
+              tasks.splice(afterIndex, 0, taskToMove);
+            } else {
+              tasks.push(taskToMove);
+            }
           }
+          
+          // Update task orders
+          tasks.forEach((task, idx) => {
+            task.taskOrder = idx;
+          });
+          
+          updatedColumns[sourceColumnIndex] = {
+            ...column,
+            tasks
+          };
         } else {
-          // If moving to a different column
-          targetTasks = [...targetColumn.tasks];
-          if (overTaskId === targetColumn.name) {
-            // If dropping on the column itself, add to the end
-            newTaskOrder = targetTasks.length;
-            targetTasks.push(taskToMove);
+          // For cross-column moves
+          const sourceCol = updatedColumns[sourceColumnIndex];
+          const destCol = updatedColumns[destColumnIndex];
+          
+          // Remove from source
+          sourceCol.tasks = sourceCol.tasks.filter(t => t.id !== taskToMove.id);
+          sourceCol.tasks.forEach((task, idx) => {
+            task.taskOrder = idx;
+          });
+          
+          // Add to destination at the correct position
+          const destTasks = [...destCol.tasks];
+          const filteredDestTasks = destColumn.tasks;
+          
+          if (destination.index >= filteredDestTasks.length) {
+            destTasks.push(taskToMove);
           } else {
-            // If dropping on another task, insert at that position
-            const overTaskIndex = targetTasks.findIndex(
-              (task) => task.id === overTaskId
-            );
-            newTaskOrder = overTaskIndex;
-            targetTasks.splice(overTaskIndex, 0, taskToMove);
+            const afterTask = filteredDestTasks[destination.index];
+            const afterIndex = destTasks.findIndex(t => t.id === afterTask.id);
+            
+            if (afterIndex !== -1) {
+              destTasks.splice(afterIndex, 0, taskToMove);
+            } else {
+              destTasks.push(taskToMove);
+            }
           }
+          
+          // Update task orders
+          destTasks.forEach((task, idx) => {
+            task.taskOrder = idx;
+          });
+          
+          updatedColumns[destColumnIndex] = {
+            ...destCol,
+            tasks: destTasks
+          };
         }
 
-        updatedColumns[targetColumnIndex] = {
-          ...targetColumn,
-          tasks: targetTasks
-        };
-
+        // Update the state immediately for optimistic UI
         setSortableColumns(updatedColumns);
 
-        if (sourceColumn.id === targetColumn.id) {
-          // If reordering within the same column
+        if (source.droppableId === destination.droppableId) {
+          // Reordering within the same column
+          const reorderedColumn = updatedColumns[sourceColumnIndex];
           reorderTasks(
-            targetColumn.id,
-            targetTasks.map((task) => task.id)
+            destination.droppableId,
+            reorderedColumn.tasks.map((task) => task.id)
           )
             .then((result) => {
               if (!result?.success) {
@@ -375,8 +401,8 @@ export function KanbanBoard({
               toast.error('Failed to reorder tasks. Please try again.');
             });
         } else {
-          // If moving to a different column
-          moveTask(activeTaskId, targetColumn.id, newTaskOrder)
+          // Moving to a different column
+          moveTask(draggableId, destination.droppableId, destination.index)
             .then((result) => {
               if (!result?.success) {
                 throw new Error('Failed to move task');
@@ -392,102 +418,55 @@ export function KanbanBoard({
     }
 
     setActiveId(null);
-  };
+  }, [sortableColumns, columns, filteredColumns]);
 
-  const handleDragStart = (event: any) => {
-    const { active } = event;
-    setActiveId(active.id);
-  };
+  const handleDragStart = useCallback((result: DragStart) => {
+    setActiveId(result.draggableId);
+  }, []);
 
   const handleAddTask = (kanbanSectionId: string) => {
     setCreatingColumnId(kanbanSectionId);
   };
 
-  const sensors = [
-    {
-      sensor: MouseSensor,
-      options: {
-        activationConstraint: {
-          distance: 10
-        }
-      }
-    },
-    {
-      sensor: TouchSensor,
-      options: {
-        activationConstraint: {
-          delay: 200,
-          tolerance: 6
-        }
-      }
-    },
-    {
-      sensor: KeyboardSensor,
-      options: {}
-    }
-  ];
-
   return (
     <div className="h-full">
-      <ScrollArea className="whitespace-nowrap">
-        <div className="flex gap-2 py-4 w-max">
-          <DndContext
-            onDragEnd={handleDragEnd}
-            onDragStart={handleDragStart}
-            sensors={sensors}
-            id="kanban-board"
-          >
-            <SortableContext
-              items={filteredColumns.map((column) => column.name)}
-              strategy={horizontalListSortingStrategy}
-            >
-              {filteredColumns.map((column, index) => (
-                <KanbanColumn
-                  key={index}
-                  id={column.id}
-                  name={column.name}
-                  tasks={column.tasks}
-                  boardId={boardId}
-                  showCreateCard={creatingColumnId === column.id}
-                  onCancelCreate={() => setCreatingColumnId(null)}
-                  handleAddTask={() => handleAddTask(column.id)}
-                />
-              ))}
+      <DragDropContext
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+      >
+        <ScrollArea className="whitespace-nowrap">
+          <Droppable droppableId="board" direction="horizontal" type="column">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="flex gap-2 py-4 w-max"
+              >
+                {filteredColumns.map((column, index) => (
+                  <KanbanColumn
+                    key={column.id}
+                    id={column.id}
+                    index={index}
+                    name={column.name}
+                    tasks={column.tasks}
+                    boardId={boardId}
+                    showCreateCard={creatingColumnId === column.id}
+                    onCancelCreate={() => setCreatingColumnId(null)}
+                    handleAddTask={() => handleAddTask(column.id)}
+                  />
+                ))}
+                {provided.placeholder}
 
-              {/* Add new section button */}
-              <KanbanColumnNew
-                onAddColumn={() => setIsNewSectionDialogOpen(true)}
-              />
-            </SortableContext>
-            <DragOverlay>
-              {activeId &&
-              sortableColumns.some((column) => column.name === activeId) ? (
-                <KanbanColumn
-                  id={activeId}
-                  name={
-                    sortableColumns.find((column) => column.name === activeId)!
-                      .name
-                  }
-                  tasks={
-                    sortableColumns.find((column) => column.name === activeId)!
-                      .tasks
-                  }
-                  // handleAddTask={() => handleAddTask()}
+                {/* Add new section button */}
+                <KanbanColumnNew
+                  onAddColumn={() => setIsNewSectionDialogOpen(true)}
                 />
-              ) : activeId ? (
-                <TaskCard
-                  task={
-                    sortableColumns
-                      .flatMap((column) => column.tasks)
-                      .find((task) => task.id === activeId)!
-                  }
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+              </div>
+            )}
+          </Droppable>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </DragDropContext>
       <TaskDetailSheet task={cleanActiveTaskData || null} boardId={boardId} />
       <NewSectionDialog
         boardId={boardId}

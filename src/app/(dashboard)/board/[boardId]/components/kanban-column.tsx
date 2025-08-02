@@ -1,11 +1,5 @@
 'use client';
-import { useDroppable } from '@dnd-kit/core';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import {
-  SortableContext,
-  verticalListSortingStrategy
-} from '@dnd-kit/sortable';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { TaskCard } from './task-card';
 import { Button } from 'src/components/ui/button';
 import { MoreHorizontal, Edit, Trash, Plus } from 'lucide-react';
@@ -26,6 +20,7 @@ import { TaskCardCreate } from './task-card-create';
 
 interface KanbanColumnProps {
   id: string;
+  index: number;
   name: string;
   tasks: (Task & {
     assignees: User[];
@@ -41,6 +36,7 @@ interface KanbanColumnProps {
 
 export function KanbanColumn({
   id,
+  index,
   name,
   tasks,
   handleAddTask,
@@ -48,29 +44,8 @@ export function KanbanColumn({
   showCreateCard,
   onCancelCreate
 }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({ id: name });
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setSortableNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({
-    id: name,
-    data: {
-      type: 'column',
-      tasks
-    }
-  });
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1
-  };
 
   const closeDeleteAlert = () => {
     setDeleteAlertOpen(false);
@@ -105,107 +80,111 @@ export function KanbanColumn({
   // console.log("tasks", tasks)
 
   return (
-    <div className="dark:bg-gray-800 rounded-lg">
-      <div
-        ref={(node) => {
-          setNodeRef(node);
-          setSortableNodeRef(node);
-        }}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className="flex-1 w-[280px] transition-all duration-200"
-      >
-        <div className="bg-muted/50 rounded-lg flex flex-col  h-[calc(100vh-140px)]">
-          <div className="px-3 py-2 bg-primary/5 rounded-t-lg border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-semibold truncate">{name}</h2>
-                {/* {machine.scheduledTime && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <div
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        machine.status === "active" ? "bg-primary" : "bg-muted-foreground"
-                      }`}
-                    />
-                    <p className="text-xs text-muted-foreground">{machine.scheduledTime}</p>
-                  </div>
-                )} */}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 -mr-2"
-                onClick={handleAddTask}
+    <Draggable draggableId={id} index={index}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          className="dark:bg-gray-800 rounded-lg"
+          style={{
+            ...provided.draggableProps.style,
+            opacity: snapshot.isDragging ? 0.5 : 1
+          }}
+        >
+          <div className="flex-1 w-[280px] transition-all duration-200">
+            <div className="bg-muted/50 rounded-lg flex flex-col  h-[calc(100vh-140px)]">
+              <div
+                className="px-3 py-2 bg-primary/5 rounded-t-lg border-b"
+                {...provided.dragHandleProps}
               >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <div data-no-dnd="true">
-                <DropdownMenu modal={false}>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 -mr-2"
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-sm font-semibold truncate">{name}</h2>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 -mr-2"
+                    onClick={handleAddTask}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <div data-no-dnd="true">
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 -mr-2"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={openEditDialog}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Rename column
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={openDeleteAlert}
+                          className="text-red-600"
+                          data-no-dnd
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Delete column
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+              <div className="p-2 flex-1 overflow-hidden">
+                {showCreateCard && boardId && (
+                  <div className="space-y-2 mb-2">
+                    <TaskCardCreate
+                      columnId={id}
+                      boardId={boardId}
+                      onCancel={onCancelCreate || (() => {})}
+                    />
+                  </div>
+                )}
+                <Droppable droppableId={id} type="task">
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`space-y-2 h-full overflow-y-auto ${
+                        snapshot.isDraggingOver ? 'bg-muted/30' : ''
+                      }`}
                     >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={openEditDialog}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Rename column
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={openDeleteAlert}
-                      className="text-red-600"
-                      data-no-dnd
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Delete column
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {tasks.map((task, index) =>
+                        task ? (
+                          <TaskCard key={task.id} task={task} index={index} />
+                        ) : null
+                      )}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
               </div>
             </div>
           </div>
-          <div className="p-2 flex-1 overflow-hidden">
-            {showCreateCard && boardId && (
-              <div className="space-y-2 mb-2">
-                <TaskCardCreate
-                  columnId={id}
-                  boardId={boardId}
-                  onCancel={onCancelCreate || (() => {})}
-                />
-              </div>
-            )}
-            <SortableContext
-              items={tasks.map((task) => task.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-2 h-full overflow-y-auto">
-                {tasks.map((task) =>
-                  task ? <TaskCard key={task.id} task={task} /> : null
-                )}
-              </div>
-            </SortableContext>
+          <div data-no-dnd="true">
+            <DeleteAlert
+              isOpen={isDeleteAlertOpen}
+              onCloseAction={closeDeleteAlert}
+              onConfirm={handleDeleteColumn}
+              resourceName="column"
+            />
+            <EditColumnDialog
+              columnId={id}
+              columnName={name}
+              isOpen={isEditDialogOpen}
+              onClose={closeEditDialog}
+            />
           </div>
         </div>
-      </div>
-      <div data-no-dnd="true">
-        <DeleteAlert
-          isOpen={isDeleteAlertOpen}
-          onCloseAction={closeDeleteAlert}
-          onConfirm={handleDeleteColumn}
-          resourceName="column"
-        />
-        <EditColumnDialog
-          columnId={id}
-          columnName={name}
-          isOpen={isEditDialogOpen}
-          onClose={closeEditDialog}
-        />
-      </div>
-    </div>
+      )}
+    </Draggable>
   );
 }
