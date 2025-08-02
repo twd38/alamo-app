@@ -49,12 +49,30 @@ npm run init:admin:staging # Staging
 
 ### Code Quality
 
-```bash
-# Type checking
-npm run typecheck
+**IMPORTANT: Pre-Commit Requirements**
+Before making any commits to the repository, you MUST run the following checks to ensure code quality:
 
-# Linting
-npm run lint
+1. **Lint Check** - Ensures code follows ESLint rules
+   ```bash
+   npm run lint
+   ```
+
+2. **TypeScript Type Check** - Validates all TypeScript types
+   ```bash
+   npm run typecheck
+   ```
+
+3. **Build Check** - Ensures the application builds successfully
+   ```bash
+   npm run build
+   ```
+
+Run these checks in order. If any check fails, fix the issues before committing.
+
+Other available commands:
+
+```bash
+# Auto-fix linting issues
 npm run lint:fix
 npm run lint:strict
 
