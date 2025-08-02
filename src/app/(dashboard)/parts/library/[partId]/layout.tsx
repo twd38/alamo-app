@@ -11,6 +11,7 @@ type PartDetailLayoutProps = {
   model: React.ReactNode;
   instructions: React.ReactNode;
   inventory: React.ReactNode;
+  routings: React.ReactNode;
 };
 
 type Part = Prisma.PartGetPayload<{
@@ -30,7 +31,7 @@ const TopBarActions = ({ part }: { part: Part | null }) => {
 const PartDetailLayout = async (props: PartDetailLayoutProps) => {
   const params = await props.params;
   const partId = params.partId as string;
-  const { details, model, instructions, inventory } = props;
+  const { details, model, instructions, inventory, routings } = props;
 
   const part = await getPart(partId || '');
   const partNumber = part?.partNumber;
@@ -68,6 +69,7 @@ const PartDetailLayout = async (props: PartDetailLayoutProps) => {
           model={model}
           instructions={instructions}
           inventory={inventory}
+          routings={routings}
         />
       </div>
     </div>

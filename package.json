@@ -16,6 +16,8 @@
     "seed:rbac:prod": "dotenv -e .env.production -- tsx scripts/seed-rbac.ts",
     "seed:rbac:staging": "dotenv -e .env.staging -- tsx scripts/seed-rbac.ts",
     "seed:rbac:env": "dotenv -e .env.$NODE_ENV -- tsx scripts/seed-rbac.ts",
+    "seed:mes": "dotenv -e .env.local -- tsx scripts/seed-mes.ts",
+    "seed:mes:prod": "dotenv -e .env.production -- tsx scripts/seed-mes.ts",
     "init:admin": "dotenv -e .env.local -- tsx scripts/init-admin.ts",
     "init:admin:prod": "dotenv -e .env.production -- tsx scripts/init-admin.ts",
     "init:admin:staging": "dotenv -e .env.staging -- tsx scripts/init-admin.ts",
