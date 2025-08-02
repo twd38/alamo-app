@@ -29,7 +29,9 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   
   // Check if credentials auth is enabled
-  const isCredentialsEnabled = process.env.NODE_ENV !== 'production' || 
+  // NEXT_PUBLIC_VERCEL_ENV is automatically exposed by Vercel when system env vars are enabled
+  // It will be 'development' locally, 'preview' on preview branches, 'production' on main
+  const isCredentialsEnabled = process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production' || 
     process.env.NEXT_PUBLIC_ENABLE_CREDENTIALS_AUTH === 'true';
 
   const handleCredentialsLogin = async (e: React.FormEvent) => {
