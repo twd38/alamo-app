@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { WorkCentersManager } from './components/work-centers-manager';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
@@ -18,7 +19,9 @@ export default function WorkCentersPage() {
     <div>
       <BasicTopBar breadcrumbs={breadcrumbs} />
       <PageContainer>
-        <WorkCentersManager />
+        <Suspense fallback={<div className="flex items-center justify-center h-96">Loading...</div>}>
+          <WorkCentersManager />
+        </Suspense>
       </PageContainer>
     </div>
   );

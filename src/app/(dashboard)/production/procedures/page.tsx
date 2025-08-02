@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { ProceduresManager } from './components/procedures-manager';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
@@ -18,7 +19,9 @@ export default function ProceduresPage() {
     <div>
       <BasicTopBar breadcrumbs={breadcrumbs} />
       <PageContainer>
-        <ProceduresManager />
+        <Suspense fallback={<div className="flex items-center justify-center h-96">Loading...</div>}>
+          <ProceduresManager />
+        </Suspense>
       </PageContainer>
     </div>
   );
