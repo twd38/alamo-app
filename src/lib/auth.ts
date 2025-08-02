@@ -25,41 +25,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     }),
     // Add credentials provider for dev/staging environments
-    ...(process.env.NODE_ENV !== 'production' || process.env.ENABLE_CREDENTIALS_AUTH === 'true' ? [
-      CredentialsProvider({
-        name: 'credentials',
-        credentials: {
-          email: { label: "Email", type: "email" },
-          password: { label: "Password", type: "password" }
-        },
-        async authorize(credentials) {
-          if (!credentials?.email || !credentials?.password) {
-            return null;
-          }
+    ...(process.env.VERCEL_ENV !== 'production' ||
+    process.env.ENABLE_CREDENTIALS_AUTH === 'true'
+      ? [
+          CredentialsProvider({
+            name: 'credentials',
+            credentials: {
+              email: { label: 'Email', type: 'email' },
+              password: { label: 'Password', type: 'password' }
+            },
+            async authorize(credentials) {
+              if (!credentials?.email || !credentials?.password) {
+                return null;
+              }
 
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email as string }
-          });
+              const user = await prisma.user.findUnique({
+                where: { email: credentials.email as string }
+              });
 
-          if (!user || !user.password) {
-            return null;
-          }
+              if (!user || !user.password) {
+                return null;
+              }
 
-          const isValid = await bcrypt.compare(credentials.password as string, user.password);
+              const isValid = await bcrypt.compare(
+                credentials.password as string,
+                user.password
+              );
 
-          if (!isValid) {
-            return null;
-          }
+              if (!isValid) {
+                return null;
+              }
 
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image
-          };
-        }
-      })
-    ] : [])
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                image: user.image
+              };
+            }
+          })
+        ]
+      : [])
   ],
   pages: {
     signIn: '/login',
@@ -67,9 +73,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   // Use JWT strategy when credentials provider is available
   session: {
-    strategy: process.env.NODE_ENV !== 'production' || process.env.ENABLE_CREDENTIALS_AUTH === 'true' 
-      ? 'jwt' 
-      : 'database',
+    strategy:
+      process.env.VERCEL_ENV !== 'production' ||
+      process.env.ENABLE_CREDENTIALS_AUTH === 'true'
+        ? 'jwt'
+        : 'database',
     maxAge: 30 * 24 * 60 * 60 // 30 days
   },
   callbacks: {
@@ -163,9 +171,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       if (session.user) {
         // Ensure we have the user ID
-        const userId = token?.id as string || user?.id;
+        const userId = (token?.id as string) || user?.id;
         if (!userId) return session;
-        
+
         session.user.id = userId;
 
         // Load user's roles and permissions into the session
@@ -239,7 +247,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     }
   },
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.VERCEL_ENV === 'development'
 });
 
 // Extend the Session and User types
