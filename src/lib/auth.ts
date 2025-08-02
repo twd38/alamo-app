@@ -169,7 +169,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Get user's roles with their permissions
           const userRoles = await prisma.userRole.findMany({
             where: {
-              userId: userId,
+              userId,
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
             },
             include: {
@@ -188,7 +188,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Get user's direct permissions
           const userPermissions = await prisma.userPermission.findMany({
             where: {
-              userId: userId,
+              userId,
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
             },
             include: {
