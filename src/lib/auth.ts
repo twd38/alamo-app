@@ -2,6 +2,8 @@ import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/db';
 import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -21,15 +23,61 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           include_granted_scopes: true
         }
       }
-    })
+    }),
+    // Add credentials provider for dev/staging environments
+    ...(process.env.VERCEL_ENV !== 'production' ||
+    process.env.ENABLE_CREDENTIALS_AUTH === 'true'
+      ? [
+          CredentialsProvider({
+            name: 'credentials',
+            credentials: {
+              email: { label: 'Email', type: 'email' },
+              password: { label: 'Password', type: 'password' }
+            },
+            async authorize(credentials) {
+              if (!credentials?.email || !credentials?.password) {
+                return null;
+              }
+
+              const user = await prisma.user.findUnique({
+                where: { email: credentials.email as string }
+              });
+
+              if (!user || !user.password) {
+                return null;
+              }
+
+              const isValid = await bcrypt.compare(
+                credentials.password as string,
+                user.password
+              );
+
+              if (!isValid) {
+                return null;
+              }
+
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                image: user.image
+              };
+            }
+          })
+        ]
+      : [])
   ],
   pages: {
     signIn: '/login',
     error: '/auth/error' // Add an error page path
   },
-  // Explicitly set database session strategy
+  // Use JWT strategy when credentials provider is available
   session: {
-    strategy: 'database',
+    strategy:
+      process.env.VERCEL_ENV !== 'production' ||
+      process.env.ENABLE_CREDENTIALS_AUTH === 'true'
+        ? 'jwt'
+        : 'database',
     maxAge: 30 * 24 * 60 * 60 // 30 days
   },
   callbacks: {
@@ -97,16 +145,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Default allow sign-in
       return true;
     },
-    session: async ({ session, user }) => {
+    // Add JWT callback for credentials provider
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.image = user.image;
+      }
+      return token;
+    },
+    session: async ({ session, token, user }) => {
+      // Handle both JWT (for credentials) and database sessions (for OAuth)
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.image = token.image as string | null;
+      } else if (user) {
+        session.user = {
+          ...user,
+          roles: [],
+          permissions: []
+        };
+      }
       if (session.user) {
-        session.user.id = user.id;
+        // Ensure we have the user ID
+        const userId = (token?.id as string) || user?.id;
+        if (!userId) return session;
+
+        session.user.id = userId;
 
         // Load user's roles and permissions into the session
         try {
           // Get user's roles with their permissions
           const userRoles = await prisma.userRole.findMany({
             where: {
-              userId: user.id,
+              userId,
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
             },
             include: {
@@ -125,7 +200,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Get user's direct permissions
           const userPermissions = await prisma.userPermission.findMany({
             where: {
-              userId: user.id,
+              userId,
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
             },
             include: {
@@ -172,7 +247,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     }
   },
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.VERCEL_ENV === 'development'
 });
 
 // Extend the Session and User types

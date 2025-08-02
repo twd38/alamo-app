@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { OperationsManager } from './components/operations-manager';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
@@ -18,7 +19,9 @@ export default function OperationsPage() {
     <div>
       <BasicTopBar breadcrumbs={breadcrumbs} />
       <PageContainer>
-        <OperationsManager />
+        <Suspense fallback={<div className="flex items-center justify-center h-96">Loading...</div>}>
+          <OperationsManager />
+        </Suspense>
       </PageContainer>
     </div>
   );
