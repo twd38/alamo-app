@@ -19,7 +19,7 @@ const TabsList = React.forwardRef<
 >(({ className, size = 'default', ...props }, ref) => {
   const sizeClasses = {
     sm: 'h-8 p-1 gap-1',
-    default: 'h-9 p-1 gap-1',
+    default: 'h-10 p-1 gap-1',
     lg: 'h-11 p-1.5 gap-1.5'
   };
 
