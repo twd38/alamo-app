@@ -1,8 +1,8 @@
 'use client';
 import { Draggable } from '@hello-pangea/dnd';
-import { Card, CardContent, CardHeader } from 'src/components/ui/card';
+import { Card, CardContent } from 'src/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from 'src/components/ui/avatar';
-import { Calendar, User2, Tag, Flag } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Badge } from 'src/components/ui/badge';
 import { Prisma } from '@prisma/client';
 import { useAtom } from 'jotai';
@@ -18,7 +18,13 @@ type TaskWithRelations = Prisma.TaskGetPayload<{
   };
 }>;
 
-export function TaskCard({ task, index }: { task: TaskWithRelations; index: number }) {
+export function TaskCard({
+  task,
+  index
+}: {
+  task: TaskWithRelations;
+  index: number;
+}) {
   const [_, setActiveTask] = useAtom(taskModal);
 
   if (!task) return null;
@@ -48,62 +54,77 @@ export function TaskCard({ task, index }: { task: TaskWithRelations; index: numb
           className="cursor-pointer"
           onClick={handleClick}
         >
-          <CardHeader className="p-4 flex flex-row justify-between items-start">
-            <h3 className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
-              {task.name}
-            </h3>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-1">
-                <Flag className="h-4 w-4 mr-1" />
-                <Badge color={PRIORITY_CONFIG[task.priority].color}>
-                  {PRIORITY_CONFIG[task.priority].label}
-                </Badge>
-              </div>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {/* Title */}
+              <h3 className="font-medium text-wrap">{task.name}</h3>
 
-              <div className="flex items-center gap-1">
-                <Tag className="h-4 w-4 mr-1" />
-                {task.tags.map((tag) => (
-                  <Badge key={tag.id} color={tag.color}>
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
+              {/* Bottom section with date, priority and assignees */}
+              <div className="space-y-3">
+                {/* Left side: Date and Priority */}
+                <div className="flex items-center justify-between">
+                  {/* Date */}
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4 mr-1.5" />
+                    <span>
+                      {task.dueDate.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
 
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
-                <span>{task.dueDate.toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <User2 className="h-4 w-4 mr-1" />
-                {task.assignees.length > 0 ? (
-                  <>
-                    <div className="flex -space-x-2">
-                      {task.assignees.map((assignee) => (
+                  {/* Right side: Assignees */}
+                  <div className="flex -space-x-3 align-top">
+                    {task.assignees.length > 0 ? (
+                      task.assignees.map((assignee) => (
                         <Avatar
                           key={assignee.id}
-                          className="h-6 w-6 border-2 border-background"
+                          className="h-7 w-7 border-2 border-background"
                         >
                           <AvatarImage src={assignee.image || ''} />
-                          <AvatarFallback>{assignee.name?.[0]}</AvatarFallback>
+                          <AvatarFallback className="text-xs">
+                            {assignee.name
+                              ?.split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .toUpperCase()}
+                          </AvatarFallback>
                         </Avatar>
-                      ))}
-                    </div>
-                    <span className="text-muted-foreground">
-                      {task.assignees.length === 1
-                        ? task.assignees[0].name
-                        : `${task.assignees.length} assignees`}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                    <span className="text-muted-foreground">Unassigned</span>
-                  </>
-                )}
+                      ))
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Priority Badge */}
+                  <Badge
+                    variant={task.priority === 0 ? 'secondary' : 'default'}
+                    className={
+                      task.priority === 0
+                        ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        : task.priority === 1
+                          ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                          : task.priority === 2
+                            ? 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                            : 'bg-red-50 text-red-700 hover:bg-red-100'
+                    }
+                  >
+                    {PRIORITY_CONFIG[task.priority].label}
+                  </Badge>
+
+                  {/* Tags */}
+                  <div className="flex -space-x-2 align-top">
+                    {task.tags.map((tag) => (
+                      <Badge key={tag.id} color={tag.color}>
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

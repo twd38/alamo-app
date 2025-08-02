@@ -23,7 +23,10 @@ import {
   Settings2,
   ShoppingCart,
   Globe,
-  SquareKanban
+  SquareKanban,
+  Wrench,
+  FileText,
+  Building
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
@@ -36,7 +39,29 @@ const items = [
   {
     title: 'Production',
     url: '/production',
-    icon: Factory
+    icon: Factory,
+    items: [
+      {
+        title: 'Work Orders',
+        url: '/production/work-orders'
+      },
+      {
+        title: 'Work Centers',
+        url: '/production/work-centers'
+      },
+      {
+        title: 'Operations',
+        url: '/production/operations'
+      },
+      {
+        title: 'Procedures',
+        url: '/production/procedures'
+      },
+      {
+        title: 'Routings',
+        url: '/production/routings'
+      }
+    ]
   },
   {
     title: 'Parts',

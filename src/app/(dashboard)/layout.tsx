@@ -17,6 +17,7 @@ import Providers from '@/components/providers/providers';
 import { AppSidebar } from '@/components/sidebar/app-sidebar';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function DashboardLayout({
   children
@@ -33,9 +34,15 @@ export default function DashboardLayout({
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
 
-  // Hide sidebar for production work order pages
-  const isProductionWorkOrder = pathname?.match(/^\/production\/[^/]+$/);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Hide sidebar only for work order detail pages (e.g., /production/WO-123)
+  // Only check after hydration to avoid mismatches
+  const isProductionWorkOrder = isClient && pathname?.match(/^\/production\/WO-[^/]+$/);
 
   if (isProductionWorkOrder) {
     return <div className="w-full h-full">{children}</div>;

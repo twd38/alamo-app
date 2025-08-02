@@ -6,7 +6,8 @@ import {
   Box,
   ListOrdered,
   Book,
-  Package
+  Package,
+  GitBranch
 } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -37,6 +38,11 @@ export const TabList = () => {
       label: 'inventory',
       icon: <Warehouse />,
       href: `/parts/library/${params.partId}?tab=inventory`
+    },
+    {
+      label: 'routings',
+      icon: <GitBranch />,
+      href: `/parts/library/${params.partId}?tab=routings`
     }
   ];
 
@@ -60,12 +66,14 @@ export const ActiveTab = ({
   details,
   model,
   instructions,
-  inventory
+  inventory,
+  routings
 }: {
   details: React.ReactNode;
   model: React.ReactNode;
   instructions: React.ReactNode;
   inventory: React.ReactNode;
+  routings: React.ReactNode;
 }) => {
   'use client';
   const params = useParams();
@@ -78,6 +86,7 @@ export const ActiveTab = ({
       {activeTab === 'model' && model}
       {activeTab === 'instructions' && instructions}
       {activeTab === 'inventory' && inventory}
+      {activeTab === 'routings' && routings}
     </>
   );
 };
