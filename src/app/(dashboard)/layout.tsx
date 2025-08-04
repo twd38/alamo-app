@@ -42,7 +42,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   // Hide sidebar only for work order detail pages (e.g., /production/WO-123)
   // Only check after hydration to avoid mismatches
-  const isProductionWorkOrder = isClient && pathname?.match(/^\/production\/WO-[^/]+$/);
+  const isProductionWorkOrder =
+    isClient && pathname?.match(/^\/production\/[a-z0-9]+$/);
 
   if (isProductionWorkOrder) {
     return <div className="w-full h-full">{children}</div>;
