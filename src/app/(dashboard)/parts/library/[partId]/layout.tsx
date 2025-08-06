@@ -2,8 +2,10 @@ import BasicTopBar from '@/components/layouts/basic-top-bar';
 import { getPart } from './queries/getPart';
 import { TabList, ActiveTab } from './components/part-tabs';
 import { CreateWorkOrderDialog } from './components/create-work-order-dialog';
+import { CreateWorkOrderWithRoutingDialog } from './components/create-work-order-with-routing-dialog';
 import { Prisma } from '@prisma/client';
 import { BreadcrumbConfig } from '@/components/breadcrumbs';
+import { prisma } from '@/lib/db';
 
 type PartDetailLayoutProps = {
   params: Promise<{ partId: string }>;
@@ -20,12 +22,60 @@ type Part = Prisma.PartGetPayload<{
   };
 }>;
 
-const TopBarActions = ({ part }: { part: Part | null }) => {
+type PartWithRoutings = Prisma.PartGetPayload<{
+  include: {
+    partImage: true;
+    routings: {
+      include: {
+        steps: {
+          include: {
+            operation: true;
+            workCenter: true;
+          };
+        };
+      };
+    };
+    workInstructions: true;
+  };
+}>;
+
+const TopBarActions = async ({ part }: { part: Part | null }) => {
   if (!part) {
     return null;
   }
 
-  return <CreateWorkOrderDialog part={part} />;
+  // Fetch the part with routings data
+  const partWithRoutings = await prisma.part.findUnique({
+    where: { id: part.id },
+    include: {
+      partImage: true,
+      routings: {
+        include: {
+          steps: {
+            include: {
+              operation: true,
+              workCenter: true
+            },
+            orderBy: { stepNumber: 'asc' }
+          }
+        }
+      },
+      workInstructions: true
+    }
+  });
+
+  if (!partWithRoutings) {
+    return null;
+  }
+
+  // Use new dialog if routings are available, otherwise use legacy dialog
+  const hasRoutings = partWithRoutings.routings && partWithRoutings.routings.length > 0;
+  
+  if (hasRoutings) {
+    return <CreateWorkOrderWithRoutingDialog part={partWithRoutings} />;
+  } else {
+    return <CreateWorkOrderDialog part={part} />;
+  }
 };
 
 const PartDetailLayout = async (props: PartDetailLayoutProps) => {

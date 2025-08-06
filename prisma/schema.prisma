@@ -43,6 +43,11 @@ model User {
   
   // Comments relationship
   comments              Comment[]            @relation("CommentAuthor")
+  
+  // Work Order Operation relationships
+  assignedOperations    WorkOrderOperation[] @relation("OperationAssignee")
+  setupOperations       WorkOrderOperation[] @relation("OperationSetupBy")
+  completedOperations   WorkOrderOperation[] @relation("OperationCompletedBy")
 }
 
 model Account {
@@ -131,6 +136,7 @@ model WorkOrder {
   clockInEntries  ClockInEntry[]
   timeEntries     WorkOrderTimeEntry[]
   workInstruction WorkOrderWorkInstruction?
+  workOrderRouting WorkOrderRouting?       // New: Link to routing-based work order
   tags            WorkOrderTag[]           @relation("WorkOrderToWorkOrderTag")
 }
 
@@ -679,6 +685,15 @@ enum StepExecutionStatus {
   SKIPPED
 }
 
+enum OperationStatus {
+  PENDING
+  SETUP
+  RUNNING
+  PAUSED
+  COMPLETED
+  SKIPPED
+}
+
 model AccessBadge {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -839,6 +854,7 @@ model WorkCenter {
   // Relationships
   operations       Operation[]
   routingSteps     RoutingStep[]
+  workOrderOperations WorkOrderOperation[]
 }
 
 model Operation {
@@ -858,6 +874,7 @@ model Operation {
   workCenter       WorkCenter        @relation(fields: [workCenterId], references: [id])
   procedures       Procedure[]
   routingSteps     RoutingStep[]
+  workOrderOperations WorkOrderOperation[]
   
   @@index([workCenterId])
 }
@@ -901,6 +918,7 @@ model Routing {
   part             Part              @relation(fields: [partId], references: [id])
   steps            RoutingStep[]
   partRoutings     PartRouting[]
+  workOrderRoutings WorkOrderRouting[]
   
   @@unique([partId, routingNumber, version])
   @@index([partId])
@@ -945,6 +963,71 @@ model PartRouting {
   @@unique([partId, routingId])
   @@index([partId])
   @@index([routingId])
+}
+
+// Work Order Routing - Links work orders to routing system
+model WorkOrderRouting {
+  id               String                @id @default(uuid())
+  workOrderId      String                @unique
+  routingId        String?               // Optional for backward compatibility
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  
+  // Relationships
+  workOrder        WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  routing          Routing?              @relation(fields: [routingId], references: [id])
+  operations       WorkOrderOperation[]
+  
+  @@index([routingId])
+}
+
+// Work Order Operation - Tracks individual operations within a work order
+model WorkOrderOperation {
+  id                String                @id @default(uuid())
+  workOrderRoutingId String
+  sequenceNumber    Int
+  operationId       String
+  workCenterId      String
+  status            OperationStatus       @default(PENDING)
+  plannedQty        Int
+  completedQty      Int                   @default(0)
+  scrappedQty       Int                   @default(0)
+  
+  // Time tracking
+  plannedSetupTime  Int                   // Minutes
+  plannedRunTime    Int                   // Minutes per unit
+  actualSetupTime   Int?                  // Minutes
+  actualRunTime     Int?                  // Minutes
+  startedAt         DateTime?
+  setupCompletedAt  DateTime?
+  completedAt       DateTime?
+  
+  // Worker assignment
+  assignedUserId    String?
+  setupByUserId     String?
+  completedByUserId String?
+  
+  // Additional fields
+  notes             String?
+  priority          Int                   @default(0)
+  
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  // Relationships
+  workOrderRouting  WorkOrderRouting      @relation(fields: [workOrderRoutingId], references: [id], onDelete: Cascade)
+  operation         Operation             @relation(fields: [operationId], references: [id])
+  workCenter        WorkCenter            @relation(fields: [workCenterId], references: [id])
+  assignedUser      User?                 @relation("OperationAssignee", fields: [assignedUserId], references: [id])
+  setupByUser       User?                 @relation("OperationSetupBy", fields: [setupByUserId], references: [id])
+  completedByUser   User?                 @relation("OperationCompletedBy", fields: [completedByUserId], references: [id])
+  
+  @@unique([workOrderRoutingId, sequenceNumber])
+  @@index([workOrderRoutingId])
+  @@index([operationId])
+  @@index([workCenterId])
+  @@index([status])
+  @@index([assignedUserId])
 }
 
 enum WorkCenterType {
