@@ -1,22 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import {
-  Home,
-  LineChart,
-  Package,
-  Package2,
-  PanelLeft,
-  ShoppingCart,
-  Users2
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Analytics } from '@vercel/analytics/react';
 import Providers from '@/components/providers/providers';
 import { AppSidebar } from '@/components/sidebar/app-sidebar';
 import { SidebarInset } from '@/components/ui/sidebar';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function DashboardLayout({
@@ -33,7 +21,9 @@ export default function DashboardLayout({
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const params = useParams();
+  const workOrderId = params.workOrderId;
+
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -42,8 +32,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   // Hide sidebar only for work order detail pages (e.g., /production/WO-123)
   // Only check after hydration to avoid mismatches
-  const isProductionWorkOrder =
-    isClient && pathname?.match(/^\/production\/[a-z0-9]+$/);
+  const isProductionWorkOrder = isClient && workOrderId;
 
   if (isProductionWorkOrder) {
     return <div className="w-full h-full">{children}</div>;
@@ -59,63 +48,4 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
 function DesktopNav({ children }: { children: React.ReactNode }) {
   return <SidebarInset className="overflow-hidden">{children}</SidebarInset>;
-}
-
-function MobileNav() {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button size="icon" variant="outline" className="sm:hidden">
-          <PanelLeft className="h-5 w-5" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="sm:max-w-xs">
-        <nav className="grid gap-6 text-lg font-medium">
-          <Link
-            href="#"
-            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-          >
-            <Package2 className="h-5 w-5 transition-all group-hover:scale-110" />
-            <span className="sr-only">Vercel</span>
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-          >
-            <Home className="h-5 w-5" />
-            Dashboard
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            Orders
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-4 px-2.5 text-foreground"
-          >
-            <Package className="h-5 w-5" />
-            Products
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-          >
-            <Users2 className="h-5 w-5" />
-            Customers
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-          >
-            <LineChart className="h-5 w-5" />
-            Settings
-          </Link>
-        </nav>
-      </SheetContent>
-    </Sheet>
-  );
 }

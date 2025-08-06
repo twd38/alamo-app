@@ -91,7 +91,18 @@ export function BadgePreviewDialog({
 
     // Generate QR code with just the badge ID for printing
     const qrData = encodeURIComponent(badge.id);
-    const printQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${qrData}`;
+    const printQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${qrData}`;
+
+    // Determine email length category for responsive sizing
+    const getEmailLengthCategory = (email: string) => {
+      const length = email.length;
+      if (length <= 20) return 'short';
+      if (length <= 30) return 'medium';
+      if (length <= 40) return 'long';
+      return 'very-long';
+    };
+
+    const emailLengthCategory = getEmailLengthCategory(badge.user?.email || '');
 
     return `
       <!DOCTYPE html>
@@ -100,8 +111,8 @@ export function BadgePreviewDialog({
           <title>Badge Print - ${badge.user?.name}</title>
           <style>
             @page {
-              size: A4;
-              margin: 0.5in;
+              size: 55mm 86mm;
+              margin: 0;
             }
             
             * {
@@ -117,143 +128,174 @@ export function BadgePreviewDialog({
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
               background: white;
-              display: flex;
-              justify-content: center;
-              align-items: flex-start;
-              min-height: 100vh;
-              padding: 20px;
             }
             
-            .badge-container {
-              display: flex;
-              gap: 20px;
-              justify-content: center;
+            .badge-page {
+              width: 55mm;
+              height: 86mm;
+              page-break-after: always;
+              padding: 0;
+              margin: 0;
+            }
+            
+            .badge-page:last-child {
+              page-break-after: auto;
             }
             
             .badge {
-              width: 2in;
-              height: 3in;
+              width: 55mm;
+              height: 86mm;
               background: white;
-              border-radius: 8px;
-              border: 1px solid #e5e7eb;
               position: relative;
               overflow: hidden;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              display: flex;
+              flex-direction: column;
             }
             
             .badge-front .header {
-              padding: 16px;
+              padding: 4mm;
+              flex-shrink: 0;
             }
             
-                         .badge-front .logo {
-               width: 80px;
-               height: auto;
-             }
-             
-             .badge-front .user-info {
-               position: absolute;
-               bottom: 64px;
-               left: 16px;
-               width: 1.7in;
-               white-space: nowrap;
-               overflow: hidden;
-               text-overflow: ellipsis;
-             }
-             
-             .badge-front .user-name {
-               font-size: 18px;
-               font-weight: bold;
-               color: #111827;
-               margin-bottom: 4px;
-               white-space: nowrap;
-               overflow: hidden;
-               text-overflow: ellipsis;
-             }
-             
-             .badge-front .user-title {
-               font-size: 14px;
-               color: #6b7280;
-               margin-bottom: 8px;
-               display: none; /* Commented out in React version */
-             }
-             
-             .badge-front .user-email {
-               font-size: 11.2px; /* 0.7rem equivalent */
-               color: #9ca3af;
-               white-space: nowrap;
-               overflow: hidden;
-               text-overflow: ellipsis;
-             }
-             
-             .badge-front .bottom-bar {
-               position: absolute;
-               bottom: 0;
-               left: 0;
-               right: 0;
-               background: black;
-               color: white;
-               padding: 12px 16px;
-             }
-             
-             .badge-front .bottom-text {
-               font-size: 14px;
-               font-weight: bold;
-             }
+            .badge-front .logo {
+              margin-top: 3mm;
+              width: 24mm;
+              height: auto;
+            }
             
+            .badge-front .user-info {
+              position: absolute;
+              bottom: 18mm;
+              left: 4mm;
+              right: 4mm;
+            }
+            
+            .badge-front .user-name {
+              font-size: 5mm;
+              font-weight: bold;
+              color: black;
+              margin-bottom: 1mm;
+              line-height: 1.2;
+            }
+            
+            .badge-front .user-title {
+              font-size: 5mm;
+              color: black;
+              margin-bottom: 0mm;
+              display: none; /* Commented out in React version */
+            }
+            
+            .badge-front .user-email {
+              font-size: 3mm;
+              color: black;
+              line-height: 1.2;
+              word-break: break-all;
+              overflow-wrap: break-word;
+              max-width: 100%;
+              display: block;
+            }
+            
+            /* Auto-scale email for different lengths */
+            .badge-front .user-email[data-length="short"] {
+              font-size: 3mm;
+            }
+            
+            .badge-front .user-email[data-length="medium"] {
+              font-size: 2.5mm;
+            }
+            
+            .badge-front .user-email[data-length="long"] {
+              font-size: 2mm;
+              line-height: 1.1;
+            }
+            
+            .badge-front .user-email[data-length="very-long"] {
+              font-size: 1.8mm;
+              line-height: 1.0;
+              word-break: break-all;
+            }
+            
+            @media print {
+              .badge-front .user-email {
+                font-size: clamp(1.6mm, 2.5vw, 3mm);
+              }
+            }
+            
+            .badge-front .bottom-bar {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              width: 100%;
+              background: black;
+              color: white;
+              padding: 5mm 4mm;
+              flex-shrink: 0;
+              display: flex;
+              align-items: center;
+              justify-content: flex-start;
+            }
+            
+            .badge-front .bottom-text {
+              font-size: 4mm;
+              font-weight: bold;
+              text-align: left;
+            }
+           
             .badge-back {
               display: flex;
               align-items: center;
               justify-content: center;
+              height: 100%;
             }
             
             .badge-back .qr-code {
-              width: 1in;
-              height: 1in;
-            }
-            
-            .badge-label {
-              text-align: center;
-              margin-bottom: 8px;
-              font-weight: 600;
-              color: #374151;
+              width: 25mm;
+              height: 25mm;
             }
 
             @media print {
               body {
                 margin: 0;
-                padding: 20px;
+                padding: 0;
               }
               
-              .badge-container {
-                page-break-inside: avoid;
+              .badge-page {
+                width: 55mm;
+                height: 86mm;
+                padding: 0;
+                margin: 0;
+              }
+              
+              .badge {
+                width: 55mm;
+                height: 86mm;
               }
             }
           </style>
         </head>
         <body>
-          <div class="badge-container">
-            <div>
-              <div class="badge-label">Front</div>
-              <div class="badge badge-front">
-                <div class="header">
-                  <img src="/images/ahc-logo.png" alt="AHC Logo" class="logo" />
-                </div>
-                <div class="user-info">
-                  <div class="user-name">${badge.user?.name || 'Unknown'}</div>
-                  <div class="user-title">Co-Founder</div>
-                  <div class="user-email">${badge.user?.email || ''}</div>
-                </div>
-                <div class="bottom-bar">
-                  <span class="bottom-text">${bottomText}</span>
-                </div>
+          <!-- Front side page -->
+          <div class="badge-page">
+            <div class="badge badge-front">
+              <div class="header">
+                <img src="/images/ahc-logo.png" alt="AHC Logo" class="logo" />
+              </div>
+              <div class="user-info">
+                <div class="user-name">${badge.user?.name || 'Unknown'}</div>
+                <div class="user-title">Co-Founder</div>
+                <div class="user-email" data-length="${emailLengthCategory}">${badge.user?.email || ''}</div>
+              </div>
+              <div class="bottom-bar">
+                <span class="bottom-text">${bottomText}</span>
               </div>
             </div>
-            
-            <div>
-              <div class="badge-label">Back</div>
-              <div class="badge badge-back">
-                <img src="${printQrUrl}" alt="QR Code" class="qr-code" />
-              </div>
+          </div>
+          
+          <!-- Back side page -->
+          <div class="badge-page">
+            <div class="badge badge-back">
+              <img src="${printQrUrl}" alt="QR Code" class="qr-code" />
             </div>
           </div>
         </body>

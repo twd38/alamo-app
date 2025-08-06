@@ -47,7 +47,6 @@ export default async function WorkOrderEditPage({
   params
 }: WorkOrderEditPageProps) {
   const { workOrderId } = await params;
-  console.log('workOrderId', workOrderId);
 
   return (
     <div className="h-screen flex flex-col">

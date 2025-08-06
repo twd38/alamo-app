@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Loader2, X, FileText, Shield, CheckSquare, Image, Video } from 'lucide-react';
+import {
+  Plus,
+  Loader2,
+  X,
+  FileText,
+  Shield,
+  CheckSquare,
+  Image,
+  Video
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -62,12 +71,14 @@ const procedureSchema = z.object({
   stepNumber: z.coerce.number().min(1, 'Step number must be at least 1'),
   title: z.string().min(1, 'Title is required'),
   instructions: z.string().min(1, 'Instructions are required'),
-  estimatedTime: z.coerce.number().min(1, 'Estimated time must be at least 1 minute'),
+  estimatedTime: z.coerce
+    .number()
+    .min(1, 'Estimated time must be at least 1 minute'),
   requiredTools: z.array(z.string()).default([]),
   safetyNotes: z.string().optional().nullable(),
   qualityChecks: z.array(z.string()).default([]),
   imageUrls: z.array(z.string()).default([]),
-  videoUrl: z.string().optional().nullable(),
+  videoUrl: z.string().optional().nullable()
 });
 
 type ProcedureFormData = z.infer<typeof procedureSchema>;
@@ -78,10 +89,13 @@ export function ProceduresManager() {
   const [procedures, setProcedures] = useState<ProcedureWithOperation[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProcedure, setEditingProcedure] = useState<ProcedureWithOperation | null>(null);
+  const [editingProcedure, setEditingProcedure] =
+    useState<ProcedureWithOperation | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [operations, setOperations] = useState<any[]>([]);
-  const [selectedOperation, setSelectedOperation] = useState<string | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<string | null>(
+    null
+  );
 
   const form = useForm<ProcedureFormData>({
     resolver: zodResolver(procedureSchema),
@@ -95,17 +109,19 @@ export function ProceduresManager() {
       safetyNotes: '',
       qualityChecks: [],
       imageUrls: [],
-      videoUrl: '',
+      videoUrl: ''
     }
   });
-
 
   const fetchProcedures = useCallback(async () => {
     try {
       const params: GetProceduresParams = {
-        operationId: selectedOperation || undefined,
+        operationId:
+          selectedOperation && selectedOperation !== 'all'
+            ? selectedOperation
+            : undefined
       };
-      
+
       const result = await getProcedures(params);
       setProcedures(result.data);
     } catch (error) {
@@ -165,7 +181,7 @@ export function ProceduresManager() {
       safetyNotes: procedure.safetyNotes || '',
       qualityChecks: procedure.qualityChecks || [],
       imageUrls: procedure.imageUrls || [],
-      videoUrl: procedure.videoUrl || '',
+      videoUrl: procedure.videoUrl || ''
     });
     setDialogOpen(true);
   };
@@ -186,12 +202,15 @@ export function ProceduresManager() {
 
   const handleNewProcedure = () => {
     setEditingProcedure(null);
-    
+
     // Find the next step number for the selected operation
-    const operationProcedures = procedures.filter(p => p.operationId === selectedOperation);
-    const nextStepNumber = operationProcedures.length > 0 
-      ? Math.max(...operationProcedures.map(p => p.stepNumber)) + 1 
-      : 1;
+    const operationProcedures = procedures.filter(
+      (p) => p.operationId === selectedOperation
+    );
+    const nextStepNumber =
+      operationProcedures.length > 0
+        ? Math.max(...operationProcedures.map((p) => p.stepNumber)) + 1
+        : 1;
 
     form.reset({
       operationId: selectedOperation || '',
@@ -203,23 +222,29 @@ export function ProceduresManager() {
       safetyNotes: '',
       qualityChecks: [],
       imageUrls: [],
-      videoUrl: '',
+      videoUrl: ''
     });
     setDialogOpen(true);
   };
 
   // Group procedures by operation
-  const proceduresByOperation = procedures.reduce((acc, procedure) => {
-    const opId = procedure.operationId;
-    if (!acc[opId]) {
-      acc[opId] = {
-        operation: procedure.operation,
-        procedures: []
-      };
-    }
-    acc[opId].procedures.push(procedure);
-    return acc;
-  }, {} as Record<string, { operation: any; procedures: ProcedureWithOperation[] }>);
+  const proceduresByOperation = procedures.reduce(
+    (acc, procedure) => {
+      const opId = procedure.operationId;
+      if (!acc[opId]) {
+        acc[opId] = {
+          operation: procedure.operation,
+          procedures: []
+        };
+      }
+      acc[opId].procedures.push(procedure);
+      return acc;
+    },
+    {} as Record<
+      string,
+      { operation: any; procedures: ProcedureWithOperation[] }
+    >
+  );
 
   return (
     <div className="h-full flex-1 flex-col space-y-4 md:flex">
@@ -237,12 +262,15 @@ export function ProceduresManager() {
       </div>
 
       <div className="space-y-4">
-        <Select value={selectedOperation || ''} onValueChange={setSelectedOperation}>
+        <Select
+          value={selectedOperation || 'all'}
+          onValueChange={setSelectedOperation}
+        >
           <SelectTrigger className="w-[300px]">
             <SelectValue placeholder="Filter by operation..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={''}>All Operations</SelectItem>
+            <SelectItem value="all">All Operations</SelectItem>
             {operations.map((op) => (
               <SelectItem key={op.id} value={op.id}>
                 {op.name} ({op.code})
@@ -268,100 +296,105 @@ export function ProceduresManager() {
           </Card>
         ) : (
           <div className="grid gap-6">
-            {Object.values(proceduresByOperation).map(({ operation, procedures }) => (
-              <Card key={operation.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div>
-                      <span>{operation.name}</span>
-                      <Badge variant="outline" className="ml-2">
-                        {operation.code}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground ml-2">
-                        @ {operation.workCenter.name}
+            {Object.values(proceduresByOperation).map(
+              ({ operation, procedures }) => (
+                <Card key={operation.id}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div>
+                        <span>{operation.name}</span>
+                        <Badge variant="outline" className="ml-2">
+                          {operation.code}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          @ {operation.workCenter.name}
+                        </span>
+                      </div>
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {procedures.length} procedure
+                        {procedures.length !== 1 ? 's' : ''}
                       </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {procedures
+                        .sort((a, b) => a.stepNumber - b.stepNumber)
+                        .map((procedure) => (
+                          <div
+                            key={procedure.id}
+                            className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="secondary">
+                                  Step {procedure.stepNumber}
+                                </Badge>
+                                <h4 className="font-semibold">
+                                  {procedure.title}
+                                </h4>
+                                <Badge variant="outline">
+                                  {procedure.estimatedTime} min
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">
+                                {procedure.instructions}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {procedure.requiredTools.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    🔧 {procedure.requiredTools.length} tools
+                                  </Badge>
+                                )}
+                                {procedure.safetyNotes && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Safety notes
+                                  </Badge>
+                                )}
+                                {procedure.qualityChecks.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <CheckSquare className="h-3 w-3 mr-1" />
+                                    {procedure.qualityChecks.length} checks
+                                  </Badge>
+                                )}
+                                {procedure.imageUrls.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Image className="h-3 w-3 mr-1" />
+                                    {procedure.imageUrls.length} images
+                                  </Badge>
+                                )}
+                                {procedure.videoUrl && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Video className="h-3 w-3 mr-1" />
+                                    Video
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(procedure)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(procedure.id)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                     </div>
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {procedures.length} procedure{procedures.length !== 1 ? 's' : ''}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {procedures
-                      .sort((a, b) => a.stepNumber - b.stepNumber)
-                      .map((procedure) => (
-                        <div
-                          key={procedure.id}
-                          className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="secondary">
-                                Step {procedure.stepNumber}
-                              </Badge>
-                              <h4 className="font-semibold">{procedure.title}</h4>
-                              <Badge variant="outline">
-                                {procedure.estimatedTime} min
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">
-                              {procedure.instructions}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {procedure.requiredTools.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  🔧 {procedure.requiredTools.length} tools
-                                </Badge>
-                              )}
-                              {procedure.safetyNotes && (
-                                <Badge variant="outline" className="text-xs">
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  Safety notes
-                                </Badge>
-                              )}
-                              {procedure.qualityChecks.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  <CheckSquare className="h-3 w-3 mr-1" />
-                                  {procedure.qualityChecks.length} checks
-                                </Badge>
-                              )}
-                              {procedure.imageUrls.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  <Image className="h-3 w-3 mr-1" />
-                                  {procedure.imageUrls.length} images
-                                </Badge>
-                              )}
-                              {procedure.videoUrl && (
-                                <Badge variant="outline" className="text-xs">
-                                  <Video className="h-3 w-3 mr-1" />
-                                  Video
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(procedure)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(procedure.id)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            )}
           </div>
         )}
       </div>
@@ -439,7 +472,10 @@ export function ProceduresManager() {
                       <FormItem>
                         <FormLabel>Title</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Set up workpiece" {...field} />
+                          <Input
+                            placeholder="e.g., Set up workpiece"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -486,31 +522,38 @@ export function ProceduresManager() {
                   <div>
                     <FormLabel>Required Tools</FormLabel>
                     <div className="space-y-2 mt-2">
-                      {(form.watch('requiredTools') || []).map((tool, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            {...form.register(`requiredTools.${index}`)}
-                            placeholder="Tool name"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const currentTools = form.getValues('requiredTools') || [];
-                              form.setValue('requiredTools', currentTools.filter((_, i) => i !== index));
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                      {(form.watch('requiredTools') || []).map(
+                        (tool, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              {...form.register(`requiredTools.${index}`)}
+                              placeholder="Tool name"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                const currentTools =
+                                  form.getValues('requiredTools') || [];
+                                form.setValue(
+                                  'requiredTools',
+                                  currentTools.filter((_, i) => i !== index)
+                                );
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      )}
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const currentTools = form.getValues('requiredTools') || [];
+                          const currentTools =
+                            form.getValues('requiredTools') || [];
                           form.setValue('requiredTools', [...currentTools, '']);
                         }}
                       >
@@ -541,32 +584,42 @@ export function ProceduresManager() {
                   <div>
                     <FormLabel>Quality Checks</FormLabel>
                     <div className="space-y-2 mt-2">
-                      {(form.watch('qualityChecks') || []).map((check, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            {...form.register(`qualityChecks.${index}`)}
-                            placeholder="Quality check item"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const currentChecks = form.getValues('qualityChecks') || [];
-                              form.setValue('qualityChecks', currentChecks.filter((_, i) => i !== index));
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                      {(form.watch('qualityChecks') || []).map(
+                        (check, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              {...form.register(`qualityChecks.${index}`)}
+                              placeholder="Quality check item"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                const currentChecks =
+                                  form.getValues('qualityChecks') || [];
+                                form.setValue(
+                                  'qualityChecks',
+                                  currentChecks.filter((_, i) => i !== index)
+                                );
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )
+                      )}
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const currentChecks = form.getValues('qualityChecks') || [];
-                          form.setValue('qualityChecks', [...currentChecks, '']);
+                          const currentChecks =
+                            form.getValues('qualityChecks') || [];
+                          form.setValue('qualityChecks', [
+                            ...currentChecks,
+                            ''
+                          ]);
                         }}
                       >
                         <Plus className="mr-2 h-4 w-4" />
