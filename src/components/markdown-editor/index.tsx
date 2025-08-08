@@ -23,6 +23,7 @@ import { MathSelector } from './selectors/math-selector';
 import { NodeSelector } from './selectors/node-selector';
 import { Separator } from '../ui/separator';
 import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
+import { ZoomableImage } from './zoomable-image';
 
 import GenerativeMenuSwitch from './generative/generative-menu-switch';
 import { uploadFn } from './image-upload';
@@ -273,13 +274,13 @@ export const MarkdownEditor = ({
               className="flex items-center justify-center w-full h-full"
               onClick={() => setImageDialogOpen(false)}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageToView}
-                alt="Preview"
-                className="max-w-[95vw] max-h-[90vh] object-contain"
-                onClick={(e) => e.stopPropagation()}
-              />
+              <div className="max-w-[95vw] max-h-[90vh] w-full h-full bg-black/90 rounded-md">
+                <ZoomableImage
+                  src={imageToView}
+                  alt="Preview"
+                  className="w-full h-full"
+                />
+              </div>
             </div>
           ) : null}
         </DialogContent>
