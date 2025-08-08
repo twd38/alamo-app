@@ -266,15 +266,19 @@ export const MarkdownEditor = ({
         </EditorContent>
       </EditorRoot>
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="z-[60] max-w-[95vw] w-[95vw] p-0 bg-transparent border-0 shadow-none sm:rounded-none">
+        <DialogContent className="z-[60] inset-0 w-screen h-[100vh] supports-[height:100svh]:h-[100svh] max-w-none p-[env(safe-area-inset-top)_env(safe-area-inset-right)_env(safe-area-inset-bottom)_env(safe-area-inset-left)] bg-transparent border-0 shadow-none sm:rounded-none">
           <DialogTitle className="sr-only">Image preview</DialogTitle>
           {imageToView ? (
-            <div className="flex items-center justify-center w-full h-full">
+            <div
+              className="flex items-center justify-center w-full h-full"
+              onClick={() => setImageDialogOpen(false)}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageToView}
                 alt="Preview"
                 className="max-w-[95vw] max-h-[90vh] object-contain"
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           ) : null}
