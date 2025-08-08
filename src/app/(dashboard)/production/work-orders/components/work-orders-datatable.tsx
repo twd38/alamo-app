@@ -1,19 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import debounce from 'lodash/debounce';
 import {
   type ColumnDef,
   type ColumnFiltersState,
-  type SortingState,
-  type VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable
+  type SortingState
 } from '@tanstack/react-table';
 import { ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
@@ -29,15 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
 import Link from 'next/link';
 import { UserAvatarList } from '@/components/ui/user-avatar-list';
 import { DeleteAlert } from '@/components/delete-alert';
@@ -45,216 +28,256 @@ import { WorkOrders } from '../queries';
 import { deleteWorkOrder } from '@/lib/actions';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
-import { WorkOrderStatus } from '@prisma/client';
+import { DataTable } from '@/components/ui/data-table';
 
 // WorkOrderData is the type of the work orders that are returned from the database
 type WorkOrderData = WorkOrders['workOrders'][0];
 
 // ----------------------------- Table columns -----------------------------
-const columns: ColumnDef<WorkOrderData>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        onClick={(e) => e.stopPropagation()}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        onClick={(e) => e.stopPropagation()}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false
-  },
-  {
-    accessorKey: 'workOrderNumber',
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-      >
-        WO #
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => <div>{row.getValue('workOrderNumber')}</div>
-  },
-  {
-    id: 'partInfo',
-    header: 'Part',
-    cell: ({ row }) => (
-      <div className="flex flex-col">
-        <span>{row.original.part?.name ?? '—'}</span>
-        <span className="text-xs text-muted-foreground">
-          {row.original.part?.partNumber ?? ''}/
-          {row.original.part?.partRevision ?? ''}
-        </span>
-      </div>
-    ),
-    enableSorting: false
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      return <ProductionStatusBadge status={status} />;
-    }
-  },
-  {
-    id: 'assigned',
-    header: 'Assigned',
-    cell: ({ row }) => {
-      const assignedUsers = row.original.assignees.map(
-        (assignee) => assignee.user
-      );
-      return assignedUsers.length > 0 ? (
-        <UserAvatarList users={assignedUsers} maxVisible={3} />
-      ) : (
-        <span className="text-muted-foreground text-sm">Unassigned</span>
-      );
+function getColumns({
+  onDeleteClick
+}: {
+  onDeleteClick: (wo: WorkOrderData) => void;
+}): ColumnDef<WorkOrderData>[] {
+  return [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false
     },
-    enableSorting: false
-  },
-  {
-    accessorKey: 'partQty',
-    header: 'Qty',
-    cell: ({ row }) => <div>{row.getValue('partQty')}</div>
-  },
-  {
-    accessorKey: 'dueDate',
-    header: 'Due',
-    cell: ({ row }) => {
-      const value: Date | null = row.getValue('dueDate') ?? null;
-      return <div>{value ? format(new Date(value), 'MMM d, yyyy') : '—'}</div>;
+    {
+      accessorKey: 'workOrderNumber',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          WO #
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <div>{row.getValue('workOrderNumber')}</div>
     },
-    sortingFn: 'datetime'
-  },
-  {
-    id: 'actions',
-    enableHiding: false,
-    cell: ({ row, table }) => {
-      const wo = row.original;
-      const { handleDeleteClick } = table.options.meta as {
-        handleDeleteClick: (wo: WorkOrderData) => void;
-      };
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-8 w-8 p-0"
+    {
+      id: 'partInfo',
+      header: 'Part',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span>{row.original.part?.name ?? '—'}</span>
+          <span className="text-xs text-muted-foreground">
+            {row.original.part?.partNumber ?? ''}/
+            {row.original.part?.partRevision ?? ''}
+          </span>
+        </div>
+      ),
+      enableSorting: false
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Status
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const status = row.getValue('status') as string;
+        return <ProductionStatusBadge status={status} />;
+      }
+    },
+    {
+      id: 'assigned',
+      header: 'Assigned',
+      cell: ({ row }) => {
+        const assignedUsers = row.original.assignees.map(
+          (assignee) => assignee.user
+        );
+        return assignedUsers.length > 0 ? (
+          <UserAvatarList users={assignedUsers} maxVisible={3} />
+        ) : (
+          <span className="text-muted-foreground text-sm">Unassigned</span>
+        );
+      },
+      enableSorting: false
+    },
+    {
+      accessorKey: 'partQty',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Qty
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <div>{row.getValue('partQty')}</div>
+    },
+    {
+      accessorKey: 'dueDate',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Due
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const value: Date | null = row.getValue('dueDate') ?? null;
+        return (
+          <div>{value ? format(new Date(value), 'MMM d, yyyy') : '—'}</div>
+        );
+      }
+    },
+    {
+      id: 'actions',
+      enableHiding: false,
+      cell: ({ row }) => {
+        const wo = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
               onClick={(e) => e.stopPropagation()}
             >
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            <Link href={`/production/${wo.id}/edit`}>
-              <DropdownMenuItem>Edit</DropdownMenuItem>
-            </Link>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(wo.id)}
-            >
-              Copy work order ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Link href={`/production/${wo.id}`}>View details</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <PermissionGate permission={PERMISSIONS.WORK_ORDERS.DELETE}>
+              <Link href={`/production/${wo.id}/edit`}>
+                <DropdownMenuItem>Edit</DropdownMenuItem>
+              </Link>
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(wo);
-                }}
+                onClick={() => navigator.clipboard.writeText(wo.id)}
               >
-                Delete work order
+                Copy work order ID
               </DropdownMenuItem>
-            </PermissionGate>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Link href={`/production/${wo.id}`}>View details</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <PermissionGate permission={PERMISSIONS.WORK_ORDERS.DELETE}>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteClick(wo);
+                  }}
+                >
+                  Delete work order
+                </DropdownMenuItem>
+              </PermissionGate>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      }
     }
-  }
-];
+  ];
+}
 
 // --------------------------- Main component ------------------------------
 export function WorkOrdersDataTable({
   workOrders,
   totalCount,
-  refetch,
-  onTableReady
+  refetchAction
 }: {
   workOrders: WorkOrderData[];
   totalCount: number;
-  refetch: () => void;
-  onTableReady?: (table: any) => void;
+  refetchAction: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // ---------------------------------------------------- URL-state helpers
-  const initialQuery = searchParams.get('query') || '';
-  const initialPage = Number(searchParams.get('page') || '1');
-  const initialLimit = Number(searchParams.get('limit') || '10');
+  const page = Number(searchParams.get('page') || '1');
+  const limit = Number(searchParams.get('limit') || '10');
+  const sortBy = searchParams.get('sortBy') || '';
+  const sortOrder = (searchParams.get('sortOrder') || 'asc') as 'asc' | 'desc';
+  const query = searchParams.get('query') || '';
 
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
-  const [searchValue, setSearchValue] = useState<string>(initialQuery);
+  const pageCount = Math.max(1, Math.ceil(totalCount / Math.max(1, limit)));
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workOrderToDelete, setWorkOrderToDelete] =
     useState<WorkOrderData | null>(null);
 
-  // Debounced URL update on search
-  const updateSearchQuery = useCallback(
-    (value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
+  const updateSearchParams = useCallback(
+    (params: Record<string, string | number | null>) => {
+      const current = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === null || value === '') {
+          current.delete(key);
+        } else {
+          current.set(key, String(value));
+        }
+      });
+      router.push(`${pathname}?${current.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
 
-      if (value) {
-        params.set('query', value);
-        params.set('page', '1');
+  const handlePaginationChange = useCallback(
+    (pagination: { pageIndex: number; pageSize: number }) => {
+      updateSearchParams({
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize
+      });
+    },
+    [updateSearchParams]
+  );
+
+  const handleSortingChange = useCallback(
+    (sorting: SortingState) => {
+      if (sorting.length > 0) {
+        updateSearchParams({
+          sortBy: sorting[0].id,
+          sortOrder: sorting[0].desc ? 'desc' : 'asc',
+          page: 1
+        });
       } else {
-        params.delete('query');
+        updateSearchParams({ sortBy: null, sortOrder: null, page: 1 });
       }
-
-      router.push(`${pathname}?${params.toString()}`);
     },
-    [router, pathname, searchParams]
+    [updateSearchParams]
   );
 
-  const debouncedUpdateQuery = useMemo(
-    () => debounce(updateSearchQuery, 500),
-    [updateSearchQuery]
-  );
-
-  useEffect(() => {
-    return () => {
-      debouncedUpdateQuery.cancel();
-    };
-  }, [debouncedUpdateQuery]);
-
-  const updatePage = useCallback(
-    (page: number) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('page', page.toString());
-      router.push(`${pathname}?${params.toString()}`);
+  const handleFilterChange = useCallback(
+    (filters: ColumnFiltersState) => {
+      const searchFilter = filters.find((f) => f.id === 'workOrderNumber');
+      updateSearchParams({
+        query: (searchFilter?.value as string) || null,
+        page: 1
+      });
     },
-    [router, pathname, searchParams]
+    [updateSearchParams]
   );
 
   const handleDeleteClick = useCallback((workOrder: WorkOrderData) => {
@@ -264,136 +287,39 @@ export function WorkOrdersDataTable({
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!workOrderToDelete) return;
-
     const result = await deleteWorkOrder(workOrderToDelete.id);
-
     if (result.success) {
-      // Close dialog and reset state
       setDeleteDialogOpen(false);
       setWorkOrderToDelete(null);
-
-      // Refresh the page data to reflect the deletion
-      refetch();
+      refetchAction();
     } else {
-      // Handle error - you might want to show a toast notification here
       console.error('Failed to delete work order:', result.error);
     }
-  }, [workOrderToDelete, refetch]);
+  }, [workOrderToDelete, refetchAction]);
 
   const handleDeleteCancel = useCallback(() => {
     setDeleteDialogOpen(false);
     setWorkOrderToDelete(null);
   }, []);
 
-  const table = useReactTable({
-    data: workOrders,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection
-    },
-    meta: {
-      handleDeleteClick
-    }
-  });
+  const columns = getColumns({ onDeleteClick: handleDeleteClick });
 
-  // Early return after hooks are called
-  if (!workOrders) return null;
-
-  // Notify parent component when table is ready
-  useEffect(() => {
-    if (onTableReady) {
-      onTableReady(table);
-    }
-  }, [table, onTableReady]);
-
-  // ------------------------------- Render -------------------------------
   return (
     <div className="w-full">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  onClick={() => router.push(`/production/${row.original.id}`)}
-                  className="cursor-pointer hover:bg-muted/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 pt-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{' '}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => updatePage(initialPage - 1)}
-            disabled={initialPage === 1}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => updatePage(initialPage + 1)}
-            disabled={initialPage === Math.ceil(totalCount / initialLimit)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={workOrders || []}
+        pageCount={pageCount}
+        pagination={{ pageIndex: page - 1, pageSize: limit }}
+        onPaginationChange={handlePaginationChange}
+        sorting={sortBy ? [{ id: sortBy, desc: sortOrder === 'desc' }] : []}
+        onSortingChange={handleSortingChange}
+        columnFilters={query ? [{ id: 'workOrderNumber', value: query }] : []}
+        onColumnFiltersChange={handleFilterChange}
+        searchKey="workOrderNumber"
+        searchPlaceholder="Filter work orders..."
+        onRowClick={(row) => router.push(`/production/${row.original.id}`)}
+      />
 
       <DeleteAlert
         isOpen={deleteDialogOpen}

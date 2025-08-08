@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkOrderStatus } from '@prisma/client';
 
 interface WorkOrderStatusTabsProps {
-  initialStatus: WorkOrderStatus;
+  initialStatus: string;
 }
 
 export function WorkOrderStatusTabs({
@@ -14,22 +14,29 @@ export function WorkOrderStatusTabs({
 }: WorkOrderStatusTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const handleStatusFilterChange = useCallback(
     (value: string) => {
-      router.push(`${pathname}?status=${value}`);
+      const current = new URLSearchParams(searchParams.toString());
+      current.set('status', value);
+      // Reset to first page when changing status
+      current.set('page', '1');
+      router.push(`${pathname}?${current.toString()}`);
     },
-    [router, pathname]
+    [router, pathname, searchParams]
   );
 
   return (
     <Tabs
-      defaultValue={initialStatus}
+      value={initialStatus}
       className="mr-auto"
       onValueChange={(value) => handleStatusFilterChange(value)}
     >
       <TabsList>
+        <TabsTrigger value={'ALL'}>All</TabsTrigger>
         <TabsTrigger value={WorkOrderStatus.TODO}>Todo</TabsTrigger>
+        <TabsTrigger value={WorkOrderStatus.PAUSED}>Paused</TabsTrigger>
         <TabsTrigger value={WorkOrderStatus.IN_PROGRESS}>
           In Progress
         </TabsTrigger>

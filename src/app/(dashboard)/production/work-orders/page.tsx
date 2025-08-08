@@ -1,14 +1,13 @@
 'use client';
 
-import { useMemo, Suspense, useState, useCallback } from 'react';
+import { useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// No Card layout here to mirror Parts Library styling
 import { WorkOrdersDataTable } from './components/work-orders-datatable';
 import { WorkOrderStatusTabs } from './components/work-order-status-tabs';
-import { WorkOrderColumnVisibility } from './components/work-order-column-visibility';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -29,11 +28,7 @@ const ProductionLoadingSkeleton = () => (
   </div>
 );
 
-const ProductionPageContent = ({
-  onTableReady
-}: {
-  onTableReady?: (table: any) => void;
-}) => {
+const ProductionPageContent = () => {
   const searchParams = useSearchParams();
 
   // Extract URL parameters
@@ -42,8 +37,18 @@ const ProductionPageContent = ({
   const limit = Number(searchParams.get('limit')) || 10;
   const sortBy = searchParams.get('sortBy') || 'dueDate';
   const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
-  const status =
-    (searchParams.get('status') as WorkOrderStatus) || WorkOrderStatus.TODO;
+  const statusParam = searchParams.get('status') || 'TODO';
+  const status: WorkOrderStatus | WorkOrderStatus[] =
+    statusParam === 'ALL'
+      ? [
+          WorkOrderStatus.TODO,
+          WorkOrderStatus.PAUSED,
+          WorkOrderStatus.IN_PROGRESS,
+          WorkOrderStatus.COMPLETED,
+          WorkOrderStatus.HOLD,
+          WorkOrderStatus.DRAFT
+        ]
+      : (statusParam as WorkOrderStatus);
 
   // Create SWR key that updates when params change
   const swrKey = useMemo(
@@ -110,60 +115,58 @@ const ProductionPageContent = ({
     <WorkOrdersDataTable
       workOrders={data?.workOrders || []}
       totalCount={data?.totalCount || 0}
-      refetch={mutate}
-      onTableReady={onTableReady}
+      refetchAction={mutate}
     />
   );
 };
 
 const ProductionPageWrapper = () => {
   const searchParams = useSearchParams();
-  const [table, setTable] = useState<any>(null);
-  const status =
-    (searchParams.get('status') as WorkOrderStatus) || WorkOrderStatus.TODO;
-
-  const handleTableReady = useCallback((tableInstance: any) => {
-    setTable(tableInstance);
-  }, []);
+  const status = searchParams.get('status') || 'TODO';
 
   return (
-    <div className="h-full bg-zinc-50 dark:bg-zinc-900">
+    <div className="h-full">
       <BasicTopBar />
       <PageContainer>
-        <Card>
-          <CardHeader>
-            <CardTitle>Work Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between pb-4">
-              <WorkOrderStatusTabs initialStatus={status} />
-              {table && <WorkOrderColumnVisibility table={table} />}
+        <div className="h-full flex-1 flex-col space-y-4 md:flex">
+          <div className="flex items-center justify-between space-y-1">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Work Orders</h2>
+              <p className="text-muted-foreground">
+                Browse and manage work orders in the system
+              </p>
             </div>
-            <Suspense fallback={<ProductionLoadingSkeleton />}>
-              <ProductionPageContent onTableReady={handleTableReady} />
-            </Suspense>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <WorkOrderStatusTabs initialStatus={status} />
+          </div>
+
+          <Suspense fallback={<ProductionLoadingSkeleton />}>
+            <ProductionPageContent />
+          </Suspense>
+        </div>
       </PageContainer>
     </div>
   );
 };
 
 const ProductionPageFullSkeleton = () => (
-  <div className="h-full bg-zinc-50 dark:bg-zinc-900">
+  <div className="h-full">
     <BasicTopBar />
     <PageContainer>
-      <Card>
-        <CardHeader>
-          <CardTitle>Work Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center pb-4">
-            <Skeleton className="h-10 w-64" />
+      <div className="h-full flex-1 flex-col space-y-4 md:flex">
+        <div className="flex items-center justify-between space-y-1">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Work Orders</h2>
+            <p className="text-muted-foreground">Browse and manage work orders in the system</p>
           </div>
-          <ProductionLoadingSkeleton />
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex items-center pb-4">
+          <Skeleton className="h-10 w-64" />
+        </div>
+        <ProductionLoadingSkeleton />
+      </div>
     </PageContainer>
   </div>
 );

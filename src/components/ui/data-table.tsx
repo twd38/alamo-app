@@ -14,6 +14,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  type Row
 } from '@tanstack/react-table';
 
 import {
@@ -22,7 +23,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from '@/components/ui/table';
 
 import { DataTablePagination } from './data-table-pagination';
@@ -39,7 +40,10 @@ interface DataTableProps<TData, TValue> {
     pageSize: number;
   };
   pageCount?: number;
-  onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
+  onPaginationChange?: (pagination: {
+    pageIndex: number;
+    pageSize: number;
+  }) => void;
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
   columnFilters?: ColumnFiltersState;
@@ -55,6 +59,7 @@ interface DataTableProps<TData, TValue> {
   }[];
   actions?: React.ReactNode;
   loading?: boolean;
+  onRowClick?: (row: Row<TData>) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -72,13 +77,16 @@ export function DataTable<TData, TValue>({
   filterColumns,
   actions,
   loading = false,
+  onRowClick
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [columnFiltersState, setColumnFiltersState] = React.useState<ColumnFiltersState>(
-    columnFilters || []
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [columnFiltersState, setColumnFiltersState] =
+    React.useState<ColumnFiltersState>(columnFilters || []);
+  const [sortingState, setSortingState] = React.useState<SortingState>(
+    sorting || []
   );
-  const [sortingState, setSortingState] = React.useState<SortingState>(sorting || []);
 
   const table = useReactTable({
     data,
@@ -88,17 +96,19 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       columnFilters: columnFiltersState,
-      pagination,
+      pagination
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: (updater) => {
-      const newSorting = typeof updater === 'function' ? updater(sortingState) : updater;
+      const newSorting =
+        typeof updater === 'function' ? updater(sortingState) : updater;
       setSortingState(newSorting);
       onSortingChange?.(newSorting);
     },
     onColumnFiltersChange: (updater) => {
-      const newFilters = typeof updater === 'function' ? updater(columnFiltersState) : updater;
+      const newFilters =
+        typeof updater === 'function' ? updater(columnFiltersState) : updater;
       setColumnFiltersState(newFilters);
       onColumnFiltersChange?.(newFilters);
     },
@@ -107,7 +117,10 @@ export function DataTable<TData, TValue>({
       ? (updater) => {
           const newPagination =
             typeof updater === 'function'
-              ? updater({ pageIndex: pagination?.pageIndex || 0, pageSize: pagination?.pageSize || 10 })
+              ? updater({
+                  pageIndex: pagination?.pageIndex || 0,
+                  pageSize: pagination?.pageSize || 10
+                })
               : updater;
           onPaginationChange(newPagination);
         }
@@ -121,13 +134,13 @@ export function DataTable<TData, TValue>({
     pageCount,
     manualPagination: !!onPaginationChange,
     manualSorting: !!onSortingChange,
-    manualFiltering: !!onColumnFiltersChange,
+    manualFiltering: !!onColumnFiltersChange
   });
 
   return (
     <div className="space-y-2">
-      <DataTableToolbar 
-        table={table} 
+      <DataTableToolbar
+        table={table}
         searchKey={searchKey}
         searchPlaceholder={searchPlaceholder}
         filterColumns={filterColumns}
@@ -179,6 +192,10 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={
+                    onRowClick ? 'cursor-pointer hover:bg-muted/50' : undefined
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

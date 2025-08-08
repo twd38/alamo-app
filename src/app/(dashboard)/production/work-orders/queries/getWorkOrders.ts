@@ -18,14 +18,7 @@ export async function getWorkOrders({
   sortBy: string;
   sortOrder: Prisma.SortOrder;
 }) {
-  // If status is todo, then we need to include the work order that is in progress, todo, and paused
-  if (status === WorkOrderStatus.TODO) {
-    status = [
-      WorkOrderStatus.IN_PROGRESS,
-      WorkOrderStatus.TODO,
-      WorkOrderStatus.PAUSED
-    ];
-  }
+  // TODO tab should only include TODO now (no special grouping)
   // Create reusable WHERE clause to avoid duplication
   const whereClause = {
     deletedOn: null,
