@@ -26,7 +26,8 @@ import {
   SquareKanban,
   Wrench,
   FileText,
-  Building
+  Building,
+  CalendarClock
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
@@ -41,6 +42,10 @@ const items = [
     url: '/production',
     icon: Factory,
     items: [
+      {
+        title: 'Schedule',
+        url: '/production/schedule'
+      },
       {
         title: 'Work Orders',
         url: '/production/work-orders'

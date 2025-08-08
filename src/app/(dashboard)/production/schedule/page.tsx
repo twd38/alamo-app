@@ -1,16 +1,15 @@
 import { prisma } from '@/lib/db';
-import { WorkCenterScheduleView } from '../components/work-center-schedule-view';
+import { ClientScheduleWrapper } from './components/client-schedule-wrapper';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import { BreadcrumbConfig } from '@/components/breadcrumbs';
 import { OperationStatus } from '@prisma/client';
 
 export const revalidate = 30; // Revalidate every 30 seconds
 
-export default async function WorkCenterSchedulePage() {
+export default async function ProductionSchedulePage() {
   const breadcrumbs: BreadcrumbConfig[] = [
     { label: 'Production', href: '/production' },
-    { label: 'Work Centers', href: '/production/work-centers' },
-    { label: 'Schedule', href: '/production/work-centers/schedule' }
+    { label: 'Schedule', href: '/production/schedule' }
   ];
 
   // Fetch all work centers with their queued operations
@@ -47,17 +46,19 @@ export default async function WorkCenterSchedulePage() {
   });
 
   // Calculate capacity utilization for each work center
-  const workCentersWithMetrics = workCenters.map(wc => {
+  const workCentersWithMetrics = workCenters.map((wc) => {
     const totalPlannedTime = wc.workOrderOperations.reduce((acc, op) => {
       return acc + op.plannedSetupTime + op.plannedRunTime;
     }, 0);
-    
+
     const runningOps = wc.workOrderOperations.filter(
-      op => op.status === OperationStatus.RUNNING || op.status === OperationStatus.SETUP
+      (op) =>
+        op.status === OperationStatus.RUNNING ||
+        op.status === OperationStatus.SETUP
     );
-    
+
     const queuedOps = wc.workOrderOperations.filter(
-      op => op.status === OperationStatus.PENDING
+      (op) => op.status === OperationStatus.PENDING
     );
 
     return {
@@ -66,7 +67,7 @@ export default async function WorkCenterSchedulePage() {
         totalOperations: wc.workOrderOperations.length,
         runningOperations: runningOps.length,
         queuedOperations: queuedOps.length,
-        totalPlannedHours: Math.round(totalPlannedTime / 60 * 10) / 10,
+        totalPlannedHours: Math.round((totalPlannedTime / 60) * 10) / 10,
         utilizationPercent: runningOps.length > 0 ? 100 : 0
       }
     };
@@ -75,16 +76,16 @@ export default async function WorkCenterSchedulePage() {
   return (
     <div className="flex flex-col h-screen">
       <BasicTopBar breadcrumbs={breadcrumbs} />
-      
-      <div className="flex-1 p-6 overflow-hidden">
-        <div className="mb-6">
+
+      <div className="flex-1 p-6 overflow-scroll">
+        <div className="">
           <h1 className="text-2xl font-bold">Work Center Schedule</h1>
           <p className="text-muted-foreground">
             View and manage operations across all work centers
           </p>
         </div>
 
-        <WorkCenterScheduleView workCenters={workCentersWithMetrics} />
+        <ClientScheduleWrapper workCenters={workCentersWithMetrics} />
       </div>
     </div>
   );

@@ -1,202 +1,206 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DataTableRowActions } from '@/components/ui/data-table-row-actions';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CircleDot,
-  CircleOff,
-  Clock,
-  Wrench
-} from 'lucide-react';
-import { Prisma } from '@prisma/client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { ArrowUpDown, MoreHorizontal, Edit, Trash2, FileText } from 'lucide-react';
 
-type OperationWithWorkCenter = Prisma.OperationGetPayload<{
-  include: {
-    workCenter: true;
+interface Operation {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  defaultDuration: number;
+  setupTime: number;
+  requiresSkill?: string | null;
+  isActive: boolean;
+  workCenterId: string;
+  procedureId?: string | null;
+  workCenter: {
+    id: string;
+    code: string;
+    name: string;
   };
-}>;
-
-// Status icons and variants
-const statuses = [
-  {
-    value: true,
-    label: 'Active',
-    icon: CircleDot,
-  },
-  {
-    value: false,
-    label: 'Inactive',
-    icon: CircleOff,
-  },
-];
-
-// Status options for filtering
-export const statusOptions = statuses.map((status) => ({
-  value: status.value.toString(),
-  label: status.label,
-  icon: status.icon,
-}));
+  procedure?: {
+    id: string;
+    code?: string | null;
+    title: string;
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface ColumnsProps {
-  onEdit: (operation: OperationWithWorkCenter) => void;
+  onEdit: (operation: Operation) => void;
   onDelete: (id: string) => void;
+  onAssignProcedure: (operation: Operation) => void;
+  workCenters: { id: string; code: string; name: string }[];
 }
 
 export const columns = ({
   onEdit,
-  onDelete
-}: ColumnsProps): ColumnDef<OperationWithWorkCenter>[] => [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="translate-y-[2px]"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  onDelete,
+  onAssignProcedure,
+  workCenters
+}: ColumnsProps): ColumnDef<Operation>[] => [
   {
     accessorKey: 'code',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Code" />
-    ),
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Code
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
     cell: ({ row }) => (
-      <div className="w-[100px] font-medium">{row.getValue('code')}</div>
-    ),
-    enableSorting: true,
-    enableHiding: false,
+      <Badge variant="outline" className="font-mono">
+        {row.getValue('code')}
+      </Badge>
+    )
   },
   {
     accessorKey: 'name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
-    cell: ({ row }) => {
+    header: ({ column }) => {
       return (
-        <div className="flex space-x-2">
-          <span className="max-w-[300px] truncate font-medium">
-            {row.getValue('name')}
-          </span>
-        </div>
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
       );
     },
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.getValue('name')}</div>
+        {row.original.description && (
+          <div className="text-sm text-muted-foreground">
+            {row.original.description}
+          </div>
+        )}
+      </div>
+    )
   },
   {
-    accessorKey: 'workCenter',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Work Center" />
+    id: 'workCenter',
+    accessorFn: (row) => row.workCenter.name,
+    header: 'Work Center',
+    cell: ({ row }) => (
+      <Badge variant="secondary">
+        {row.original.workCenter.name}
+      </Badge>
     ),
-    cell: ({ row }) => {
-      const workCenter = row.original.workCenter;
-      return (
-        <div className="flex w-[150px] items-center">
-          <Wrench className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
-          <span>{workCenter.name}</span>
-        </div>
-      );
-    },
     filterFn: (row, id, value) => {
-      return value.includes(row.original.workCenter.id);
-    },
+      return row.original.workCenter.id === value;
+    }
   },
   {
-    accessorKey: 'defaultDuration',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Duration" />
-    ),
+    id: 'procedure',
+    header: 'Procedure',
     cell: ({ row }) => {
-      const duration = row.getValue('defaultDuration') as number;
-      const setupTime = row.original.setupTime;
+      const procedure = row.original.procedure;
+      if (procedure) {
+        return (
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {procedure.code || procedure.title}
+            </span>
+          </div>
+        );
+      }
       return (
-        <div className="flex items-center w-[120px]">
-          <Clock className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm">
-            {duration} min
-            {setupTime > 0 && (
-              <span className="text-muted-foreground"> (+{setupTime})</span>
-            )}
-          </span>
-        </div>
+        <span className="text-sm text-muted-foreground">No procedure</span>
       );
-    },
+    }
   },
   {
-    accessorKey: 'requiresSkill',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Required Skill" />
-    ),
+    id: 'duration',
+    header: 'Duration',
+    cell: ({ row }) => (
+      <div className="text-sm">
+        <div>{row.original.defaultDuration} min</div>
+        {row.original.setupTime > 0 && (
+          <div className="text-muted-foreground">
+            Setup: {row.original.setupTime} min
+          </div>
+        )}
+      </div>
+    )
+  },
+  {
+    id: 'skill',
+    header: 'Required Skill',
     cell: ({ row }) => {
-      const skill = row.getValue('requiresSkill') as string | null;
+      const skill = row.original.requiresSkill;
       return skill ? (
         <Badge variant="outline">{skill}</Badge>
       ) : (
-        <span className="text-muted-foreground">-</span>
+        <span className="text-sm text-muted-foreground">None</span>
       );
-    },
+    }
   },
   {
     accessorKey: 'isActive',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
-    cell: ({ row }) => {
-      const isActive = row.getValue('isActive') as boolean;
-      const status = statuses.find((s) => s.value === isActive);
-
-      if (!status) {
-        return null;
-      }
-
-      const Icon = status.icon;
-
-      return (
-        <div className="flex w-[80px] items-center">
-          <Icon className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
-          <span>{status.label}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      const rowValue = row.getValue(id);
-      return value.includes(String(rowValue));
-    },
+    header: 'Status',
+    cell: ({ row }) => (
+      <Badge variant={row.getValue('isActive') ? 'default' : 'secondary'}>
+        {row.getValue('isActive') ? 'Active' : 'Inactive'}
+      </Badge>
+    )
   },
   {
     id: 'actions',
-    cell: ({ row }) => (
-      <DataTableRowActions
-        row={row}
-        actions={[
-          {
-            label: 'Edit',
-            onClick: (operation) => onEdit(operation as OperationWithWorkCenter),
-          },
-          {
-            label: 'Delete',
-            onClick: (operation) => onDelete((operation as OperationWithWorkCenter).id),
-            separator: true,
-            destructive: true,
-          },
-        ]}
-      />
-    ),
-  },
+    enableHiding: false,
+    cell: ({ row }) => {
+      const operation = row.original;
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onAssignProcedure(operation)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Assign Procedure
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(operation)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                if (confirm(`Are you sure you want to delete operation "${operation.name}"? This action cannot be undone.`)) {
+                  onDelete(operation.id);
+                }
+              }}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+  }
 ];

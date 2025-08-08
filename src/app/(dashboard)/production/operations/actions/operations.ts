@@ -73,6 +73,7 @@ export async function getOperations(params: GetOperationsParams = {}) {
       take: pageSize,
       include: {
         workCenter: true,
+        procedure: true,
       },
     }),
     prisma.operation.count({ where }),
@@ -165,8 +166,7 @@ export async function deleteOperation(id: string) {
   const existing = await prisma.operation.findUnique({
     where: { id },
     include: {
-      procedures: true,
-      routingSteps: true,
+      procedure: true,
     },
   });
 
@@ -174,9 +174,9 @@ export async function deleteOperation(id: string) {
     throw new Error('Operation not found');
   }
 
-  // Check if operation is in use
-  if (existing.procedures.length > 0 || existing.routingSteps.length > 0) {
-    throw new Error('Cannot delete operation that is in use');
+  // Check if operation has a procedure assigned
+  if (existing.procedure) {
+    throw new Error('Cannot delete operation that has a procedure assigned');
   }
 
   await prisma.operation.delete({
@@ -205,4 +205,52 @@ export async function getWorkCentersForSelect() {
   });
 
   return workCenters;
+}
+
+// Create operation with optional procedure
+export async function createOperationWithProcedure(data: {
+  code: string;
+  name: string;
+  description?: string | null;
+  workCenterId: string;
+  procedureId?: string | null;
+  defaultDuration: number;
+  setupTime: number;
+  requiresSkill?: string | null;
+  isActive: boolean;
+}) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
+
+  // Check if code already exists
+  const existing = await prisma.operation.findUnique({
+    where: { code: data.code },
+  });
+
+  if (existing) {
+    throw new Error('Operation code already exists');
+  }
+
+  const operation = await prisma.operation.create({
+    data: {
+      code: data.code,
+      name: data.name,
+      description: data.description,
+      workCenterId: data.workCenterId,
+      procedureId: data.procedureId,
+      defaultDuration: data.defaultDuration,
+      setupTime: data.setupTime,
+      requiresSkill: data.requiresSkill,
+      isActive: data.isActive,
+    },
+    include: {
+      workCenter: true,
+      procedure: true,
+    },
+  });
+
+  revalidatePath('/production/operations');
+  return operation;
 }

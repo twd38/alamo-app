@@ -36,23 +36,45 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { DataTable } from '@/components/ui/data-table';
-import { columns, statusOptions } from './columns';
+import { columns } from './columns';
 import { SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import {
   getOperations,
-  createOperation,
+  createOperationWithProcedure,
   updateOperation,
   deleteOperation,
   getWorkCentersForSelect,
   GetOperationsParams
 } from '../actions/operations';
-import { Prisma } from '@prisma/client';
+import { 
+  getProceduresForSelect, 
+  assignProcedureToOperation 
+} from '../../procedures/actions/procedures';
 
-type OperationWithWorkCenter = Prisma.OperationGetPayload<{
-  include: {
-    workCenter: true;
+interface Operation {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  defaultDuration: number;
+  setupTime: number;
+  requiresSkill?: string | null;
+  isActive: boolean;
+  workCenterId: string;
+  procedureId?: string | null;
+  workCenter: {
+    id: string;
+    code: string;
+    name: string;
   };
-}>;
+  procedure?: {
+    id: string;
+    code?: string | null;
+    title: string;
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const operationSchema = z.object({
   code: z
@@ -62,6 +84,7 @@ const operationSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional().nullable(),
   workCenterId: z.string().min(1, 'Work center is required'),
+  procedureId: z.string().optional().nullable(),
   defaultDuration: z.coerce.number().min(1, 'Duration must be at least 1 minute'),
   setupTime: z.coerce.number().min(0, 'Setup time must be positive'),
   requiresSkill: z.string().optional().nullable(),
@@ -74,7 +97,7 @@ export function OperationsManager() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [data, setData] = useState<{
-    operations: OperationWithWorkCenter[];
+    operations: Operation[];
     pageCount: number;
   }>({
     operations: [],
@@ -82,17 +105,20 @@ export function OperationsManager() {
   });
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingOperation, setEditingOperation] = useState<OperationWithWorkCenter | null>(
-    null
-  );
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [editingOperation, setEditingOperation] = useState<Operation | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null);
+  const [selectedProcedureId, setSelectedProcedureId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [workCenters, setWorkCenters] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [procedures, setProcedures] = useState<any[]>([]);
 
   const page = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('pageSize')) || 10;
   const search = searchParams.get('search') || '';
   const sortBy = searchParams.get('sortBy') || 'code';
   const sortOrder = (searchParams.get('sortOrder') || 'asc') as 'asc' | 'desc';
+  const workCenterId = searchParams.get('workCenterId') || undefined;
 
   const form = useForm<OperationFormData>({
     resolver: zodResolver(operationSchema),
@@ -101,6 +127,7 @@ export function OperationsManager() {
       name: '',
       description: '',
       workCenterId: '',
+      procedureId: 'none',
       defaultDuration: 30,
       setupTime: 0,
       requiresSkill: '',
@@ -115,7 +142,9 @@ export function OperationsManager() {
         pageSize,
         search,
         sortBy,
-        sortOrder
+        sortOrder,
+        workCenterId,
+        isActive: undefined
       };
       
       const result = await getOperations(params);
@@ -135,14 +164,27 @@ export function OperationsManager() {
       const centers = await getWorkCentersForSelect();
       setWorkCenters(centers);
     } catch (error) {
-      toast.error('Failed to load work centers');
+      console.error('Failed to load work centers:', error);
+    }
+  }, []);
+
+  const fetchProcedures = useCallback(async () => {
+    try {
+      const procs = await getProceduresForSelect();
+      setProcedures(procs);
+    } catch (error) {
+      console.error('Failed to load procedures:', error);
     }
   }, []);
 
   useEffect(() => {
     fetchOperations();
+  }, [fetchOperations]);
+
+  useEffect(() => {
     fetchWorkCenters();
-  }, [fetchOperations, fetchWorkCenters]);
+    fetchProcedures();
+  }, [fetchWorkCenters, fetchProcedures]);
 
   const updateSearchParams = (params: Record<string, string | number | null>) => {
     const current = new URLSearchParams(searchParams.toString());
@@ -174,10 +216,13 @@ export function OperationsManager() {
     }
   };
 
-  const handleFilterChange = (filters: ColumnFiltersState) => {
-    const searchFilter = filters.find(f => f.id === 'name');
+  const handleFiltersChange = (filters: ColumnFiltersState) => {
+    const searchFilter = filters.find(f => f.id === 'global');
+    const workCenterFilter = filters.find(f => f.id === 'workCenter');
+    
     updateSearchParams({
       search: searchFilter?.value as string || null,
+      workCenterId: workCenterFilter?.value as string || null,
       page: 1
     });
   };
@@ -185,34 +230,38 @@ export function OperationsManager() {
   const onSubmit = async (data: OperationFormData) => {
     setSubmitting(true);
     try {
+      const submitData = {
+        ...data,
+        description: data.description || null,
+        procedureId: (data.procedureId && data.procedureId !== 'none') ? data.procedureId : null,
+        requiresSkill: data.requiresSkill || null
+      };
+
       if (editingOperation) {
-        await updateOperation(editingOperation.id, data);
+        await updateOperation(editingOperation.id, submitData);
+        toast.success('Operation updated successfully');
       } else {
-        await createOperation(data);
+        await createOperationWithProcedure(submitData);
+        toast.success('Operation created successfully');
       }
-
-      toast.success(
-        `Operation ${editingOperation ? 'updated' : 'created'} successfully`
-      );
-
+      
       setDialogOpen(false);
       fetchOperations();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to save operation'
-      );
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save operation');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleEdit = (operation: OperationWithWorkCenter) => {
+  const handleEdit = (operation: Operation) => {
     setEditingOperation(operation);
     form.reset({
       code: operation.code,
       name: operation.name,
       description: operation.description || '',
       workCenterId: operation.workCenterId,
+      procedureId: operation.procedureId || 'none',
       defaultDuration: operation.defaultDuration,
       setupTime: operation.setupTime,
       requiresSkill: operation.requiresSkill || '',
@@ -235,6 +284,36 @@ export function OperationsManager() {
     }
   };
 
+  const handleAssignProcedure = (operation: Operation) => {
+    setSelectedOperation(operation);
+    setSelectedProcedureId(operation.procedureId || 'none');
+    setAssignDialogOpen(true);
+  };
+
+  const handleAssignProcedureSubmit = async () => {
+    if (!selectedOperation) return;
+
+    setSubmitting(true);
+    try {
+      await assignProcedureToOperation(
+        selectedOperation.id,
+        (selectedProcedureId && selectedProcedureId !== 'none') ? selectedProcedureId : null
+      );
+      toast.success(
+        selectedProcedureId
+          ? 'Procedure assigned successfully' 
+          : 'Procedure unassigned successfully'
+      );
+      setAssignDialogOpen(false);
+      fetchOperations();
+    } catch (error) {
+      toast.error('Failed to assign procedure');
+      console.error('Error assigning procedure:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleNewOperation = () => {
     setEditingOperation(null);
     form.reset({
@@ -242,6 +321,7 @@ export function OperationsManager() {
       name: '',
       description: '',
       workCenterId: '',
+      procedureId: 'none',
       defaultDuration: 30,
       setupTime: 0,
       requiresSkill: '',
@@ -256,6 +336,13 @@ export function OperationsManager() {
     label: wc.name,
   }));
 
+  const statusOptions = [
+    { value: 'true', label: 'Active' },
+    { value: 'false', label: 'Inactive' }
+  ];
+
+  const selectedProcedure = form.watch('procedureId');
+
   return (
     <div className="h-full flex-1 flex-col space-y-4 md:flex">
       <div className="flex items-center justify-between space-y-1">
@@ -269,7 +356,12 @@ export function OperationsManager() {
 
       <DataTable
         loading={loading}
-        columns={columns({ onEdit: handleEdit, onDelete: handleDelete })}
+        columns={columns({ 
+          onEdit: handleEdit, 
+          onDelete: handleDelete,
+          onAssignProcedure: handleAssignProcedure,
+          workCenters
+        })}
         data={data.operations}
         pageCount={data.pageCount}
         pagination={{
@@ -280,7 +372,7 @@ export function OperationsManager() {
         sorting={sortBy ? [{ id: sortBy, desc: sortOrder === 'desc' }] : []}
         onSortingChange={handleSortingChange}
         columnFilters={search ? [{ id: 'name', value: search }] : []}
-        onColumnFiltersChange={handleFilterChange}
+        onColumnFiltersChange={handleFiltersChange}
         searchKey="name"
         searchPlaceholder="Filter operations..."
         filterColumns={[
@@ -396,6 +488,46 @@ export function OperationsManager() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="procedureId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Procedure (Optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ''}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a procedure" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {procedures.map((proc) => (
+                          <SelectItem key={proc.id} value={proc.id}>
+                            {proc.code ? `${proc.code} - ` : ''}{proc.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Assign a procedure to guide operators
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {selectedProcedure && procedures.find(p => p.id === selectedProcedure) && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {procedures.find(p => p.id === selectedProcedure)?.description || 'No description available'}
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-4">
                 <FormField

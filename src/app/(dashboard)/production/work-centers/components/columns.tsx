@@ -6,6 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DataTableRowActions } from '@/components/ui/data-table-row-actions';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   Factory,
   Wrench,
@@ -13,7 +15,8 @@ import {
   TestTube,
   Truck,
   CircleDot,
-  CircleOff
+  CircleOff,
+  Eye
 } from 'lucide-react';
 
 // Type icons mapping
@@ -103,11 +106,15 @@ export const columns = ({
       <DataTableColumnHeader column={column} title="Name" />
     ),
     cell: ({ row }) => {
+      const workCenter = row.original;
       return (
-        <div className="flex space-x-2">
-          <span className="max-w-[300px] truncate font-medium">
+        <div className="flex items-center space-x-2">
+          <Link 
+            href={`/production/work-centers/${workCenter.id}`}
+            className="max-w-[300px] truncate font-medium hover:underline"
+          >
             {row.getValue('name')}
-          </span>
+          </Link>
         </div>
       );
     }
@@ -189,22 +196,33 @@ export const columns = ({
   },
   {
     id: 'actions',
-    cell: ({ row }) => (
-      <DataTableRowActions
-        row={row}
-        actions={[
-          {
-            label: 'Edit',
-            onClick: (workCenter) => onEdit(workCenter as WorkCenter)
-          },
-          {
-            label: 'Delete',
-            onClick: (workCenter) => onDelete((workCenter as WorkCenter).id),
-            separator: true,
-            destructive: true
-          }
-        ]}
-      />
-    )
+    cell: ({ row }) => {
+      const workCenter = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          <Link href={`/production/work-centers/${workCenter.id}`}>
+            <Button variant="ghost" size="sm">
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+          </Link>
+          <DataTableRowActions
+            row={row}
+            actions={[
+              {
+                label: 'Edit',
+                onClick: (workCenter) => onEdit(workCenter as WorkCenter)
+              },
+              {
+                label: 'Delete',
+                onClick: (workCenter) => onDelete((workCenter as WorkCenter).id),
+                separator: true,
+                destructive: true
+              }
+            ]}
+          />
+        </div>
+      );
+    }
   }
 ];

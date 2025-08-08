@@ -130,7 +130,7 @@ export async function createWorkOrderWithRouting({
                 plannedQty: partQty,
                 plannedSetupTime: step.setupTime,
                 plannedRunTime: step.runTime * partQty,
-                assignedUserId: operationAssignments[step.stepNumber] || null,
+                assignedUserId: operationAssignments[step.stepNumber] === 'unassigned' ? null : operationAssignments[step.stepNumber] || null,
                 priority: 0
               }))
             }

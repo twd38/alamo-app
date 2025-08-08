@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Operations',
-  description: 'Manage manufacturing operations',
+  description: 'Manage production operations and procedures',
 };
 
 export default function OperationsPage() {

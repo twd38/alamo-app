@@ -16,10 +16,13 @@ import {
   ChevronRight,
   Users,
   Package,
-  Timer
+  Timer,
+  GripVertical,
+  ExternalLink
 } from 'lucide-react';
 import { type Prisma, OperationStatus } from '@prisma/client';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import { 
   DndContext, 
   closestCenter,
@@ -78,6 +81,7 @@ function SortableOperationCard({
   operation: WorkCenterWithOperations['workOrderOperations'][0];
   workCenterId: string;
 }) {
+  const router = useRouter();
   const {
     attributes,
     listeners,
@@ -91,6 +95,13 @@ function SortableOperationCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only navigate if not clicking on the drag handle
+    if (!(e.target as HTMLElement).closest('.drag-handle')) {
+      router.push(`/production/${operation.workOrderRouting.workOrderId}`);
+    }
   };
 
   const getStatusIcon = () => {
@@ -119,53 +130,71 @@ function SortableOperationCard({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className={cn(
-        "p-3 border rounded-lg bg-white dark:bg-gray-800 cursor-move hover:shadow-md transition-all",
+        "group relative border rounded-lg bg-white dark:bg-gray-800 hover:shadow-md transition-all overflow-hidden",
         operation.status === OperationStatus.RUNNING && "border-blue-500",
         operation.status === OperationStatus.SETUP && "border-yellow-500"
       )}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {getStatusIcon()}
-          <span className="font-medium text-sm">
-            WO-{operation.workOrderRouting.workOrder.workOrderNumber}
-          </span>
+      <div className="flex">
+        {/* Drag Handle */}
+        <div 
+          className="drag-handle flex items-center px-2 border-r cursor-move hover:bg-gray-100 dark:hover:bg-gray-700"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
-        {operation.priority > 0 && (
-          <Badge variant="destructive" className="text-xs">
-            Priority
-          </Badge>
-        )}
-      </div>
-      
-      <p className="text-sm font-medium mb-1">{operation.operation.name}</p>
-      <p className="text-xs text-muted-foreground mb-2">
-        {operation.workOrderRouting.workOrder.part.name} • 
-        Qty: {operation.plannedQty}
-      </p>
-      
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">
-          {formatTime(operation.plannedSetupTime + operation.plannedRunTime)}
-        </span>
-        {operation.assignedUser && (
-          <div className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
-            <span>{operation.assignedUser.name.split(' ')[0]}</span>
+        
+        {/* Clickable Content */}
+        <div 
+          className="flex-1 p-3 cursor-pointer"
+          onClick={handleClick}
+        >
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {getStatusIcon()}
+              <span className="font-medium text-sm">
+                WO-{operation.workOrderRouting.workOrder.workOrderNumber}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {operation.priority > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  Priority
+                </Badge>
+              )}
+              <ExternalLink className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
-        )}
-      </div>
-
-      {operation.workOrderRouting.workOrder.dueDate && (
-        <div className="mt-2 pt-2 border-t">
-          <p className="text-xs text-muted-foreground">
-            Due: {new Date(operation.workOrderRouting.workOrder.dueDate).toLocaleDateString()}
+          
+          <p className="text-sm font-medium mb-1">{operation.operation.name}</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            {operation.workOrderRouting.workOrder.part.name} • 
+            Qty: {operation.plannedQty}
           </p>
+          
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">
+              {formatTime(operation.plannedSetupTime + operation.plannedRunTime)}
+            </span>
+            {operation.assignedUser && (
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                <span>{operation.assignedUser.name.split(' ')[0]}</span>
+              </div>
+            )}
+          </div>
+
+          {operation.workOrderRouting.workOrder.dueDate && (
+            <div className="mt-2 pt-2 border-t">
+              <p className="text-xs text-muted-foreground">
+                Due: {new Date(operation.workOrderRouting.workOrder.dueDate).toLocaleDateString()}
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -173,6 +202,11 @@ function SortableOperationCard({
 // Work Center Card Component
 function WorkCenterCard({ workCenter }: { workCenter: WorkCenterWithOperations }) {
   const [operations, setOperations] = React.useState(workCenter.workOrderOperations);
+  const [mounted, setMounted] = React.useState(false);
+  
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -252,33 +286,43 @@ function WorkCenterCard({ workCenter }: { workCenter: WorkCenterWithOperations }
       
       <CardContent className="flex-1 overflow-hidden pb-3">
         <ScrollArea className="h-full pr-3">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={operations.map(op => op.id)}
-              strategy={verticalListSortingStrategy}
+          {!mounted ? (
+            <div className="space-y-2">
+              {operations.map((operation) => (
+                <div key={operation.id} className="p-3 border rounded-lg bg-white dark:bg-gray-800">
+                  <p className="text-sm font-medium">Loading...</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="space-y-2">
-                {operations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">No operations scheduled</p>
-                  </div>
-                ) : (
-                  operations.map((operation) => (
-                    <SortableOperationCard
-                      key={operation.id}
-                      operation={operation}
-                      workCenterId={workCenter.id}
-                    />
-                  ))
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={operations.map(op => op.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {operations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">No operations scheduled</p>
+                    </div>
+                  ) : (
+                    operations.map((operation) => (
+                      <SortableOperationCard
+                        key={operation.id}
+                        operation={operation}
+                        workCenterId={workCenter.id}
+                      />
+                    ))
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
         </ScrollArea>
       </CardContent>
     </Card>

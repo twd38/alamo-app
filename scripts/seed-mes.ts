@@ -1,375 +1,251 @@
-import { PrismaClient, WorkCenterType } from '@prisma/client';
+import { PrismaClient, WorkCenterType, OperationStatus, InstructionStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('Seeding MES Phase 1 data...');
+async function seedMES() {
+  console.log('🌱 Seeding MES data...');
 
   // Create Work Centers
   const workCenters = await Promise.all([
     prisma.workCenter.upsert({
-      where: { code: 'WC-MACH-001' },
+      where: { code: 'WC-CNC-001' },
       update: {},
       create: {
-        code: 'WC-MACH-001',
-        name: 'CNC Machining Center 1',
-        description: 'Primary CNC machining center for precision parts',
+        code: 'WC-CNC-001',
+        name: 'CNC Milling Station 1',
         type: WorkCenterType.MACHINING,
-        capacity: 100,
-        efficiency: 0.85,
-        setupTime: 30,
-        costPerHour: 125,
-        isActive: true
-      }
+        description: '5-axis CNC milling machine for precision parts',
+        isActive: true,
+        capacity: 8, // hours per day
+        costPerHour: 150,
+        setupTime: 30, // minutes
+      },
     }),
     prisma.workCenter.upsert({
-      where: { code: 'WC-ASSY-001' },
+      where: { code: 'WC-CNC-002' },
       update: {},
       create: {
-        code: 'WC-ASSY-001',
+        code: 'WC-CNC-002',
+        name: 'CNC Turning Station 1',
+        type: WorkCenterType.MACHINING,
+        description: 'CNC lathe for rotational parts',
+        isActive: true,
+        capacity: 8,
+        costPerHour: 120,
+        setupTime: 25,
+      },
+    }),
+    prisma.workCenter.upsert({
+      where: { code: 'WC-ASM-001' },
+      update: {},
+      create: {
+        code: 'WC-ASM-001',
         name: 'Assembly Station 1',
-        description: 'Main assembly station for mechanical components',
         type: WorkCenterType.ASSEMBLY,
-        capacity: 50,
-        efficiency: 0.9,
-        setupTime: 15,
+        description: 'Manual assembly workstation',
+        isActive: true,
+        capacity: 8,
         costPerHour: 75,
-        isActive: true
-      }
-    }),
-    prisma.workCenter.upsert({
-      where: { code: 'WC-INSP-001' },
-      update: {},
-      create: {
-        code: 'WC-INSP-001',
-        name: 'Quality Inspection Station',
-        description: 'Quality control and dimensional inspection',
-        type: WorkCenterType.INSPECTION,
-        capacity: 200,
-        efficiency: 0.95,
         setupTime: 10,
-        costPerHour: 60,
-        isActive: true
-      }
+      },
     }),
     prisma.workCenter.upsert({
-      where: { code: 'WC-PACK-001' },
+      where: { code: 'WC-QC-001' },
       update: {},
       create: {
-        code: 'WC-PACK-001',
-        name: 'Packaging Station',
-        description: 'Final packaging and shipping preparation',
-        type: WorkCenterType.PACKAGING,
-        capacity: 150,
-        efficiency: 0.95,
-        setupTime: 5,
-        costPerHour: 45,
-        isActive: true
-      }
-    })
+        code: 'WC-QC-001',
+        name: 'Quality Inspection',
+        type: WorkCenterType.INSPECTION,
+        description: 'CMM and manual inspection station',
+        isActive: true,
+        capacity: 8,
+        costPerHour: 100,
+        setupTime: 15,
+      },
+    }),
+    prisma.workCenter.upsert({
+      where: { code: 'WC-WLD-001' },
+      update: {},
+      create: {
+        code: 'WC-WLD-001',
+        name: 'Welding Station 1',
+        type: WorkCenterType.ASSEMBLY,
+        description: 'TIG/MIG welding station',
+        isActive: true,
+        capacity: 8,
+        costPerHour: 110,
+        setupTime: 20,
+      },
+    }),
   ]);
 
-  console.log(`Created ${workCenters.length} work centers`);
+  console.log(`✅ Created ${workCenters.length} work centers`);
 
   // Create Operations
   const operations = await Promise.all([
-    // Machining Operations
     prisma.operation.upsert({
-      where: { code: 'OP-MILL-001' },
+      where: { code: 'OP-CNC-001' },
       update: {},
       create: {
-        code: 'OP-MILL-001',
-        name: 'CNC Milling',
-        description: 'Standard CNC milling operation',
-        workCenterId: workCenters[0].id, // Machining Center
-        defaultDuration: 45,
+        code: 'OP-CNC-001',
+        name: 'CNC Milling - Standard',
+        description: 'Standard CNC milling operation for precision parts',
+        workCenterId: workCenters[0].id,
         setupTime: 30,
-        requiresSkill: 'CNC Operator Level 2',
-        isActive: true
-      }
+        defaultDuration: 45,
+      },
     }),
     prisma.operation.upsert({
-      where: { code: 'OP-TURN-001' },
+      where: { code: 'OP-CNC-002' },
       update: {},
       create: {
-        code: 'OP-TURN-001',
-        name: 'CNC Turning',
-        description: 'CNC lathe turning operation',
-        workCenterId: workCenters[0].id, // Machining Center
-        defaultDuration: 30,
-        setupTime: 20,
-        requiresSkill: 'CNC Operator Level 2',
-        isActive: true
-      }
+        code: 'OP-CNC-002',
+        name: 'CNC Turning - Standard',
+        description: 'Standard CNC turning operation for rotational parts',
+        workCenterId: workCenters[1].id,
+        setupTime: 25,
+        defaultDuration: 35,
+      },
     }),
-    // Assembly Operations
     prisma.operation.upsert({
-      where: { code: 'OP-ASSY-001' },
+      where: { code: 'OP-ASM-001' },
       update: {},
       create: {
-        code: 'OP-ASSY-001',
+        code: 'OP-ASM-001',
         name: 'Manual Assembly',
-        description: 'Manual component assembly',
-        workCenterId: workCenters[1].id, // Assembly Station
-        defaultDuration: 20,
+        description: 'Manual assembly of components',
+        workCenterId: workCenters[2].id,
         setupTime: 10,
-        requiresSkill: 'Assembly Technician',
-        isActive: true
-      }
+        defaultDuration: 20,
+      },
     }),
     prisma.operation.upsert({
-      where: { code: 'OP-WELD-001' },
+      where: { code: 'OP-QC-001' },
       update: {},
       create: {
-        code: 'OP-WELD-001',
-        name: 'Spot Welding',
-        description: 'Spot welding for metal components',
-        workCenterId: workCenters[1].id, // Assembly Station
-        defaultDuration: 15,
+        code: 'OP-QC-001',
+        name: 'Quality Inspection',
+        description: 'Quality control and dimensional inspection',
+        workCenterId: workCenters[3].id,
         setupTime: 15,
-        requiresSkill: 'Certified Welder',
-        isActive: true
-      }
-    }),
-    // Inspection Operations
-    prisma.operation.upsert({
-      where: { code: 'OP-INSP-001' },
-      update: {},
-      create: {
-        code: 'OP-INSP-001',
-        name: 'Visual Inspection',
-        description: 'Visual quality inspection',
-        workCenterId: workCenters[2].id, // Inspection Station
-        defaultDuration: 10,
-        setupTime: 5,
-        requiresSkill: 'Quality Inspector',
-        isActive: true
-      }
+        defaultDuration: 30,
+      },
     }),
     prisma.operation.upsert({
-      where: { code: 'OP-MEAS-001' },
+      where: { code: 'OP-WLD-001' },
       update: {},
       create: {
-        code: 'OP-MEAS-001',
-        name: 'Dimensional Measurement',
-        description: 'Precision dimensional measurement',
-        workCenterId: workCenters[2].id, // Inspection Station
-        defaultDuration: 20,
-        setupTime: 10,
-        requiresSkill: 'CMM Operator',
-        isActive: true
-      }
+        code: 'OP-WLD-001',
+        name: 'TIG Welding',
+        description: 'TIG welding for precision joints',
+        workCenterId: workCenters[4].id,
+        setupTime: 20,
+        defaultDuration: 40,
+      },
     }),
-    // Packaging Operations
-    prisma.operation.upsert({
-      where: { code: 'OP-PACK-001' },
-      update: {},
-      create: {
-        code: 'OP-PACK-001',
-        name: 'Standard Packaging',
-        description: 'Standard packaging for shipment',
-        workCenterId: workCenters[3].id, // Packaging Station
-        defaultDuration: 10,
-        setupTime: 5,
-        requiresSkill: 'Packaging Operator',
-        isActive: true
-      }
-    })
   ]);
 
-  console.log(`Created ${operations.length} operations`);
+  console.log(`✅ Created ${operations.length} operations`);
 
-  // Create Procedures for each operation
-  const procedures = [];
-  
-  // Milling procedures
-  const millingProcedures = [
-    {
-      operationId: operations[0].id,
-      stepNumber: 1,
-      title: 'Setup and Fixture',
-      instructions: 'Mount the workpiece in the vise or fixture. Ensure proper alignment and secure clamping.',
-      estimatedTime: 10,
-      requiredTools: ['Vise', 'Clamps', 'Dial indicator'],
-      safetyNotes: 'Ensure workpiece is securely clamped before starting spindle',
-      qualityChecks: ['Verify workpiece alignment', 'Check fixture security']
-    },
-    {
-      operationId: operations[0].id,
-      stepNumber: 2,
-      title: 'Tool Setup',
-      instructions: 'Load required cutting tools into tool magazine. Set tool offsets in CNC control.',
-      estimatedTime: 15,
-      requiredTools: ['End mills', 'Tool holders', 'Tool setter'],
-      safetyNotes: 'Handle cutting tools with care',
-      qualityChecks: ['Verify tool dimensions', 'Check tool wear']
-    },
-    {
-      operationId: operations[0].id,
-      stepNumber: 3,
-      title: 'Program Execution',
-      instructions: 'Load CNC program. Run in single block mode first, then execute full program.',
-      estimatedTime: 20,
-      requiredTools: ['CNC program', 'Coolant'],
-      safetyNotes: 'Keep hands clear of moving parts',
-      qualityChecks: ['Monitor surface finish', 'Check dimensions periodically']
-    }
-  ];
-
-  for (const proc of millingProcedures) {
-    procedures.push(
-      await prisma.procedure.upsert({
-        where: {
-          operationId_stepNumber: {
-            operationId: proc.operationId,
-            stepNumber: proc.stepNumber
+  // Create CNC Milling Procedure with steps
+  const cncProcedure = await prisma.procedure.upsert({
+    where: { code: 'PROC-CNC-001' },
+    update: {},
+    create: {
+      code: 'PROC-CNC-001',
+      title: 'CNC Milling Standard Procedure',
+      description: 'Standard operating procedure for CNC milling operations',
+      status: InstructionStatus.APPROVED,
+      operations: {
+        connect: { id: operations[0].id }
+      },
+      steps: {
+        create: [
+          {
+            stepNumber: 1,
+            title: 'Setup and Preparation',
+            instructions: 'Review work order and drawings. Select appropriate cutting tools. Install tools in tool holder. Load material into fixture.',
+            estimatedTime: 10,
+            requiredTools: ['Tool holder', 'Cutting tools', 'Fixture', 'Measuring instruments'],
+            safetyNotes: 'Ensure machine is in safe mode before setup. Wear safety glasses and gloves.',
+            qualityChecks: ['Verify material dimensions', 'Check tool condition', 'Confirm fixture alignment'],
+          },
+          {
+            stepNumber: 2,
+            title: 'Machine Programming',
+            instructions: 'Load CNC program. Set work offsets. Set tool offsets. Run simulation if available.',
+            estimatedTime: 5,
+            requiredTools: ['CNC control panel', 'Program storage device'],
+            safetyNotes: null,
+            qualityChecks: ['Verify program number matches work order', 'Check critical dimensions in program'],
+          },
+          {
+            stepNumber: 3,
+            title: 'Machining Operation',
+            instructions: 'Start spindle warm-up cycle. Run first part at reduced speed. Inspect first article. Adjust offsets if needed. Run production.',
+            estimatedTime: 15,
+            requiredTools: ['Coolant', 'Chip removal tools'],
+            safetyNotes: 'Keep hands clear of moving parts. Monitor for unusual sounds or vibrations.',
+            qualityChecks: ['First article inspection', 'In-process dimensional checks every 10 parts'],
           }
-        },
-        update: proc,
-        create: proc
-      })
-    );
-  }
-
-  // Assembly procedures
-  const assemblyProcedures = [
-    {
-      operationId: operations[2].id,
-      stepNumber: 1,
-      title: 'Component Preparation',
-      instructions: 'Gather all required components. Verify part numbers and quantities.',
-      estimatedTime: 5,
-      requiredTools: ['Parts list', 'Component bins'],
-      safetyNotes: 'Handle components carefully to avoid damage',
-      qualityChecks: ['Verify all components present', 'Check for visible defects']
+        ]
+      }
     },
-    {
-      operationId: operations[2].id,
-      stepNumber: 2,
-      title: 'Assembly Process',
-      instructions: 'Follow assembly drawing. Install components in specified sequence.',
-      estimatedTime: 10,
-      requiredTools: ['Assembly drawing', 'Hand tools', 'Torque wrench'],
-      safetyNotes: 'Use proper ergonomics',
-      qualityChecks: ['Verify correct orientation', 'Check fastener torque']
-    },
-    {
-      operationId: operations[2].id,
-      stepNumber: 3,
-      title: 'Final Check',
-      instructions: 'Perform functional test. Verify all components properly secured.',
-      estimatedTime: 5,
-      requiredTools: ['Test fixture', 'Checklist'],
-      safetyNotes: 'Follow lockout/tagout procedures for testing',
-      qualityChecks: ['Functional test passed', 'Visual inspection complete']
-    }
-  ];
-
-  for (const proc of assemblyProcedures) {
-    procedures.push(
-      await prisma.procedure.upsert({
-        where: {
-          operationId_stepNumber: {
-            operationId: proc.operationId,
-            stepNumber: proc.stepNumber
-          }
-        },
-        update: proc,
-        create: proc
-      })
-    );
-  }
-
-  console.log(`Created ${procedures.length} procedures`);
-
-  // Get some existing parts to create routings for
-  const parts = await prisma.part.findMany({
-    take: 3,
-    orderBy: { partNumber: 'asc' }
   });
 
-  if (parts.length > 0) {
-    // Create sample routings
-    const routings = [];
-    
-    for (let i = 0; i < Math.min(2, parts.length); i++) {
-      const part = parts[i];
-      
-      const routing = await prisma.routing.create({
-        data: {
-          partId: part.id,
-          routingNumber: `RT-${part.partNumber}-001`,
-          version: 1,
-          isActive: true,
-          notes: `Standard routing for ${part.partNumber}`,
-          steps: {
-            create: [
-              {
-                stepNumber: 10,
-                operationId: operations[0].id, // Milling
-                workCenterId: workCenters[0].id, // Machining Center
-                setupTime: 30,
-                runTime: 45,
-                queueTime: 60,
-                moveTime: 15,
-                notes: 'Initial machining operation'
-              },
-              {
-                stepNumber: 20,
-                operationId: operations[2].id, // Assembly
-                workCenterId: workCenters[1].id, // Assembly Station
-                setupTime: 10,
-                runTime: 20,
-                queueTime: 30,
-                moveTime: 10,
-                notes: 'Component assembly'
-              },
-              {
-                stepNumber: 30,
-                operationId: operations[4].id, // Visual Inspection
-                workCenterId: workCenters[2].id, // Inspection Station
-                setupTime: 5,
-                runTime: 10,
-                queueTime: 15,
-                moveTime: 5,
-                notes: 'Quality inspection'
-              },
-              {
-                stepNumber: 40,
-                operationId: operations[6].id, // Packaging
-                workCenterId: workCenters[3].id, // Packaging Station
-                setupTime: 5,
-                runTime: 10,
-                queueTime: 10,
-                moveTime: 5,
-                notes: 'Final packaging'
-              }
-            ]
+  // Create Assembly Procedure with steps
+  const assemblyProcedure = await prisma.procedure.upsert({
+    where: { code: 'PROC-ASM-001' },
+    update: {},
+    create: {
+      code: 'PROC-ASM-001',
+      title: 'Assembly Standard Procedure',
+      description: 'Standard operating procedure for assembly operations',
+      status: InstructionStatus.APPROVED,
+      operations: {
+        connect: { id: operations[2].id }
+      },
+      steps: {
+        create: [
+          {
+            stepNumber: 1,
+            title: 'Component Preparation',
+            instructions: 'Gather all required components. Verify part numbers and quantities.',
+            estimatedTime: 5,
+            requiredTools: ['Parts list', 'Component bins'],
+            safetyNotes: 'Handle components carefully to avoid damage',
+            qualityChecks: ['Verify all components present', 'Check for visible defects']
+          },
+          {
+            stepNumber: 2,
+            title: 'Assembly Process',
+            instructions: 'Follow assembly drawing. Install components in specified sequence.',
+            estimatedTime: 10,
+            requiredTools: ['Assembly drawing', 'Hand tools', 'Torque wrench'],
+            safetyNotes: 'Use proper ergonomics',
+            qualityChecks: ['Verify correct orientation', 'Check fastener torque']
+          },
+          {
+            stepNumber: 3,
+            title: 'Final Check',
+            instructions: 'Perform functional test. Verify all components properly secured.',
+            estimatedTime: 5,
+            requiredTools: ['Test fixture', 'Checklist'],
+            safetyNotes: 'Follow lockout/tagout procedures for testing',
+            qualityChecks: ['Functional test passed', 'Visual inspection complete']
           }
-        }
-      });
-      
-      routings.push(routing);
-      
-      // Create PartRouting junction record and set first one as default
-      await prisma.partRouting.create({
-        data: {
-          partId: part.id,
-          routingId: routing.id,
-          isDefault: i === 0
-        }
-      });
-    }
-    
-    console.log(`Created ${routings.length} routings with part assignments`);
-  } else {
-    console.log('No parts found to create routings for');
-  }
+        ]
+      }
+    },
+  });
 
-  console.log('MES Phase 1 seeding completed!');
+  const procedures = [cncProcedure, assemblyProcedure];
+  console.log(`✅ Created ${procedures.length} procedures with steps`);
+
+  console.log('✅ MES seed data created successfully!');
 }
 
-main()
+seedMES()
   .catch((e) => {
     console.error('Error seeding MES data:', e);
     process.exit(1);

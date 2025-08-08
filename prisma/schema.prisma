@@ -100,6 +100,8 @@ model File {
   stepFileId      String?
   workOrderWorkInstructionStepId String?
   commentId       String?
+  procedureStepId String?
+  procedureActionId String?                  @unique
   key             String                     @default("")
   workOrder       WorkOrder?                 @relation(fields: [workOrderId], references: [id])
   part            Part?                      @relation("PartFiles", fields: [partId], references: [id])
@@ -108,6 +110,8 @@ model File {
   workOrderWorkInstructionStep WorkOrderWorkInstructionStep? @relation("WorkOrderWorkInstructionStepFiles", fields: [workOrderWorkInstructionStepId], references: [id])
   task            Task?                      @relation(fields: [taskId], references: [id])
   comment         Comment?                   @relation("CommentFiles", fields: [commentId], references: [id])
+  procedureStep   ProcedureStep?             @relation("ProcedureStepFiles", fields: [procedureStepId], references: [id])
+  procedureAction ProcedureStepAction?       @relation("ProcedureActionUpload", fields: [procedureActionId], references: [id])
   partImagePart   Part?                      @relation("PartImage")
   partCADFile     Part?                      @relation("PartCADFile")
   partGLTFFile    Part?                      @relation("PartGLTFFile")
@@ -855,6 +859,7 @@ model WorkCenter {
   operations       Operation[]
   routingSteps     RoutingStep[]
   workOrderOperations WorkOrderOperation[]
+  queueEntries     WorkCenterQueue[]
 }
 
 model Operation {
@@ -863,6 +868,7 @@ model Operation {
   name             String
   description      String?
   workCenterId     String
+  procedureId      String?           // Optional procedure reference
   defaultDuration  Int               // Default duration in minutes
   setupTime        Int               @default(0) // Setup time in minutes
   requiresSkill    String?           // Optional skill requirement
@@ -872,33 +878,72 @@ model Operation {
   
   // Relationships
   workCenter       WorkCenter        @relation(fields: [workCenterId], references: [id])
-  procedures       Procedure[]
+  procedure        Procedure?        @relation(fields: [procedureId], references: [id])
   routingSteps     RoutingStep[]
   workOrderOperations WorkOrderOperation[]
   
   @@index([workCenterId])
+  @@index([procedureId])
 }
 
 model Procedure {
   id               String            @id @default(uuid())
-  operationId      String
-  stepNumber       Int
+  code             String?           @unique
   title            String
-  instructions     String            @db.Text
-  estimatedTime    Int               // Time in minutes
-  requiredTools    String[]
-  safetyNotes      String?
-  qualityChecks    String[]
-  imageUrls        String[]
-  videoUrl         String?
+  description      String?
+  version          Int               @default(1)
+  status           InstructionStatus @default(DRAFT)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   
   // Relationships
-  operation        Operation         @relation(fields: [operationId], references: [id])
+  operations       Operation[]       // Many operations can use this procedure
+  steps            ProcedureStep[]
   
-  @@unique([operationId, stepNumber])
-  @@index([operationId])
+  @@index([code])
+}
+
+model ProcedureStep {
+  id               String            @id @default(uuid())
+  procedureId      String
+  stepNumber       Int
+  title            String
+  instructions     String            @db.Text  // Rich text content from TipTap
+  estimatedTime    Int               // Time in minutes
+  requiredTools    String[]
+  safetyNotes      String?
+  qualityChecks    String[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relationships
+  procedure        Procedure         @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  actions          ProcedureStepAction[]
+  files            File[]            @relation("ProcedureStepFiles")
+  
+  @@unique([procedureId, stepNumber])
+  @@index([procedureId])
+}
+
+model ProcedureStepAction {
+  id               String            @id @default(uuid())
+  stepId           String
+  description      String
+  notes            String?
+  isRequired       Boolean           @default(true)
+  signoffRoles     String[]
+  targetValue      Float?
+  tolerance        Float?
+  unit             String?
+  actionType       ActionType
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relationships
+  step             ProcedureStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  uploadedFile     File?             @relation("ProcedureActionUpload")
+  
+  @@index([stepId])
 }
 
 // Routing System (for future phases)
@@ -1022,6 +1067,12 @@ model WorkOrderOperation {
   setupByUser       User?                 @relation("OperationSetupBy", fields: [setupByUserId], references: [id])
   completedByUser   User?                 @relation("OperationCompletedBy", fields: [completedByUserId], references: [id])
   
+  // Phase 5 relationships
+  dependencies      OperationDependency[] @relation("DependentOperation")
+  prerequisites     OperationDependency[] @relation("PrerequisiteOperation")
+  readiness         OperationReadiness?
+  queueEntry        WorkCenterQueue?
+  
   @@unique([workOrderRoutingId, sequenceNumber])
   @@index([workOrderRoutingId])
   @@index([operationId])
@@ -1039,4 +1090,79 @@ enum WorkCenterType {
   RECEIVING
   MAINTENANCE
   OTHER
+}
+
+// ============================================================================
+// Phase 5: Work Readiness & Queue Management
+// ============================================================================
+
+model OperationDependency {
+  id                    String              @id @default(uuid())
+  workOrderOperationId  String              
+  dependsOnOperationId  String              
+  dependencyType        DependencyType      @default(FINISH_TO_START)
+  lagTime              Int                 @default(0) // Minutes
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  
+  // Relationships
+  operation            WorkOrderOperation  @relation("DependentOperation", fields: [workOrderOperationId], references: [id], onDelete: Cascade)
+  dependsOnOperation   WorkOrderOperation  @relation("PrerequisiteOperation", fields: [dependsOnOperationId], references: [id], onDelete: Cascade)
+  
+  @@unique([workOrderOperationId, dependsOnOperationId])
+  @@index([workOrderOperationId])
+  @@index([dependsOnOperationId])
+}
+
+enum DependencyType {
+  FINISH_TO_START  // Default: Can't start until predecessor finishes
+  START_TO_START   // Can start when predecessor starts
+  FINISH_TO_FINISH // Must finish when predecessor finishes
+  START_TO_FINISH  // Rare: Can't finish until predecessor starts
+}
+
+model OperationReadiness {
+  id                    String              @id @default(uuid())
+  workOrderOperationId  String              @unique
+  isReady              Boolean             @default(false)
+  blockedReasons       BlockedReason[]
+  estimatedReadyTime   DateTime?
+  lastCalculated       DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  
+  // Relationships
+  operation            WorkOrderOperation  @relation(fields: [workOrderOperationId], references: [id], onDelete: Cascade)
+  
+  @@index([isReady])
+  @@index([workOrderOperationId])
+}
+
+enum BlockedReason {
+  WAITING_PREDECESSOR
+  MATERIAL_UNAVAILABLE
+  TOOL_UNAVAILABLE
+  WORK_CENTER_BUSY
+  OPERATOR_UNAVAILABLE
+  QUALITY_HOLD
+  SETUP_REQUIRED
+}
+
+model WorkCenterQueue {
+  id                String              @id @default(uuid())
+  workCenterId      String
+  operationId       String              @unique
+  queuePosition     Int
+  priority          Int                 @default(0)
+  estimatedWaitTime Int?               // Minutes
+  addedAt          DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  
+  // Relationships
+  workCenter        WorkCenter          @relation(fields: [workCenterId], references: [id])
+  operation         WorkOrderOperation  @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  
+  @@unique([workCenterId, queuePosition])
+  @@index([workCenterId])
+  @@index([operationId])
+  @@index([priority])
 }

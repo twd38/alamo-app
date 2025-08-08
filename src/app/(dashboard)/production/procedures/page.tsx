@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { ProceduresManager } from './components/procedures-manager';
+import { ProceduresList } from './components/procedures-list';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
 import PageContainer from '@/components/page-container';
 import type { Metadata } from 'next';
@@ -20,7 +20,7 @@ export default function ProceduresPage() {
       <BasicTopBar breadcrumbs={breadcrumbs} />
       <PageContainer>
         <Suspense fallback={<div className="flex items-center justify-center h-96">Loading...</div>}>
-          <ProceduresManager />
+          <ProceduresList />
         </Suspense>
       </PageContainer>
     </div>
