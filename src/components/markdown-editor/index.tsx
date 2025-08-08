@@ -22,6 +22,7 @@ import { LinkSelector } from './selectors/link-selector';
 import { MathSelector } from './selectors/math-selector';
 import { NodeSelector } from './selectors/node-selector';
 import { Separator } from '../ui/separator';
+import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
 
 import GenerativeMenuSwitch from './generative/generative-menu-switch';
 import { uploadFn } from './image-upload';
@@ -89,6 +90,10 @@ export const MarkdownEditor = ({
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
+
+  // Image viewer state
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageToView, setImageToView] = useState<string | null>(null);
 
   const baseExtensions = [
     ...defaultExtensions.filter((ext) => ext !== Placeholder),
@@ -177,7 +182,24 @@ export const MarkdownEditor = ({
           editable={!readOnly}
           editorProps={{
             handleDOMEvents: {
-              keydown: (_view, event) => handleCommandNavigation(event)
+              keydown: (_view, event) => handleCommandNavigation(event),
+              click: (_view, event) => {
+                const target = event.target as HTMLElement | null;
+                if (target && target.tagName === 'IMG') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const imgEl = target as HTMLImageElement;
+                  // Deselect node and blur before opening to avoid showing
+                  // resize handles on simple clicks.
+                  try {
+                    editorInstance?.chain().setTextSelection(0).blur().run();
+                  } catch {}
+                  setImageToView(imgEl.src);
+                  setImageDialogOpen(true);
+                  return true;
+                }
+                return false;
+              }
             },
             handlePaste: (view, event) =>
               handleImagePaste(view, event, uploadFn),
@@ -196,7 +218,7 @@ export const MarkdownEditor = ({
           onCreate={({ editor }) => {
             setEditorInstance(editor);
           }}
-          slotAfter={<ImageResizer />}
+          slotAfter={imageDialogOpen ? null : <ImageResizer />}
         >
           {!readOnly && (
             <>
@@ -243,6 +265,21 @@ export const MarkdownEditor = ({
           )}
         </EditorContent>
       </EditorRoot>
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="z-[60] max-w-[95vw] w-[95vw] p-0 bg-transparent border-0 shadow-none sm:rounded-none">
+          <DialogTitle className="sr-only">Image preview</DialogTitle>
+          {imageToView ? (
+            <div className="flex items-center justify-center w-full h-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageToView}
+                alt="Preview"
+                className="max-w-[95vw] max-h-[90vh] object-contain"
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

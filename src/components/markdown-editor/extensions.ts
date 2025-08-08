@@ -79,13 +79,13 @@ const tiptapImage = TiptapImage.extend({
 }).configure({
   allowBase64: true,
   HTMLAttributes: {
-    class: cx('rounded-lg border border-muted')
+    class: cx('rounded-lg border border-muted cursor-zoom-in')
   }
 });
 
 const updatedImage = UpdatedImage.configure({
   HTMLAttributes: {
-    class: cx('rounded-lg border border-muted')
+    class: cx('rounded-lg border border-muted cursor-zoom-in')
   }
 });
 
