@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -207,11 +208,13 @@ function getColumns({
 export function WorkOrdersDataTable({
   workOrders,
   totalCount,
-  refetchAction
+  refetchAction,
+  loading
 }: {
   workOrders: WorkOrderData[];
   totalCount: number;
   refetchAction: () => void;
+  loading?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -269,15 +272,16 @@ export function WorkOrdersDataTable({
     [updateSearchParams]
   );
 
+  const debouncedSetQuery = useDebouncedCallback((value: string) => {
+    updateSearchParams({ query: value || null, page: 1 });
+  }, 500);
+
   const handleFilterChange = useCallback(
     (filters: ColumnFiltersState) => {
       const searchFilter = filters.find((f) => f.id === 'workOrderNumber');
-      updateSearchParams({
-        query: (searchFilter?.value as string) || null,
-        page: 1
-      });
+      debouncedSetQuery((searchFilter?.value as string) || '');
     },
-    [updateSearchParams]
+    [debouncedSetQuery]
   );
 
   const handleDeleteClick = useCallback((workOrder: WorkOrderData) => {
@@ -309,6 +313,7 @@ export function WorkOrdersDataTable({
       <DataTable
         columns={columns}
         data={workOrders || []}
+        loading={!!loading}
         pageCount={pageCount}
         pagination={{ pageIndex: page - 1, pageSize: limit }}
         onPaginationChange={handlePaginationChange}

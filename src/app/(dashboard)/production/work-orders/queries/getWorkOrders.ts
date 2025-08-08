@@ -36,6 +36,12 @@ export async function getWorkOrders({
         part: {
           OR: [
             {
+              name: {
+                contains: query,
+                mode: 'insensitive'
+              }
+            },
+            {
               description: {
                 contains: query,
                 mode: 'insensitive'

@@ -116,6 +116,7 @@ const ProductionPageContent = () => {
       workOrders={data?.workOrders || []}
       totalCount={data?.totalCount || 0}
       refetchAction={mutate}
+      loading={isLoading}
     />
   );
 };
@@ -159,7 +160,9 @@ const ProductionPageFullSkeleton = () => (
         <div className="flex items-center justify-between space-y-1">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Work Orders</h2>
-            <p className="text-muted-foreground">Browse and manage work orders in the system</p>
+            <p className="text-muted-foreground">
+              Browse and manage work orders in the system
+            </p>
           </div>
         </div>
         <div className="flex items-center pb-4">
