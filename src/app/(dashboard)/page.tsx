@@ -8,7 +8,7 @@ import PageContainer from '@/components/page-container';
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const launchDate = new Date('2025-09-24');
+  const launchDate = new Date('2025-12-01');
 
   const missionMessage = await prisma.missionMessage.findFirst();
   const missionMessageId = missionMessage?.id;
