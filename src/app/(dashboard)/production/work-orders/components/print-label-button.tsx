@@ -27,7 +27,7 @@ export function PrintLabelButton({
   quantity,
   dueDate,
   workOrderId,
-  printerSerialNumber = 'D2J185007015',
+  printerSerialNumber = 'D8N252402228',
   variant = 'outline',
   size = 'default',
   className

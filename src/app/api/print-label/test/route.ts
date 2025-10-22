@@ -7,7 +7,7 @@ import { testPrinterConnection } from '@/lib/label-printing';
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const printerSerialNumber = searchParams.get('sn') || 'D2J185007015';
+  const printerSerialNumber = searchParams.get('sn') || 'D8N252402228';
 
   try {
     // Validate environment variables

@@ -69,7 +69,7 @@ ${
  */
 export async function sendZPLToPrinter(
   zplCode: string,
-  printerSerialNumber: string = 'D2J185007015'
+  printerSerialNumber: string = 'D8N252402228'
 ): Promise<void> {
   const apiKey = process.env.ZEBRA_API_KEY;
   const tenant = process.env.ZEBRA_TENANT;
@@ -126,7 +126,7 @@ export async function sendZPLToPrinter(
  * Sends a simple test ZPL to verify the printer is reachable
  */
 export async function testPrinterConnection(
-  printerSerialNumber: string = 'D2J185007015'
+  printerSerialNumber: string = 'D8N252402228'
 ): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
     // Generate a simple test ZPL
