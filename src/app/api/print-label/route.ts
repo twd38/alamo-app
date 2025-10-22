@@ -17,7 +17,8 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { labelData, printerSerialNumber = 'D2J185007015' } = body;
+    // const { labelData, printerSerialNumber = 'D2J185007015' } = body;
+    const { labelData, printerSerialNumber = 'D8N252402228' } = body;
 
     // Validate required fields
     if (!labelData || !labelData.workOrderNumber || !labelData.partNumber) {
