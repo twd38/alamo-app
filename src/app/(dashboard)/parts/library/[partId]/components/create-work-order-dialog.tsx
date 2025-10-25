@@ -150,9 +150,9 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
     defaultValues: {
       partQty: 1,
       operation: 'Manufacture', // reasonable default
-      dueDate: undefined, // filled by user
+      dueDate: new Date(), // filled by user
       assigneeIds: [],
-      status: WorkOrderStatus.DRAFT,
+      status: WorkOrderStatus.TODO,
       timeEstimate: '',
       notes: '',
       tagIds: []

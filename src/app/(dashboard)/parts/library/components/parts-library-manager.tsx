@@ -27,13 +27,13 @@ const partTypes = [
   { value: 'PCA_114', label: 'PCA' },
   { value: 'FRU_115', label: 'FRU' },
   { value: 'PKG_116', label: 'Package' },
-  { value: 'OTS_222', label: 'Off The Shelf' },
+  { value: 'OTS_222', label: 'Off The Shelf' }
 ];
 
 const trackingTypes = [
   { value: 'SERIAL', label: 'Serial' },
   { value: 'LOT', label: 'Lot' },
-  { value: 'NONE', label: 'None' },
+  { value: 'NONE', label: 'None' }
 ];
 
 export function PartsLibraryManager() {
@@ -44,12 +44,15 @@ export function PartsLibraryManager() {
     pageCount: number;
   }>({
     parts: [],
-    pageCount: 0,
+    pageCount: 0
   });
   const [loading, setLoading] = useState(true);
   const [newPartDialogOpen, setNewPartDialogOpen] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [selectedPart, setSelectedPart] = useState<{ id: string; name: string } | null>(null);
+  const [selectedPart, setSelectedPart] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const page = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('pageSize')) || 10;
@@ -64,13 +67,13 @@ export function PartsLibraryManager() {
         pageSize,
         search,
         sortBy,
-        sortOrder,
+        sortOrder
       };
-      
+
       const result = await getParts(params);
       setData({
         parts: result.data,
-        pageCount: result.totalPages,
+        pageCount: result.totalPages
       });
     } catch (error) {
       console.error('Failed to load parts:', error);
@@ -83,9 +86,11 @@ export function PartsLibraryManager() {
     fetchParts();
   }, [fetchParts]);
 
-  const updateSearchParams = (params: Record<string, string | number | null>) => {
+  const updateSearchParams = (
+    params: Record<string, string | number | null>
+  ) => {
     const current = new URLSearchParams(searchParams.toString());
-    
+
     Object.entries(params).forEach(([key, value]) => {
       if (value === null || value === '') {
         current.delete(key);
@@ -97,10 +102,13 @@ export function PartsLibraryManager() {
     router.push(`?${current.toString()}`);
   };
 
-  const handlePaginationChange = (pagination: { pageIndex: number; pageSize: number }) => {
+  const handlePaginationChange = (pagination: {
+    pageIndex: number;
+    pageSize: number;
+  }) => {
     updateSearchParams({
       page: pagination.pageIndex + 1,
-      pageSize: pagination.pageSize,
+      pageSize: pagination.pageSize
     });
   };
 
@@ -108,17 +116,22 @@ export function PartsLibraryManager() {
     if (sorting.length > 0) {
       updateSearchParams({
         sortBy: sorting[0].id,
-        sortOrder: sorting[0].desc ? 'desc' : 'asc',
+        sortOrder: sorting[0].desc ? 'desc' : 'asc'
       });
     }
   };
 
   const handleFilterChange = (filters: ColumnFiltersState) => {
-    const searchFilter = filters.find(f => f.id === 'name');
+    const searchFilter = filters.find((f) => f.id === 'name');
     updateSearchParams({
-      search: searchFilter?.value as string || null,
-      page: 1,
+      search: (searchFilter?.value as string) || null,
+      page: 1
     });
+  };
+
+  const handleCancel = () => {
+    setSelectedPart(null);
+    setDuplicateDialogOpen(false);
   };
 
   const handleDuplicate = (partId: string, partName: string) => {
@@ -144,7 +157,7 @@ export function PartsLibraryManager() {
         pageCount={data.pageCount}
         pagination={{
           pageIndex: page - 1,
-          pageSize,
+          pageSize
         }}
         onPaginationChange={handlePaginationChange}
         sorting={sortBy ? [{ id: sortBy, desc: sortOrder === 'desc' }] : []}
@@ -157,13 +170,13 @@ export function PartsLibraryManager() {
           {
             id: 'partType',
             title: 'Type',
-            options: partTypes,
+            options: partTypes
           },
           {
             id: 'trackingType',
             title: 'Tracking',
-            options: trackingTypes,
-          },
+            options: trackingTypes
+          }
         ]}
         actions={
           <Button size="sm" onClick={() => setNewPartDialogOpen(true)}>
@@ -173,7 +186,7 @@ export function PartsLibraryManager() {
         }
       />
 
-      <NewPartDialog 
+      <NewPartDialog
         open={newPartDialogOpen}
         onOpenChange={setNewPartDialogOpen}
       />
@@ -184,6 +197,7 @@ export function PartsLibraryManager() {
           partName={selectedPart.name}
           open={duplicateDialogOpen}
           onOpenChange={setDuplicateDialogOpen}
+          onCancel={handleCancel}
           onSuccess={() => {
             setDuplicateDialogOpen(false);
             fetchParts();

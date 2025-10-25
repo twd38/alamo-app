@@ -41,6 +41,7 @@ interface DuplicatePartDialogProps {
   children?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onCancel?: () => void;
   onSuccess?: () => void;
 }
 
@@ -50,6 +51,7 @@ export const DuplicatePartDialog = ({
   children,
   open: propOpen,
   onOpenChange,
+  onCancel,
   onSuccess
 }: DuplicatePartDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -74,10 +76,10 @@ export const DuplicatePartDialog = ({
       });
 
       if (result.success && result.data) {
+        form.reset();
         toast.success('Part duplicated successfully');
         setOpen(false);
-        form.reset();
-        
+
         if (onSuccess) {
           onSuccess();
         } else {
@@ -94,13 +96,10 @@ export const DuplicatePartDialog = ({
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) {
-      form.reset({
-        name: `${partName} (copy)`,
-        partNumber: ''
-      });
+    if (onCancel) {
+      onCancel();
     }
+    setOpen(newOpen);
   };
 
   return (
@@ -167,7 +166,7 @@ export const DuplicatePartDialog = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={() => handleOpenChange(false)}
               >
                 Cancel
               </Button>
