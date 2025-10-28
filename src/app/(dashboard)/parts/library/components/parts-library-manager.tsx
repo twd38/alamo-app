@@ -134,6 +134,12 @@ export function PartsLibraryManager() {
     setDuplicateDialogOpen(false);
   };
 
+  const handleSuccess = () => {
+    setSelectedPart(null);
+    setDuplicateDialogOpen(false);
+    fetchParts();
+  };
+
   const handleDuplicate = (partId: string, partName: string) => {
     setSelectedPart({ id: partId, name: partName });
     setDuplicateDialogOpen(true);
@@ -198,10 +204,7 @@ export function PartsLibraryManager() {
           open={duplicateDialogOpen}
           onOpenChange={setDuplicateDialogOpen}
           onCancel={handleCancel}
-          onSuccess={() => {
-            setDuplicateDialogOpen(false);
-            fetchParts();
-          }}
+          onSuccess={handleSuccess}
         />
       )}
     </div>
