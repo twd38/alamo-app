@@ -82,23 +82,6 @@ const ProductionPageContent = () => {
     }
   );
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full" />
-        <div className="flex justify-between">
-          <Skeleton className="h-8 w-32" />
-          <div className="flex gap-2">
-            <Skeleton className="h-8 w-20" />
-            <Skeleton className="h-8 w-20" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Error state
   if (error) {
     return (

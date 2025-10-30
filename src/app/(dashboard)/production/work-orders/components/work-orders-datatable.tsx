@@ -242,7 +242,7 @@ export function WorkOrdersDataTable({
           current.set(key, String(value));
         }
       });
-      router.push(`${pathname}?${current.toString()}`);
+      router.push(`?${current.toString()}`);
     },
     [router, pathname, searchParams]
   );
