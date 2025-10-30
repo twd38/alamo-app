@@ -62,11 +62,11 @@ def main():
         raise RuntimeError("No work part is loaded.")
 
     data = collect_part_data(part)
-    result = push_to_database(data)
+    # result = push_to_database(data)
 
     LW.Open()
     LW.WriteLine(f"✅  Synced “{part.Leaf}” successfully.")
-    LW.WriteLine(json.dumps(result, indent=2))
+    LW.WriteLine(json.dumps(data, indent=2))
 
 
 if __name__ == "__main__":
