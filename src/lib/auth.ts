@@ -5,8 +5,11 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
+const isEdgeRuntime = typeof (globalThis as any).EdgeRuntime !== 'undefined';
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  // Avoid initializing Prisma adapter in Edge (middleware) to prevent Edge runtime failures
+  adapter: isEdgeRuntime ? undefined : PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: process.env.AUTH_GOOGLE_ID!,
@@ -71,13 +74,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/login',
     error: '/auth/error' // Add an error page path
   },
-  // Use JWT strategy when credentials provider is available
   session: {
-    strategy:
-      process.env.VERCEL_ENV !== 'production' ||
-      process.env.ENABLE_CREDENTIALS_AUTH === 'true'
-        ? 'jwt'
-        : 'database',
+    // Use JWT for Edge compatibility (middleware cannot hit the database)
+    strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60 // 30 days
   },
   callbacks: {
@@ -156,6 +155,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     session: async ({ session, token, user }) => {
+      // In Edge (middleware), skip DB lookups to keep middleware lightweight and Edge-compatible
+      if (isEdgeRuntime) {
+        // Minimal augmentation using token only
+        if (token) {
+          const userObj =
+            (session.user as unknown as {
+              id?: string;
+              name?: string | null;
+              email?: string | null;
+              image?: string | null;
+              roles?: Array<{
+                name: string;
+                resourceType?: string | null;
+                resourceId?: string | null;
+              }>;
+              permissions?: Array<{
+                name: string;
+                resourceType?: string | null;
+                resourceId?: string | null;
+              }>;
+            }) || ({} as any);
+          session.user = userObj as any;
+          userObj.id = (token.id as string) ?? userObj.id;
+          userObj.email = (token.email as string) ?? userObj.email;
+          userObj.name = (token.name as string) ?? userObj.name;
+          userObj.image = (token.image as string) ?? userObj.image;
+          userObj.roles = [];
+          userObj.permissions = [];
+        }
+        return session;
+      }
+
       // Handle both JWT (for credentials) and database sessions (for OAuth)
       if (token) {
         session.user.id = token.id as string;
