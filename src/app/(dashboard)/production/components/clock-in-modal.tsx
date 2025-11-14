@@ -188,7 +188,7 @@ export function ClockInModal(props: ClockInModalProps) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[500px] min-h-[600px] overflow-clip content-start">
+        <DialogContent className="w-[400px] min-h-[400px] overflow-clip content-start">
           <DialogHeader>
             <DialogTitle>Clock In / Out</DialogTitle>
           </DialogHeader>
@@ -253,10 +253,10 @@ export function ClockInModal(props: ClockInModalProps) {
                     {scannedUsers.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
+                        className="flex items-center justify-between px-2 py-1 rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
-                          <Avatar>
+                          <Avatar className="h-6 w-6">
                             <AvatarImage src={user.image ?? undefined} />
                             <AvatarFallback>{user.name[0]}</AvatarFallback>
                           </Avatar>

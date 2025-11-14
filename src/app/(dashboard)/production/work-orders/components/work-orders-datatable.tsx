@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProductionStatusBadge } from './production-status-badge';
+import { StatusDropdownCell } from './status-dropdown-cell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,15 +31,19 @@ import { deleteWorkOrder } from '@/lib/actions';
 import { PermissionGate } from '@/components/rbac/permission-gate';
 import { PERMISSIONS } from '@/lib/rbac';
 import { DataTable } from '@/components/ui/data-table';
+import { BadgeList } from '@/components/ui/badge-list';
+import { WorkOrderTag } from '@prisma/client';
 
 // WorkOrderData is the type of the work orders that are returned from the database
 type WorkOrderData = WorkOrders['workOrders'][0];
 
 // ----------------------------- Table columns -----------------------------
 function getColumns({
-  onDeleteClick
+  onDeleteClick,
+  onStatusChange
 }: {
   onDeleteClick: (wo: WorkOrderData) => void;
+  onStatusChange?: () => void;
 }): ColumnDef<WorkOrderData>[] {
   return [
     {
@@ -102,7 +107,31 @@ function getColumns({
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
-        return <ProductionStatusBadge status={status} />;
+        const workOrderId = row.original.id;
+        return (
+          <StatusDropdownCell
+            workOrderId={workOrderId}
+            currentStatus={status}
+            onStatusChange={onStatusChange}
+          />
+        );
+      }
+    },
+    {
+      accessorKey: 'tags',
+      header: 'Tags',
+      cell: ({ row }) => {
+        const tags = row.original.tags as WorkOrderTag[];
+        return <BadgeList badges={tags || []} />;
+      },
+      enableSorting: false
+    },
+    {
+      accessorKey: 'isTimerRunning',
+      header: 'Timer Running',
+      cell: ({ row }) => {
+        const isTimerRunning = row.getValue('isTimerRunning') as boolean;
+        return <div>{isTimerRunning ? 'Yes' : 'No'}</div>;
       }
     },
     {
@@ -306,7 +335,10 @@ export function WorkOrdersDataTable({
     setWorkOrderToDelete(null);
   }, []);
 
-  const columns = getColumns({ onDeleteClick: handleDeleteClick });
+  const columns = getColumns({
+    onDeleteClick: handleDeleteClick,
+    onStatusChange: refetchAction
+  });
 
   return (
     <div className="w-full">

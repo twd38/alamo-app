@@ -95,7 +95,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
   const handleStartStop = async () => {
     setIsLoading(true);
     try {
-      if (workOrderStatus === WorkOrderStatus.IN_PROGRESS) {
+      if (workOrder.isTimerRunning) {
         // Pause the work order
         const result = await pauseWorkOrderProduction(workOrder.id);
         if (result.success) {
@@ -119,10 +119,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
     const hasUsers = clockedInUsers.length > 0;
     const isDisabled = !hasUsers || isLoading;
 
-    if (
-      workOrderStatus === WorkOrderStatus.PAUSED ||
-      workOrderStatus === WorkOrderStatus.TODO
-    ) {
+    if (!workOrder.isTimerRunning) {
       return (
         <Button
           variant="secondary"
@@ -136,7 +133,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
       );
     }
 
-    if (workOrderStatus === WorkOrderStatus.IN_PROGRESS) {
+    if (workOrder.isTimerRunning) {
       return (
         <Button
           variant="secondary"
@@ -154,7 +151,7 @@ export function ProductionTopBar({ workOrder }: WorkOrderExecutionProps) {
   };
 
   const handleReturnClick = () => {
-    if (workOrderStatus === WorkOrderStatus.IN_PROGRESS) {
+    if (workOrder.isTimerRunning) {
       alert(
         'The work order is currently in progress. Please pause the work order before leaving the page.'
       );

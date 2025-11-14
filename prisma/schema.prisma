@@ -116,6 +116,7 @@ model WorkOrder {
   workOrderNumber String
   operation       String
   status          WorkOrderStatus
+  isTimerRunning  Boolean                  @default(false)
   dueDate         DateTime?
   createdById     String
   deletedOn       DateTime?
@@ -595,6 +596,9 @@ enum WorkOrderStatus {
   IN_PROGRESS
   COMPLETED
   SCRAPPED
+  MANUFACTURING
+  QUALITY_CONTROL
+  SHIP
 }
 
 enum TrackingType {

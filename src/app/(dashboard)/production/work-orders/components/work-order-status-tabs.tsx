@@ -36,13 +36,20 @@ export function WorkOrderStatusTabs({
       <TabsList>
         <TabsTrigger value={'ALL'}>All</TabsTrigger>
         <TabsTrigger value={WorkOrderStatus.TODO}>Todo</TabsTrigger>
-        <TabsTrigger value={WorkOrderStatus.PAUSED}>Paused</TabsTrigger>
-        <TabsTrigger value={WorkOrderStatus.IN_PROGRESS}>
-          In Progress
+        <TabsTrigger value={WorkOrderStatus.MANUFACTURING}>
+          Manufacturing
         </TabsTrigger>
+        <TabsTrigger value={WorkOrderStatus.QUALITY_CONTROL}>
+          Quality Control
+        </TabsTrigger>
+        <TabsTrigger value={WorkOrderStatus.SHIP}>Ship</TabsTrigger>
         <TabsTrigger value={WorkOrderStatus.COMPLETED}>Completed</TabsTrigger>
-        <TabsTrigger value={WorkOrderStatus.HOLD}>Hold</TabsTrigger>
-        <TabsTrigger value={WorkOrderStatus.DRAFT}>Draft</TabsTrigger>
+        {/* <TabsTrigger value={WorkOrderStatus.PAUSED}>Paused</TabsTrigger> */}
+        {/* <TabsTrigger value={WorkOrderStatus.IN_PROGRESS}>
+          In Progress
+        </TabsTrigger> */}
+        {/* <TabsTrigger value={WorkOrderStatus.HOLD}>Hold</TabsTrigger>
+        <TabsTrigger value={WorkOrderStatus.DRAFT}>Draft</TabsTrigger> */}
       </TabsList>
     </Tabs>
   );

@@ -25,7 +25,12 @@ const badgeVariants = cva(
         paused:
           'border-transparent bg-amber-500 text-amber-50 hover:bg-amber-500/80',
         scrapped:
-          'border-transparent bg-red-500 text-red-50 hover:bg-red-500/80'
+          'border-transparent bg-red-500 text-red-50 hover:bg-red-500/80',
+        manufacturing:
+          'border-transparent bg-indigo-500 text-indigo-50 hover:bg-indigo-500/80',
+        'quality-control':
+          'border-transparent bg-cyan-500 text-cyan-50 hover:bg-cyan-500/80',
+        ship: 'border-transparent bg-emerald-500 text-emerald-50 hover:bg-emerald-500/80'
       },
       color: {
         slate: 'bg-slate-100 text-slate-900 hover:bg-slate-200',

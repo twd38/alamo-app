@@ -396,26 +396,23 @@ export function CreateWorkOrderDialog({ part }: CreateWorkOrderDialogProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={WorkOrderStatus.DRAFT}>
-                            Draft
-                          </SelectItem>
                           <SelectItem value={WorkOrderStatus.TODO}>
                             To Do
-                          </SelectItem>
-                          <SelectItem value={WorkOrderStatus.IN_PROGRESS}>
-                            In Progress
                           </SelectItem>
                           <SelectItem value={WorkOrderStatus.PAUSED}>
                             Paused
                           </SelectItem>
-                          <SelectItem value={WorkOrderStatus.HOLD}>
-                            Hold
+                          <SelectItem value={WorkOrderStatus.MANUFACTURING}>
+                            Manufacturing
+                          </SelectItem>
+                          <SelectItem value={WorkOrderStatus.QUALITY_CONTROL}>
+                            Quality Control
                           </SelectItem>
                           <SelectItem value={WorkOrderStatus.COMPLETED}>
                             Completed
                           </SelectItem>
-                          <SelectItem value={WorkOrderStatus.SCRAPPED}>
-                            Scrapped
+                          <SelectItem value={WorkOrderStatus.SHIP}>
+                            Ship
                           </SelectItem>
                         </SelectContent>
                       </Select>

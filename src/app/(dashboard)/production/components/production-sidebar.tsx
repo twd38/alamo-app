@@ -121,10 +121,12 @@ export function ProductionSidebar({
     }
   }, [searchParams]);
 
-  const isWorkOrderInProgress =
-    workOrder?.status === WorkOrderStatus.IN_PROGRESS;
+  const isWorkOrderInProgress = workOrder?.isTimerRunning === true;
 
-  const isWorkOrderCompleted = workOrder?.status === WorkOrderStatus.COMPLETED;
+  const isWorkOrderCompleted =
+    workOrder?.status === WorkOrderStatus.COMPLETED ||
+    workOrder?.status === WorkOrderStatus.QUALITY_CONTROL ||
+    false;
 
   // Find the corresponding work order step (execution tracking is embedded)
   const isStepCompleted = step?.status === 'COMPLETED';
@@ -154,9 +156,10 @@ export function ProductionSidebar({
     completedRequiredActions.length === requiredActions.length;
 
   // For the print labels step, require that labels have been printed
-  const canCompleteStep = isPrintLabelsStep
-    ? isWorkOrderInProgress && workOrder?.labelsPrinted && isStepCompleted
-    : isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
+  const canCompleteStep =
+    isPrintLabelsStep && isWorkOrderInProgress
+      ? isWorkOrderInProgress && workOrder?.labelsPrinted && isStepCompleted
+      : isWorkOrderInProgress && allActionsCompleted && !isStepCompleted;
 
   const handleCompleteStep = async () => {
     if (!step || !workOrder) return;

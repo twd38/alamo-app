@@ -1254,7 +1254,8 @@ export async function updateWorkOrder({
   assigneeIds,
   notes,
   operation,
-  status
+  status,
+  tagIds
 }: {
   workOrderId: string;
   dueDate?: Date | null;
@@ -1263,6 +1264,7 @@ export async function updateWorkOrder({
   notes?: string;
   operation?: string;
   status?: WorkOrderStatus;
+  tagIds?: string[];
 }) {
   try {
     // Import RBAC functions
@@ -1367,6 +1369,18 @@ export async function updateWorkOrder({
             }))
           });
         }
+      }
+
+      // Handle tags update if provided
+      if (tagIds !== undefined) {
+        await tx.workOrder.update({
+          where: { id: workOrderId },
+          data: {
+            tags: {
+              set: tagIds.map((tagId) => ({ id: tagId }))
+            }
+          }
+        });
       }
 
       // Update QUANTITY_INPUT actions target values if partQty was updated
@@ -1505,10 +1519,10 @@ export async function startWorkOrderProduction(workOrderId: string) {
     }))
   });
 
-  // Update the work order status to IN_PROGRESS
+  // Update the work order timer to running
   await prisma.workOrder.update({
     where: { id: workOrderId },
-    data: { status: WorkOrderStatus.IN_PROGRESS }
+    data: { isTimerRunning: true, status: WorkOrderStatus.MANUFACTURING }
   });
 
   // The first step is already initialized when creating the work order
@@ -1551,8 +1565,8 @@ export async function pauseWorkOrderProduction(workOrderId: string) {
   await prisma.workOrder.update({
     where: { id: workOrderId },
     data: {
-      status: WorkOrderStatus.PAUSED,
-      timeTaken: (currentWorkOrder?.timeTaken || 0) + timeTakenForCurrentEntry
+      timeTaken: (currentWorkOrder?.timeTaken || 0) + timeTakenForCurrentEntry,
+      isTimerRunning: false
     }
   });
 
@@ -1639,7 +1653,7 @@ export async function completeWorkOrder(workOrderId: string) {
       return { success: false, error: 'Work order not found' };
     }
 
-    if (currentWorkOrder.status !== WorkOrderStatus.IN_PROGRESS) {
+    if (currentWorkOrder.status !== WorkOrderStatus.MANUFACTURING) {
       return {
         success: false,
         error: 'Work order must be in progress to complete'
@@ -1669,7 +1683,8 @@ export async function completeWorkOrder(workOrderId: string) {
     const updatedWorkOrder = await prisma.workOrder.update({
       where: { id: workOrderId },
       data: {
-        status: WorkOrderStatus.COMPLETED,
+        status: WorkOrderStatus.QUALITY_CONTROL,
+        isTimerRunning: false,
         timeTaken: (currentWorkOrder.timeTaken || 0) + timeTakenForCurrentEntry
       }
     });

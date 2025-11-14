@@ -43,10 +43,10 @@ const ProductionPageContent = () => {
       ? [
           WorkOrderStatus.TODO,
           WorkOrderStatus.PAUSED,
-          WorkOrderStatus.IN_PROGRESS,
           WorkOrderStatus.COMPLETED,
-          WorkOrderStatus.HOLD,
-          WorkOrderStatus.DRAFT
+          WorkOrderStatus.MANUFACTURING,
+          WorkOrderStatus.QUALITY_CONTROL,
+          WorkOrderStatus.SHIP
         ]
       : (statusParam as WorkOrderStatus);
 

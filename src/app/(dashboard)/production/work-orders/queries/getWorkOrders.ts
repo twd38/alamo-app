@@ -70,7 +70,8 @@ export async function getWorkOrders({
           include: {
             user: true
           }
-        }
+        },
+        tags: true
       },
       orderBy: {
         [sortBy]: sortOrder

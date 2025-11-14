@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { WorkOrderStatus } from '@prisma/client';
-import { updateWorkOrder } from '@/lib/actions';
+import { WorkOrderStatus, WorkOrderTag } from '@prisma/client';
+import { updateWorkOrder, createWorkOrderTag } from '@/lib/actions';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,6 +13,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { UserSelect } from '@/components/user-select';
+import { TagSelect } from '@/components/tag-select';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, Prisma } from '@prisma/client';
+import { getWorkOrderTags } from '@/app/(dashboard)/parts/library/[partId]/queries/getWorkOrderTags';
 
 type WorkOrder = Prisma.WorkOrderGetPayload<{
   include: {
@@ -38,6 +40,7 @@ type WorkOrder = Prisma.WorkOrderGetPayload<{
     };
     assignees: true;
     files: true;
+    tags: true;
   };
 }>;
 
@@ -58,6 +61,22 @@ export function WorkOrderDetailsEditor({
   const [editingStatus, setEditingStatus] = useState<WorkOrderStatus>(
     WorkOrderStatus.TODO
   );
+  const [editingTags, setEditingTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<WorkOrderTag[]>([]);
+
+  // Fetch available tags
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const tags = await getWorkOrderTags();
+        setAvailableTags(tags);
+      } catch (error) {
+        console.error('Failed to load work order tags', error);
+        setAvailableTags([]);
+      }
+    };
+    fetchTags();
+  }, []);
 
   // Initialize editable fields when work order data loads
   useEffect(() => {
@@ -70,6 +89,7 @@ export function WorkOrderDetailsEditor({
       setEditingQuantity(workOrder.partQty.toString());
       setEditingAssignees(workOrder.assignees.map((a) => a.userId));
       setEditingStatus(workOrder.status as WorkOrderStatus);
+      setEditingTags(workOrder.tags?.map((tag) => tag.id) || []);
     }
   }, [workOrder]);
 
@@ -141,7 +161,6 @@ export function WorkOrderDetailsEditor({
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
     setEditingStatus(newStatus);
-    console.log('newStatus', newStatus);
     try {
       const result = await updateWorkOrder({
         workOrderId: workOrder.id,
@@ -160,15 +179,57 @@ export function WorkOrderDetailsEditor({
     }
   };
 
+  const handleCreateWorkOrderTag = async (
+    name: string
+  ): Promise<WorkOrderTag> => {
+    try {
+      const result = await createWorkOrderTag(name);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to create tag');
+      }
+
+      const newTag = result.data as WorkOrderTag;
+      setAvailableTags((prev) => [...prev, newTag]);
+      return newTag;
+    } catch (error) {
+      console.error('Failed to create work order tag', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create tag'
+      );
+      throw error;
+    }
+  };
+
+  const handleTagsChange = async (newTagIds: string[]) => {
+    setEditingTags(newTagIds);
+
+    try {
+      const result = await updateWorkOrder({
+        workOrderId: workOrder.id,
+        tagIds: newTagIds
+      });
+
+      if (result.success) {
+        onUpdate();
+        toast.success('Tags updated successfully');
+      } else {
+        toast.error(result.error || 'Failed to update tags');
+      }
+    } catch (error) {
+      console.error('Error updating tags:', error);
+      toast.error('Failed to update tags');
+    }
+  };
+
   const getStatusOptions = () => {
     return [
-      { value: WorkOrderStatus.DRAFT, label: 'Draft' },
       { value: WorkOrderStatus.TODO, label: 'To Do' },
-      { value: WorkOrderStatus.HOLD, label: 'Hold' },
-      { value: WorkOrderStatus.IN_PROGRESS, label: 'In Progress' },
       { value: WorkOrderStatus.PAUSED, label: 'Paused' },
+      { value: WorkOrderStatus.MANUFACTURING, label: 'Manufacturing' },
+      { value: WorkOrderStatus.QUALITY_CONTROL, label: 'Quality Control' },
       { value: WorkOrderStatus.COMPLETED, label: 'Completed' },
-      { value: WorkOrderStatus.SCRAPPED, label: 'Scrapped' }
+      { value: WorkOrderStatus.SHIP, label: 'Ship' }
     ];
   };
 
@@ -227,6 +288,18 @@ export function WorkOrderDetailsEditor({
                       multiSelect={true}
                       placeholder="Select assignees..."
                       className=""
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Tags</label>
+                  <div className="mt-1">
+                    <TagSelect
+                      tags={availableTags}
+                      value={editingTags}
+                      onChange={handleTagsChange}
+                      placeholder="Select or create tags"
+                      onCreateTag={handleCreateWorkOrderTag}
                     />
                   </div>
                 </div>

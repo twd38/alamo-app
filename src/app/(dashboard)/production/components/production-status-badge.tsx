@@ -25,6 +25,12 @@ export function ProductionStatusBadge({
         return 'paused';
       case 'SCRAPPED':
         return 'scrapped';
+      case 'MANUFACTURING':
+        return 'manufacturing';
+      case 'QUALITY_CONTROL':
+        return 'quality-control';
+      case 'SHIP':
+        return 'ship';
       default:
         return 'secondary';
     }

@@ -20,6 +20,7 @@ type WorkOrder = Prisma.WorkOrderGetPayload<{
     };
     assignees: true;
     files: true;
+    tags: true;
   };
 }>;
 
