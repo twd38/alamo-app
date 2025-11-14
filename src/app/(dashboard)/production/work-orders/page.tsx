@@ -159,7 +159,6 @@ const ProductionPageContent = () => {
 
 const ProductionPageWrapper = () => {
   const searchParams = useSearchParams();
-  const status = searchParams.get('status') || 'TODO';
   const view = searchParams.get('view') === 'kanban' ? 'kanban' : 'list';
 
   return (
@@ -170,7 +169,7 @@ const ProductionPageWrapper = () => {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Work Orders</h2>
             <p className="text-muted-foreground">
-              Browse and manage work orders in the system
+              View and manage all work orders
             </p>
           </div>
 
