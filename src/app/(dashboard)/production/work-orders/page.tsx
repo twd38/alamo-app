@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, Suspense } from 'react';
+import { useMemo, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import BasicTopBar from '@/components/layouts/basic-top-bar';
@@ -12,7 +12,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getWorkOrders } from './queries';
+import { getWorkOrdersKanban } from './queries/getWorkOrdersKanban';
 import { WorkOrderStatus } from '@prisma/client';
+import { WorkOrdersKanban } from './components/work-orders-kanban';
+import { WorkOrderViewToggle } from './components/view-toggle';
+import { cn } from '@/lib/utils';
 
 const ProductionLoadingSkeleton = () => (
   <div className="space-y-4">
@@ -38,6 +42,8 @@ const ProductionPageContent = () => {
   const sortBy = searchParams.get('sortBy') || 'dueDate';
   const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
   const statusParam = searchParams.get('status') || 'TODO';
+  const viewParam = searchParams.get('view');
+  const view: 'list' | 'kanban' = viewParam === 'kanban' ? 'kanban' : 'list';
   const status: WorkOrderStatus | WorkOrderStatus[] =
     statusParam === 'ALL'
       ? [
@@ -82,8 +88,30 @@ const ProductionPageContent = () => {
     }
   );
 
+  const {
+    data: kanbanData,
+    error: kanbanError,
+    isLoading: kanbanLoading,
+    mutate: mutateKanban
+  } = useSWR(
+    view === 'kanban' ? ['work-orders-kanban', query] : null,
+    () =>
+      getWorkOrdersKanban({
+        query
+      }),
+    {
+      revalidateOnFocus: false,
+      keepPreviousData: true
+    }
+  );
+
+  const handleStatusUpdate = useCallback(() => {
+    mutate();
+    mutateKanban?.();
+  }, [mutate, mutateKanban]);
+
   // Error state
-  if (error) {
+  if (view === 'list' && error) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -94,38 +122,67 @@ const ProductionPageContent = () => {
     );
   }
 
+  if (view === 'kanban') {
+    if (kanbanError) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load work orders. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <WorkOrdersKanban
+        workOrders={kanbanData?.workOrders || []}
+        loading={kanbanLoading && !kanbanData}
+        onStatusChange={handleStatusUpdate}
+        onArchive={handleStatusUpdate}
+      />
+    );
+  }
+
   return (
-    <WorkOrdersDataTable
-      workOrders={data?.workOrders || []}
-      totalCount={data?.totalCount || 0}
-      refetchAction={mutate}
-      loading={isLoading}
-    />
+    <div className="w-full space-y-4">
+      <WorkOrderStatusTabs initialStatus={status as string} />
+      <WorkOrdersDataTable
+        workOrders={data?.workOrders || []}
+        totalCount={data?.totalCount || 0}
+        refetchAction={mutate}
+        loading={isLoading}
+      />
+    </div>
   );
 };
 
 const ProductionPageWrapper = () => {
   const searchParams = useSearchParams();
   const status = searchParams.get('status') || 'TODO';
+  const view = searchParams.get('view') === 'kanban' ? 'kanban' : 'list';
 
   return (
-    <div className="h-full">
+    <div className="flex h-screen flex-col overflow-hidden">
       <BasicTopBar />
-      <PageContainer>
-        <div className="h-full flex-1 flex-col space-y-4 md:flex">
-          <div className="flex items-center justify-between space-y-1">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Work Orders</h2>
-              <p className="text-muted-foreground">
-                Browse and manage work orders in the system
-              </p>
-            </div>
+      <PageContainer className="flex flex-1 flex-col gap-4 overflow-hidden">
+        <div className="flex items-center justify-between space-y-1">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Work Orders</h2>
+            <p className="text-muted-foreground">
+              Browse and manage work orders in the system
+            </p>
           </div>
 
-          <div className="flex items-center justify-between">
-            <WorkOrderStatusTabs initialStatus={status} />
-          </div>
+          <WorkOrderViewToggle />
+        </div>
 
+        <div
+          className={cn(
+            'flex-1',
+            view === 'kanban' ? 'overflow-hidden' : 'overflow-auto'
+          )}
+        >
           <Suspense fallback={<ProductionLoadingSkeleton />}>
             <ProductionPageContent />
           </Suspense>
