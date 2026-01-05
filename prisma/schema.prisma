@@ -43,6 +43,9 @@ model User {
   
   // Comments relationship
   comments              Comment[]            @relation("CommentAuthor")
+
+  // Projects relationship
+  createdProjects       Project[]
 }
 
 model Account {
@@ -192,10 +195,35 @@ model WorkOrderTag {
 }
 
 model Project {
-  id    String  @id @default(cuid())
-  name  String
-  color String? @default("bg-gray-500")
-  tasks Task[]
+  id              String   @id @default(cuid())
+  name            String
+  color           String?  @default("bg-gray-500")
+
+  // Site Analysis data (snapshot from parcel selection)
+  parcelNumber    String?
+  address         String?
+  lotAreaSqFt     Float?
+  zoningCode      String?
+  floodZone       String?
+  latitude        Float?
+  longitude       Float?
+
+  // Computed metrics (snapshot at creation)
+  maxUnits        Int?
+  buildableArea   Float?
+  estimatedValue  Float?
+  landCost        Float?
+
+  // Ownership
+  createdById     String?
+  createdBy       User?    @relation(fields: [createdById], references: [id])
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  tasks           Task[]
 }
 
 model KanbanSection {

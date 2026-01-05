@@ -8,9 +8,9 @@ import { ReactNode } from 'react';
 import {
   getParcelDetail,
   ParcelDetail,
-  getParcelZoning,
-  ParcelZoning,
-  getDevelopmentPlan
+  getDevelopmentPlan,
+  getFloodZone,
+  FloodZoneData
 } from '../queries';
 import { PropertyDetail } from './property-detail';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -55,7 +55,7 @@ const Map = () => {
   const [parcelData, setParcelData] = useState<ParcelDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [zoningData, setZoningData] = useState<ParcelZoning | null>(null);
+  const [floodZoneData, setFloodZoneData] = useState<FloodZoneData | null>(null);
 
   // Selected development-plan details (full object)
   const [planDetail, setPlanDetail] = useState<DevelopmentPlan | null>(null);
@@ -169,7 +169,7 @@ const Map = () => {
   const handleMapClick = useCallback(
     async (e: mapboxgl.MapMouseEvent) => {
       setParcelData(null);
-      setZoningData(null);
+      setFloodZoneData(null);
 
       const features = mapRef?.current?.queryRenderedFeatures(e.point, {
         layers: [PARCEL_FILL_LAYER_ID]
@@ -195,7 +195,8 @@ const Map = () => {
         markerRef.current.setLngLat([lng, lat]).addTo(mapRef.current);
       }
 
-      router.push(`/explorer?view=property_detail&address=${fullAddress}`);
+      // Include coordinates in URL so mock data can use the actual clicked location
+      router.push(`/explorer?view=property_detail&address=${encodeURIComponent(fullAddress)}&lat=${lat}&lng=${lng}`);
     },
     [router]
   );
@@ -418,8 +419,17 @@ const Map = () => {
         try {
           setError(null);
 
-          const parcelResult = await getParcelDetail(address);
-          const zoningResult = await getParcelZoning(address);
+          // Get coordinates from URL if available (from map click)
+          const urlLat = queryParams.get('lat');
+          const urlLng = queryParams.get('lng');
+          const hasUrlCoords = urlLat && urlLng;
+
+          // Single API call to Regrid with return_zoning=true gets both parcel and zoning data
+          // Pass URL coordinates so mock data uses the actual clicked location
+          const parcelResult = await getParcelDetail(
+            address,
+            hasUrlCoords ? { lat: parseFloat(urlLat), lng: parseFloat(urlLng) } : undefined
+          );
 
           if (parcelResult.success && parcelResult.data) {
             setParcelData(parcelResult.data);
@@ -428,18 +438,25 @@ const Map = () => {
             setParcelData(null);
           }
 
-          if (zoningResult.success && zoningResult.data) {
-            setZoningData(zoningResult.data);
-          } else {
-            setError(zoningResult.error || 'Failed to fetch zoning data');
-            setZoningData(null);
+          // Use URL coordinates if available, otherwise use API result
+          const lng = hasUrlCoords ? parseFloat(urlLng) : parcelResult.data?.longitude;
+          const lat = hasUrlCoords ? parseFloat(urlLat) : parcelResult.data?.latitude;
+
+          // Fetch flood zone data if we have coordinates
+          if (lat && lng) {
+            const floodResult = await getFloodZone(lat, lng);
+            if (floodResult.success && floodResult.data) {
+              setFloodZoneData(floodResult.data);
+            } else {
+              // Don't set error for flood zone - it's optional
+              console.warn('Failed to fetch flood zone data:', floodResult.error);
+              setFloodZoneData(null);
+            }
           }
 
-          const lng = parcelResult.data?.longitude;
-          const lat = parcelResult.data?.latitude;
-
-          // add marker to map and fly to location
-          if (markerRef.current && mapRef.current && lng && lat) {
+          // Only fly to location if we DON'T have URL coords (meaning this is from search, not click)
+          // When clicking on map, handleMapClick already flies to the location
+          if (markerRef.current && mapRef.current && lng && lat && !hasUrlCoords) {
             markerRef.current.setLngLat([lng, lat]).addTo(mapRef.current);
 
             // Fly to the location
@@ -450,13 +467,13 @@ const Map = () => {
         } catch (err) {
           setError('An unexpected error occurred');
           setParcelData(null);
-          setZoningData(null);
+          setFloodZoneData(null);
         }
       }
     };
 
     fetchParcelData();
-  }, [address]);
+  }, [address, queryParams]);
 
   /**
    * Helper: remove all developable parcel markers
@@ -907,7 +924,7 @@ const Map = () => {
         <div className="w-1/4 min-w-[400px] flex flex-col overflow-y-auto max-h-[calc(100vh-48px)]">
           <PropertyDetail
             parcel={parcelData}
-            parcelZoning={zoningData}
+            floodZone={floodZoneData}
             onClose={handleClosePropertyDetail}
           />
         </div>

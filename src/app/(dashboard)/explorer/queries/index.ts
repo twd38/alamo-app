@@ -1,3 +1,7 @@
 export { getDevelopmentPlan } from './getDevelopmentPlan';
-export { getParcelDetail, type ParcelDetail } from './getParcelDetail';
-export { getParcelZoning, type ParcelZoning } from './getParcelZoning';
+export {
+  getParcelDetail,
+  type ParcelDetail,
+  type ParcelZoning
+} from './getParcelDetail';
+export { getFloodZone, type FloodZoneData } from './getFloodZone';
