@@ -1,28 +1,39 @@
 'use client';
 
 import type React from 'react';
-import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Share, X, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import type { ParcelDetail, ParcelZoning } from '../queries';
-import { ScenarioDetail, ScenarioDetailProps } from './scenario-detail';
-import { evaluateLot } from '@/lib/actions';
-import Image from 'next/image';
+import type { ParcelDetail, FloodZoneData } from '../queries';
+import {
+  HeadlineMetrics,
+  calculateHeadlineMetrics
+} from './headline-metrics';
+import { RedFlags } from './red-flags';
+import { CreateProjectModal } from './create-project-modal';
+
 interface PropertyDetailProps {
   parcel: ParcelDetail | null;
-  parcelZoning: ParcelZoning | null;
+  floodZone: FloodZoneData | null;
   onClose: () => void;
 }
 
 export function PropertyDetail({
   parcel,
-  parcelZoning,
+  floodZone,
   onClose
 }: PropertyDetailProps) {
-  // const [scenario, setScenario] = useState<ScenarioDetailProps | null>(null);
-  const [scenario, setScenario] = useState<any>(null);
-  const [openScenario, setOpenScenario] = useState(false);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+
+  // Calculate headline metrics using parcel.zoningData
+  const headlineMetrics = useMemo(
+    () => calculateHeadlineMetrics(parcel),
+    [parcel]
+  );
+
+  // Get zoning data from parcel
+  const zoning = parcel?.zoningData ?? null;
 
   if (!parcel) {
     return (
@@ -38,9 +49,6 @@ export function PropertyDetail({
   const streetAddress = parcel.streetAddress;
   const owner = parcel.ownerInfo;
   const records = (parcel.parcelRecords as any[]) || [];
-  const zoning = parcelZoning as ParcelZoning | null;
-
-  // console.log(parcelZoning)
 
   // Helper to safely stringify any value for display
   function safeValue(val: unknown): string | React.ReactNode {
@@ -49,35 +57,6 @@ export function PropertyDetail({
     return String(val);
   }
 
-  const handleCreateScenario = async () => {
-    const result = await evaluateLot({
-      id: parcel.id || '',
-      zoning: zoning?.zoning || '',
-      areaSqFt: dims?.gisSqft || 0,
-      widthFt: dims?.lotWidth || 0,
-      depthFt: dims?.lotDepth || 0,
-      heightLimitFt: zoning?.maxBuildingHeightFt || null,
-      farLimit: zoning?.maxFar || null,
-      coverageLimit: zoning?.maxCoveragePct || null,
-      unitLimit: zoning?.maxDensityDuPerAcre || null,
-      parkingMinPerUnit: zoning?.maxDensityDuPerAcre || 0,
-      setbacks: {
-        front: zoning?.minFrontSetbackFt || 0,
-        rear: zoning?.minRearSetbackFt || 0,
-        side: zoning?.minSideSetbackFt || 0
-      },
-      landCost: appraisal?.parcelValue || 0
-    });
-
-    setScenario({
-      id: parcel.id || '',
-      name: 'Scenario 1',
-      image: '',
-      modelUrl: '',
-      metrics: result
-    });
-    setOpenScenario(true);
-  };
 
   return (
     <div className="flex h-full w-full flex-col overflow-auto scrollbar-hide border-r bg-white">
@@ -103,18 +82,42 @@ export function PropertyDetail({
         </Button>
       </div>
 
-      {zoning?.screenshot && (
-        <div className="relative min-h-[220px] max-h-[250px] w-full">
-          <Image
-            src={zoning.screenshot}
-            alt="Parcel Zone"
-            fill
-            className="object-cover"
-          />
-        </div>
-      )}
-
       <div className="p-4 space-y-6">
+        {/* Headline Metrics Dashboard */}
+        <HeadlineMetrics parcel={parcel} />
+
+        {/* Red Flags */}
+        <RedFlags floodZone={floodZone} />
+
+        {/* Site Limitations */}
+        {floodZone && (
+          <Section title="Site Limitations">
+            <Row
+              label="Flood Zone"
+              value={floodZone.floodZone || 'Not mapped'}
+            />
+            <Row
+              label="Flood Risk"
+              value={
+                floodZone.floodRisk
+                  ? floodZone.floodRisk.charAt(0).toUpperCase() +
+                    floodZone.floodRisk.slice(1)
+                  : 'Unknown'
+              }
+            />
+            <Row
+              label="Special Flood Hazard Area"
+              value={floodZone.specialFloodHazardArea ? 'Yes' : 'No'}
+            />
+            {floodZone.effectiveDate && (
+              <Row
+                label="FEMA Map Date"
+                value={floodZone.effectiveDate}
+              />
+            )}
+          </Section>
+        )}
+
         {/* Summary Section */}
         <Section title="Summary">
           <Row
@@ -279,16 +282,20 @@ export function PropertyDetail({
       <div className="sticky bottom-0 mt-auto border-t bg-white p-4">
         <Button
           className="w-full bg-blue-500 hover:bg-blue-600"
-          onClick={handleCreateScenario}
+          onClick={() => setShowCreateProjectModal(true)}
         >
           Create project
         </Button>
       </div>
-      {/* <ScenarioDetail 
-        open={openScenario} 
-        onOpenChange={setOpenScenario} 
-        scenario={scenario} 
-      /> */}
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        open={showCreateProjectModal}
+        onOpenChange={setShowCreateProjectModal}
+        parcel={parcel}
+        floodZone={floodZone}
+        headlineMetrics={headlineMetrics}
+      />
     </div>
   );
 }
